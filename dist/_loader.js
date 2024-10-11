@@ -1,4 +1,3 @@
-// FIXME: replace all console.* calls with terminal calls
 const DATA_ITEMS = [];
 const DATA_RECIPES = [];
 const DATA_ASPECTS = new Set();
@@ -129,28 +128,19 @@ export function setDataItems(items) {
         DATA_ITEMS.push(item);
     }
 }
-export function findItems(options) {
+export function findItems(min = {}, max = {}) {
     return SAVE_ITEMS.filter(item => {
-        for (const [aspect, amount] of Object.entries(options.min ?? {})) {
+        for (const [aspect, amount] of Object.entries(min)) {
             const aspectCount = item.aspects[aspect];
             if (aspectCount === undefined || aspectCount < amount) {
                 return false;
             }
         }
-        for (const [aspect, amount] of Object.entries(options.max ?? {})) {
+        for (const [aspect, amount] of Object.entries(max)) {
             const aspectCount = item.aspects[aspect];
             if (aspectCount !== undefined && aspectCount > amount) {
                 return false;
             }
-        }
-        if (!Object.entries(options.any ?? {}).some(([aspect, amount]) => {
-            const aspectCount = item.aspects[aspect];
-            if (aspectCount !== undefined && aspectCount > amount) {
-                return true;
-            }
-            return false;
-        })) {
-            return false;
         }
         return true;
     });

@@ -1,5 +1,6 @@
-
 import type * as types from "./types.js";
+
+// FIXME: replace all console.* calls with terminal calls
 
 const DATA_ITEMS: types.dataItem[] = [];
 const DATA_RECIPES: types.dataRecipe[] = [];
@@ -130,16 +131,25 @@ export function setDataItems(items:types.dataItem[]):void{
 		DATA_ITEMS.push(item);
 	}
 }
-export function findItems(min: types.aspects={}, max: types.aspects={}): types.foundItems[] {
+export function findItems(options:{
+	min?: types.aspects,
+	any?: types.aspects,
+	max?: types.aspects,
+}): types.foundItems[] {
 	return SAVE_ITEMS.filter(item=>{
-		for (const [aspect, amount] of Object.entries(min)) {
+		for (const [aspect, amount] of Object.entries(options.min??{})) {
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount===undefined || aspectCount < amount){return false;}
 		}
-		for (const [aspect, amount] of Object.entries(max)) {
+		for (const [aspect, amount] of Object.entries(options.max??{})) {
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount!==undefined && aspectCount > amount){return false;}
 		}
+		if (!Object.entries(options.any??{}).some(([aspect, amount])=>{
+			const aspectCount = item.aspects[aspect];
+			if(aspectCount!==undefined && aspectCount > amount){return true;}
+			return false;
+		})) {return false;}
 		return true;
 	})
 }

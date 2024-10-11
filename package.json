@@ -1,10 +1,14 @@
 {
-  "dependencies": {
+  "devDependencies": {
     "@tsconfig/strictest": "^2.0.5",
     "@types/node": "^22.7.5",
-    "iconv-lite": "^0.6.3",
+    "@types/terminal-kit": "^2.5.6",
     "typescript": "^5.6.2"
   },
-  "main": "./dist/app.js",
+  "dependencies": {
+    "iconv-lite": "^0.6.3",
+    "terminal-kit": "^3.1.1"
+  },
+  "main": "./dist/terminal.js",
   "type": "module"
 }
