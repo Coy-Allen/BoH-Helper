@@ -1,6 +1,6 @@
 import terminalKit from "terminal-kit";
-import * as loader from "./fileLoader.js";
-import * as inputProcessing from "./inputProcessing.js";
+import * as fileLoader from "./fileLoader.js";
+import * as commandProcessing from "./commandProcessing.js";
 
 type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
 type inputNode = [string,inputNode[]|commandFunc];
@@ -9,23 +9,24 @@ const term = terminalKit.terminal;
 const inputTree:[string,inputNode[]] = ["",[
 	["help",():void=>{term("WIP\n");}],
 	["clear",():void=>{term.clear()}],
-	["exit",inputProcessing.exit],
-	["quit",inputProcessing.exit],
-	["stop",inputProcessing.exit],
-	["load",inputProcessing.load],
+	["exit",commandProcessing.exit],
+	["quit",commandProcessing.exit],
+	["stop",commandProcessing.exit],
+	["load",commandProcessing.load],
 	["list",[
-		["aspects",inputProcessing.listAspects],
+		["aspects",commandProcessing.listAspects],
 		// locked recipes? maybe. could cause spoiler issues
 		// shorthands for empty searches. see "search *" commands
 	]],
 	["info",[
-		["items",inputProcessing.infoItems],
+		["items",commandProcessing.infoItems],
 	]],
 	["search",[
+		["verbs",commandProcessing.searchVerbs],
 		// crafting areas
 		// locked rooms
-		["items",inputProcessing.searchItems],
-		["recipes",inputProcessing.searchRecipes],
+		["items",commandProcessing.searchItems],
+		["recipes",commandProcessing.searchRecipes],
 	]],
 	// something for missing things?
 		// how many skills are left
@@ -47,11 +48,11 @@ async function main(): Promise<void> {
 	term.yellow("Book of Hours' Watcher\n");
 	const fileLoadingProgress = term.progressBar({
 		title: "Loading Files",
-		items: loader.fileMetaDataList.length,
+		items: fileLoader.fileMetaDataList.length,
 		inline: true,
 		// syncMode: true, // BUGGED: https://github.com/cronvel/terminal-kit/issues/251
 	});
-	await loader.loadFiles((type,filename):void=>{
+	await fileLoader.loadFiles((type,filename):void=>{
 		switch(type){
 			case "start":{
 				fileLoadingProgress.startItem(filename);

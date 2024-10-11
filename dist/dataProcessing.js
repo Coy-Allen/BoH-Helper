@@ -1,8 +1,18 @@
+// FIXME: replace all console.* calls with terminal calls
 const DATA_ITEMS = [];
 const DATA_RECIPES = [];
+const DATA_VERBS = [];
 const DATA_ASPECTS = new Set();
+const SAVE_ROOMS = [];
 const SAVE_ITEMS = [];
 const SAVE_RECIPES = new Set();
+const SAVE_VERBS = new Set();
+function setUnlockedRooms(rooms) {
+    SAVE_ROOMS.length = 0;
+    rooms.forEach(room => {
+        SAVE_ROOMS.push(room);
+    });
+}
 function setSaveRecipes(recipes) {
     SAVE_RECIPES.clear();
     recipes.forEach(recipe => {
@@ -12,6 +22,15 @@ function setSaveRecipes(recipes) {
         SAVE_RECIPES.add(recipe);
     });
 }
+function setSaveVerbs(verbs) {
+    SAVE_VERBS.clear();
+    verbs.forEach(verb => {
+        if (!DATA_VERBS.some(dataVerb => dataVerb.id === verb)) {
+            console.warn(`verb ${verb} could not be found.`);
+        }
+        SAVE_VERBS.add(verb);
+    });
+}
 function setSaveItems(items) {
     SAVE_ITEMS.length = 0;
     for (const item of items) {
@@ -19,7 +38,7 @@ function setSaveItems(items) {
         SAVE_ITEMS.push(item);
     }
 }
-function getItemsFromSave(json) {
+function getUnlockedRoomsFromSave(json) {
     // FIXME: can't keep track of parent relationships due to filtering arrays
     const library = json.rootpopulationcommand.spheres.find((sphere) => sphere.governingspherespec.id === "library");
     if (!library) {
@@ -28,15 +47,33 @@ function getItemsFromSave(json) {
     // library.Tokens === _Rooms_
     // library.Tokens[number].Payload.IsSealed === _is not unlocked_
     // library.Tokens[number].Payload.IsShrouded === _can't be unlocked_
-    const unlockedRooms = library.tokens.filter((room) => !room.payload.issealed);
-    return unlockedRooms.flatMap((room) => {
-        const roomX = room.location.localposition.x;
-        const roomY = room.location.localposition.y;
+    return library.tokens.filter((room) => !room.payload.issealed);
+}
+function getVerbsFromSave() {
+    return SAVE_ROOMS.flatMap((room) => {
+        // const roomX = room.location.localposition.x;
+        // const roomY = room.location.localposition.y;
+        // const roomName = room.payload.id;
+        const itemDomain = room.payload.dominions.find((dominion) => dominion.identifier === "roomcontentsdominion");
+        if (!itemDomain) {
+            return [];
+        }
+        const verbs = itemDomain.spheres.flatMap(
+        // TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
+        sphere => sphere.tokens.filter(token => token.payload["$type"] === "SituationCreationCommand"));
+        return verbs.map(token => token.payload.verbid);
+    });
+}
+function getItemsFromSave() {
+    return SAVE_ROOMS.flatMap((room) => {
+        // const roomX = room.location.localposition.x;
+        // const roomY = room.location.localposition.y;
         const roomName = room.payload.id;
         const itemDomain = room.payload.dominions.find((dominion) => dominion.identifier === "roomcontentsdominion");
         if (!itemDomain) {
             return [];
         }
+        // TODO: check if $type === "ElementStackCreationCommand" could be an easier way to find this
         const containers = itemDomain.spheres.filter((container) => {
             // FIXME: false negatives
             // the others are strange
@@ -54,8 +91,8 @@ function getItemsFromSave(json) {
                     entityid: item.payload.entityid,
                     aspects: mergedAspects,
                     count: 1,
-                    x: roomX + item.location.localposition.x,
-                    y: roomY + item.location.localposition.y,
+                    // x: roomX + item.location.localposition.x,
+                    // y: roomY + item.location.localposition.y,
                     room: roomName,
                 };
             });
@@ -98,7 +135,9 @@ export function lookupItem(id) {
     return [item, aspects];
 }
 export function loadSave(save) {
-    setSaveItems(getItemsFromSave(save));
+    setUnlockedRooms(getUnlockedRoomsFromSave(save));
+    setSaveItems(getItemsFromSave());
+    setSaveVerbs(getVerbsFromSave());
     setSaveRecipes(save.charactercreationcommands.flatMap(character => character.ambittablerecipesunlocked));
 }
 export function getAllAspects() {
@@ -116,6 +155,21 @@ export function setDataRecipes(recipes) {
         DATA_RECIPES.push(recipe);
     }
 }
+export function setDataVerbs(verbs) {
+    DATA_VERBS.length = 0;
+    const names = new Set;
+    for (const verb of verbs) {
+        // skip spontaneous verbs as they don't fit the normal structure of verbs
+        if (verb.spontaneous) {
+            continue;
+        }
+        if (names.has(verb.id)) {
+            console.warn("dupe verb found: " + verb.id);
+        }
+        names.add(verb.id);
+        DATA_VERBS.push(verb);
+    }
+}
 export function setDataItems(items) {
     DATA_ITEMS.length = 0;
     const names = new Set;
@@ -128,19 +182,77 @@ export function setDataItems(items) {
         DATA_ITEMS.push(item);
     }
 }
-export function findItems(min = {}, max = {}) {
+export function findVerbs(options) {
+    return DATA_VERBS.filter(verb => {
+        if (!SAVE_VERBS.has(verb.id)) {
+            return false;
+        }
+        if (options.slotMeta) {
+            if (options.slotMeta.minCount && options.slotMeta.minCount > verb.slots.length) {
+                return false;
+            }
+            if (options.slotMeta.maxCount && options.slotMeta.maxCount < verb.slots.length) {
+                return false;
+            }
+        }
+        if (options.slots) {
+            // FIXME: a slot can match multiple filters. it needs to be changed to do a 1:1 match.
+            const validSlot = options.slots.find((oSlot) => {
+                // are there any filters that don't match ANY verb slots
+                const validMatch = verb.slots.find((vSlot) => {
+                    // for each check, check if the check fails. if so then move onto the next vSlot
+                    if (oSlot.required?.some(check => vSlot.required?.[check] === undefined) ?? false) {
+                        return false;
+                    }
+                    if (oSlot.essential?.some(check => vSlot.essential?.[check] === undefined) ?? false) {
+                        return false;
+                    }
+                    if (oSlot.forbidden?.some(check => vSlot.forbidden?.[check] === undefined) ?? false) {
+                        return false;
+                    }
+                    if (oSlot.missingRequired?.some(check => vSlot.required?.[check] !== undefined) ?? false) {
+                        return false;
+                    }
+                    if (oSlot.missingEssential?.some(check => vSlot.essential?.[check] !== undefined) ?? false) {
+                        return false;
+                    }
+                    if (oSlot.missingForbidden?.some(check => vSlot.forbidden?.[check] !== undefined) ?? false) {
+                        return false;
+                    }
+                    return true;
+                });
+                // return true if we couldn't find a valid match
+                return validMatch === undefined;
+            });
+            if (validSlot === undefined) {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+export function findItems(options) {
     return SAVE_ITEMS.filter(item => {
-        for (const [aspect, amount] of Object.entries(min)) {
+        for (const [aspect, amount] of Object.entries(options.min ?? {})) {
             const aspectCount = item.aspects[aspect];
             if (aspectCount === undefined || aspectCount < amount) {
                 return false;
             }
         }
-        for (const [aspect, amount] of Object.entries(max)) {
+        for (const [aspect, amount] of Object.entries(options.max ?? {})) {
             const aspectCount = item.aspects[aspect];
             if (aspectCount !== undefined && aspectCount > amount) {
                 return false;
             }
+        }
+        if (!Object.entries(options.any ?? {}).some(([aspect, amount]) => {
+            const aspectCount = item.aspects[aspect];
+            if (aspectCount !== undefined && aspectCount > amount) {
+                return true;
+            }
+            return false;
+        })) {
+            return false;
         }
         return true;
     });

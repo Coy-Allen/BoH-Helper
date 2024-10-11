@@ -1,7 +1,7 @@
 import type {Terminal} from "terminal-kit";
 import os from "os";
 import {loadSave} from "./fileLoader.js";
-import * as loader from "./loader.js";
+import * as dataProcessing from "./dataProcessing.js";
 import type * as types from "./types.js";
 
 const jsonSpacing = "  ";
@@ -24,25 +24,35 @@ export async function load(term: Terminal):Promise<void> {
 	}
 	try{
 		const save: types.saveData = JSON.parse(await loadSave(filename));
-		loader.loadSave(save);
+		dataProcessing.loadSave(save);
 	} catch(err){
 		term.yellow("File failed to load.\n");
 		//TODO: catch invalid file.
 	}
 }
 export function listAspects(term: Terminal):void {
-	term([...loader.getAllAspects()].sort().join(", ")+"\n");
+	term([...dataProcessing.getAllAspects()].sort().join(", ")+"\n");
 }
 export function infoItems(term: Terminal, parts: string[]):void {
-	// FIXME: move "parts" into a custom input handler
-	term(JSON.stringify(loader.lookupItem(parts.join(" ")),null,jsonSpacing)+"\n");
+	// TODO: move "parts" into a custom input handler
+	const args = parts.join(" ");
+	const result = dataProcessing.lookupItem(args);
+	term(JSON.stringify(result,null,jsonSpacing)+"\n");
+}
+export function searchVerbs(term: Terminal, parts: string[]): void {
+	// TODO: move "parts" into a custom input handler
+	const args = JSON.parse(parts.join(" "));
+	const result = dataProcessing.findVerbs(args);
+	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
 export function searchItems(term: Terminal, parts: string[]):void {
-	// FIXME: move "parts" into a custom input handler
-	term(JSON.stringify(loader.findItems(JSON.parse(parts.join(" "))),null,jsonSpacing)+"\n");
+	// TODO: move "parts" into a custom input handler
+	const args = JSON.parse(parts.join(" "));
+	const result = dataProcessing.findItems(args);
+	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
 export function searchRecipes(term: Terminal, parts: string[]):void {
-	// FIXME: move "parts" into a custom input handler
+	// TODO: move "parts" into a custom input handler
 	const arg:{
 		reqs?: {
 			min?: types.aspects;
@@ -53,5 +63,6 @@ export function searchRecipes(term: Terminal, parts: string[]):void {
 			max?: types.aspects;
 		}
 	} = JSON.parse(parts.join(" "));
-	term(JSON.stringify(loader.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]),null,jsonSpacing)+"\n");
+	const result = dataProcessing.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]);
+	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }

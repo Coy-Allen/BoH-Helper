@@ -19,8 +19,8 @@ export interface foundItems {
 	aspects: aspects;
 	count: number;
 	room: string;
-	x: number;
-	y: number;
+	// x: number;
+	// y: number;
 }
 
 export interface dataRecipe {
@@ -37,6 +37,90 @@ export interface dataRecipe {
 	}[];
 	warmup: number;
 	craftable: boolean;
+}
+
+export interface dataVerbs {
+	id: string;
+	category: string;
+	label: string;
+	desc: string;
+	audio: string;
+	slots: {
+		id: string;
+		label: string;
+		required?: aspects;
+		essential?: aspects;
+		forbidden?: aspects;
+	}[];
+	comments?: string;
+	hints?: string[];
+	aspects?: aspects;
+	ambits?: boolean; // default false
+	xtriggers?: Record<string,string>;
+	maxnotes?: number;
+	// spontaneous verbs are filtered out and will never be loaded
+	spontaneous?: boolean; // default false
+	multiple?: boolean // default false
+}
+
+export interface saveRoom {
+	location: {
+		$type: string,
+		localposition: {
+			$type: string;
+			x: number;
+			y: number;
+			z: number;
+			normalized?: unknown,
+			magnitude: number;
+			sqrmagnitude: number;
+		},
+		atspherepath: {
+			$type: string;
+			filter: null;
+			path: string;
+		}
+	};
+	payload: {
+		id: string;
+		issealed: boolean;
+		isshrouded: boolean;
+		dominions: {
+			$type: string;
+			identifier: string;
+			spheres: {
+				governingspherespec: {
+					$type: string;
+					label: string;
+				};
+				tokens: {
+					location: {
+						$type: string,
+						localposition: {
+							$type: string;
+							x: number;
+							y: number;
+							z: number;
+							normalized?: unknown,
+							magnitude: number;
+							sqrmagnitude: number;
+						};
+						atspherepath: {
+							$type: string;
+							filter: null;
+							path: string;
+						}
+					},
+					payload: {
+						$type: string,
+						mutations: aspects;
+						entityid: string;
+						verbid: string;
+					}
+				}[];
+			}[];
+		}[];
+	}
 }
 
 export interface saveData {
@@ -63,63 +147,7 @@ export interface saveData {
 				id: string;
 				label: string;
 			};
-			tokens: {
-				location: {
-					$type: string,
-					localposition: {
-						$type: string;
-						x: number;
-						y: number;
-						z: number;
-						normalized?: unknown,
-						magnitude: number;
-						sqrmagnitude: number;
-					},
-					atspherepath: {
-						$type: string;
-						filter: null;
-						path: string;
-					}
-				};
-				payload: {
-					id: string;
-					issealed: boolean;
-					isshrouded: boolean;
-					dominions: {
-						$type: string;
-						identifier: string;
-						spheres: {
-							governingspherespec: {
-								$type: string;
-								label: string;
-							};
-							tokens: {
-								location: {
-									$type: string,
-									localposition: {
-										$type: string;
-										x: number;
-										y: number;
-										z: number;
-										normalized?: unknown,
-										magnitude: number;
-										sqrmagnitude: number;
-									};
-									atspherepath: {
-										$type: string;
-										filter: null;
-										path: string;
-									}
-								},
-								payload: {
-									mutations: aspects;
-									entityid: string;
-								}
-							}[];
-						}[];
-					}[];
-				}
-			}[];
+			tokens: saveRoom[];
 		}[];
 	};
 	populatexamanekcommand: unknown;

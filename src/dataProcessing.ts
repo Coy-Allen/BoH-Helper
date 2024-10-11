@@ -4,10 +4,21 @@ import type * as types from "./types.js";
 
 const DATA_ITEMS: types.dataItem[] = [];
 const DATA_RECIPES: types.dataRecipe[] = [];
+const DATA_VERBS: types.dataVerbs[] = [];
 const DATA_ASPECTS = new Set<string>();
 
+const SAVE_ROOMS: types.saveRoom[] = [];
 const SAVE_ITEMS: types.foundItems[] = [];
 const SAVE_RECIPES = new Set<string>();
+const SAVE_VERBS = new Set<string>();
+
+
+function setUnlockedRooms(rooms:types.saveRoom[]): void {
+	SAVE_ROOMS.length = 0;
+	rooms.forEach(room=>{
+		SAVE_ROOMS.push(room);
+	});
+}
 function setSaveRecipes(recipes:string[]): void {
 	SAVE_RECIPES.clear();
 	recipes.forEach(recipe=>{
@@ -17,6 +28,15 @@ function setSaveRecipes(recipes:string[]): void {
 		SAVE_RECIPES.add(recipe);
 	});
 }
+function setSaveVerbs(verbs:string[]): void {
+	SAVE_VERBS.clear();
+	verbs.forEach(verb=>{
+		if(!DATA_VERBS.some(dataVerb=>dataVerb.id===verb)){
+			console.warn(`verb ${verb} could not be found.`);
+		}
+		SAVE_VERBS.add(verb);
+	});
+}
 function setSaveItems(items:types.foundItems[]):void{
 	SAVE_ITEMS.length = 0;
 	for(const item of items) {
@@ -24,20 +44,37 @@ function setSaveItems(items:types.foundItems[]):void{
 		SAVE_ITEMS.push(item);
 	}
 }
-function getItemsFromSave(json:types.saveData): types.foundItems[]{
+function getUnlockedRoomsFromSave(json:types.saveData): types.saveRoom[] {
 	// FIXME: can't keep track of parent relationships due to filtering arrays
 	const library = json.rootpopulationcommand.spheres.find((sphere):boolean=>sphere.governingspherespec.id==="library")
 	if(!library){return [];}
 	// library.Tokens === _Rooms_
 	// library.Tokens[number].Payload.IsSealed === _is not unlocked_
 	// library.Tokens[number].Payload.IsShrouded === _can't be unlocked_
-	const unlockedRooms = library.tokens.filter((room):boolean=>!room.payload.issealed)
-	return unlockedRooms.flatMap((room):types.foundItems[]=>{
-		const roomX = room.location.localposition.x;
-		const roomY = room.location.localposition.y;
+	return library.tokens.filter((room):boolean=>!room.payload.issealed);
+}
+function getVerbsFromSave(): string[]{
+	return SAVE_ROOMS.flatMap((room): string[]=>{
+		// const roomX = room.location.localposition.x;
+		// const roomY = room.location.localposition.y;
+		// const roomName = room.payload.id;
+		const itemDomain = room.payload.dominions.find((dominion):boolean=>dominion.identifier==="roomcontentsdominion");
+		if(!itemDomain){return [];}
+		const verbs = itemDomain.spheres.flatMap(
+			// TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
+			sphere=>sphere.tokens.filter(token=>token.payload["$type"]==="SituationCreationCommand")
+		);
+		return verbs.map(token=>token.payload.verbid);
+	});
+}
+function getItemsFromSave(): types.foundItems[]{
+	return SAVE_ROOMS.flatMap((room):types.foundItems[]=>{
+		// const roomX = room.location.localposition.x;
+		// const roomY = room.location.localposition.y;
 		const roomName = room.payload.id;
 		const itemDomain = room.payload.dominions.find((dominion):boolean=>dominion.identifier==="roomcontentsdominion");
 		if(!itemDomain){return [];}
+		// TODO: check if $type === "ElementStackCreationCommand" could be an easier way to find this
 		const containers = itemDomain.spheres.filter((container):boolean=>{
 			// FIXME: false negatives
 			// the others are strange
@@ -55,8 +92,8 @@ function getItemsFromSave(json:types.saveData): types.foundItems[]{
 					entityid: item.payload.entityid,
 					aspects: mergedAspects,
 					count: 1,
-					x: roomX + item.location.localposition.x,
-					y: roomY + item.location.localposition.y,
+					// x: roomX + item.location.localposition.x,
+					// y: roomY + item.location.localposition.y,
 					room: roomName,
 				};
 			});
@@ -99,7 +136,9 @@ export function lookupItem(id: string):[types.dataItem,types.aspects]|undefined 
 	return [item,aspects];
 }
 export function loadSave(save:types.saveData): void {
-	setSaveItems(getItemsFromSave(save));
+	setUnlockedRooms(getUnlockedRoomsFromSave(save));
+	setSaveItems(getItemsFromSave());
+	setSaveVerbs(getVerbsFromSave());
 	setSaveRecipes(save.charactercreationcommands.flatMap(
 		character=>character.ambittablerecipesunlocked
 	));
@@ -119,6 +158,19 @@ export function setDataRecipes(recipes:types.dataRecipe[]):void{
 		DATA_RECIPES.push(recipe);
 	}
 }
+export function setDataVerbs(verbs:types.dataVerbs[]):void{
+	DATA_VERBS.length = 0;
+	const names = new Set<string>;
+	for(const verb of verbs) {
+		// skip spontaneous verbs as they don't fit the normal structure of verbs
+		if(verb.spontaneous){continue;}
+		if(names.has(verb.id)){
+			console.warn("dupe verb found: "+verb.id);
+		}
+		names.add(verb.id);
+		DATA_VERBS.push(verb);
+	}
+}
 export function setDataItems(items:types.dataItem[]):void{
 	DATA_ITEMS.length = 0;
 	const names = new Set<string>;
@@ -130,6 +182,48 @@ export function setDataItems(items:types.dataItem[]):void{
 		names.add(item.id);
 		DATA_ITEMS.push(item);
 	}
+}
+export function findVerbs(options:{
+	slotMeta?:{
+		minCount?: number;
+		maxCount?: number;
+	};
+	slots?:{
+		required?:string[];
+		essential?:string[];
+		forbidden?:string[];
+		missingRequired?:string[];
+		missingEssential?:string[];
+		missingForbidden?:string[];
+	}[];
+}): types.dataVerbs[] {
+	return DATA_VERBS.filter(verb=>{
+		if(!SAVE_VERBS.has(verb.id)){return false;}
+		if(options.slotMeta){
+			if(options.slotMeta.minCount && options.slotMeta.minCount > verb.slots.length){return false;}
+			if(options.slotMeta.maxCount && options.slotMeta.maxCount < verb.slots.length){return false;}
+		}
+		if(options.slots){
+			// FIXME: a slot can match multiple filters. it needs to be changed to do a 1:1 match.
+			const validSlot = options.slots.find((oSlot):boolean=>{
+				// are there any filters that don't match ANY verb slots
+				const validMatch = verb.slots.find((vSlot):boolean=>{
+					// for each check, check if the check fails. if so then move onto the next vSlot
+					if(oSlot.required?.some(check=>vSlot.required?.[check]===undefined)??false){return false;}
+					if(oSlot.essential?.some(check=>vSlot.essential?.[check]===undefined)??false){return false;}
+					if(oSlot.forbidden?.some(check=>vSlot.forbidden?.[check]===undefined)??false){return false;}
+					if(oSlot.missingRequired?.some(check=>vSlot.required?.[check]!==undefined)??false){return false;}
+					if(oSlot.missingEssential?.some(check=>vSlot.essential?.[check]!==undefined)??false){return false;}
+					if(oSlot.missingForbidden?.some(check=>vSlot.forbidden?.[check]!==undefined)??false){return false;}
+					return true;
+				})
+				// return true if we couldn't find a valid match
+				return validMatch===undefined;
+			})
+			if(validSlot===undefined){return false;}
+		}
+		return true;
+	});
 }
 export function findItems(options:{
 	min?: types.aspects,
@@ -145,7 +239,7 @@ export function findItems(options:{
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount!==undefined && aspectCount > amount){return false;}
 		}
-		if (!Object.entries(options.any??{}).some(([aspect, amount])=>{
+		if (!Object.entries(options.any??{}).some(([aspect, amount]):boolean=>{
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount!==undefined && aspectCount > amount){return true;}
 			return false;
