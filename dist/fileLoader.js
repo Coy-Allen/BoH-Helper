@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import iconv from "iconv-lite";
+import * as loader from "./loader.js";
 export const fileMetaDataList = [
     { name: "elements\\aspecteditems.json", encoding: "utf16le", type: "items" },
     { name: "elements\\tomes.json", encoding: "utf16le", type: "items", postProcessing: text => text.replaceAll("\n", "") },
@@ -35,18 +36,15 @@ export async function loadFiles(dispatch) {
             throw err;
         }
     }
+    dispatch("start", "finalizing");
+    pushData();
+    dispatch("success", "finalizing");
 }
 export async function loadSave(saveFile) {
     return await fs.readFile(saveFile).then(file => iconv.decode(file, "utf8").toLowerCase());
 }
-/*
-    loader.setDataItems([
-        correspondenceElements,
-        journal,
-        aspecteditems,
-        tomes,
-        prototypes,
-    ].flatMap(files=>files.elements.map((element:any):types.dataItem=>({
+function pushData() {
+    loader.setDataItems((fileOutputs.get("items") ?? []).flatMap(files => files.elements.map((element) => ({
         id: element.id,
         uniquenessgroup: element.uniquenessgroup ?? "",
         label: element.label ?? "",
@@ -57,13 +55,5 @@ export async function loadSave(saveFile) {
         xtriggers: element.xtriggers ?? {},
         xexts: element.xexts ?? "",
     }))));
-    loader.setDataRecipes([
-        craftingSkillsKeeper,
-        craftingSkillsScholar,
-        craftingSkillsPrentice,
-        craftingDlcHolCorrespondence,
-    ].flatMap(recipes=>recipes.recipes));
-    // load save file
-    loader.loadSave(autosave);
-    console.log("everything loaded.");
-*/
+    loader.setDataRecipes((fileOutputs.get("recipes") ?? []).flatMap(recipes => recipes.recipes));
+}

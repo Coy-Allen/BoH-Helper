@@ -1,8 +1,43 @@
 import terminalKit from "terminal-kit";
-import * as loader from "./bohLoader.js";
+import * as loader from "./fileLoader.js";
 import * as inputProcessing from "./inputProcessing.js";
 
+type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
+type inputNode = [string,inputNode[]|commandFunc];
+
 const term = terminalKit.terminal;
+const inputTree:[string,inputNode[]] = ["",[
+	["help",():void=>{term("WIP\n");}],
+	["clear",():void=>{term.clear()}],
+	["exit",inputProcessing.exit],
+	["quit",inputProcessing.exit],
+	["stop",inputProcessing.exit],
+	["load",inputProcessing.load],
+	["list",[
+		["aspects",inputProcessing.listAspects],
+		// locked recipes? maybe. could cause spoiler issues
+		// shorthands for empty searches. see "search *" commands
+	]],
+	["info",[
+		["items",inputProcessing.infoItems],
+	]],
+	["search",[
+		// crafting areas
+		// locked rooms
+		["items",inputProcessing.searchItems],
+		["recipes",inputProcessing.searchRecipes],
+	]],
+	// something for missing things?
+		// how many skills are left
+		// current loot tables for searches.
+			// must ignore inaccessable searches.
+			// ????? for resulting items that are not curently in the library.
+				// IDK what to do for memories & items that are "discovered" but not present.
+	// something for advanced stuff.
+		// list all recipes that create items, where X amount of the item is not already created
+		// list max aspects possible for given crafting bench.
+		// list max aspects possible for arbitrary crafting options (books).
+]];
 
 async function main(): Promise<void> {
 	await term.drawImage(
@@ -28,29 +63,27 @@ async function main(): Promise<void> {
 			}
 			case "failed":{
 				fileLoadingProgress.stop();
-				term.red("failed to load "+filename);
+				term.red("failed to load "+filename+"\n");
 				break;
 			}
 		}
 	});
+	term("\n");
 	await inputLoop();
 }
 
-main().finally(():void=>{
-	term.processExit(0);
-})
-
 async function inputLoop(): Promise<void> {
-	// TODO: save history
+	// TODO: persist history
 	const history: string[] = [];
 	while(true){
-		term("\n> ");
+		term("> ");
 		const input = await term.inputField({
 			history: history,
 			autoComplete: inputTree[1].flatMap(command=>generateAutocomplete(command)),
 			autoCompleteMenu: true,
 			autoCompleteHint: true,
 		}).promise;
+		term("\n");
 		if(!input){
 			term.eraseLine();
 			term.previousLine(0);
@@ -59,101 +92,13 @@ async function inputLoop(): Promise<void> {
 		history.push(input);
 		const parts = input.split(" ").filter(part=>part!=="");
 		const commandLookup = findCommand(parts);
-		term("\n");
 		if(commandLookup===undefined){
-			term.yellow("command not found.")
+			term.yellow("command not found.\n")
 			continue;
 		}
 		await commandLookup[0](term,commandLookup[1]);
 	}
 }
-/*
-	while (true){
-		switch(parts[0]){
-		case "clear":{process.stdout.write('\x1Bc');continue;}
-		case "reload":{
-			console.log("loading autosave file.");
-			const autosave = JSON.parse(await readFileJson(`${saveFolder}\\AUTOSAVE.json`,"utf8"));
-			loader.loadSave(autosave);
-			console.log("load complete.");
-			continue;	
-		}
-		case "list":{
-			switch(parts[1]){
-			case "aspects":{console.log([...loader.getAllAspects()].sort().join(", "));continue;}
-			default: console.log("unknown sub-command for \"list\".");
-			}
-			continue;
-		}
-		case "info":{
-			switch(parts[1]){
-			case "items": {
-				console.log(loader.lookupItem(parts[2]));
-				continue;
-			}
-			default: console.log("unknown sub-command for \"info\".");
-			}
-			continue;
-		}
-		case "search":{
-			switch(parts[1]){
-			case "items": {
-				try{
-					const args:[types.aspects,types.aspects] = JSON.parse(parts.slice(2).join(" "));
-					console.log(loader.findItems(...args));
-				} catch (err)  {
-					console.log("failed to parse input.");
-				}
-				continue;
-			}
-			case "recipes": {
-				try{
-					const arg:{
-						reqs?: {
-							min?: types.aspects;
-							max?: types.aspects;
-						}
-						output?: {
-							min?: types.aspects;
-							max?: types.aspects;
-						}
-					} = JSON.parse(parts.slice(2).join(" "));
-					console.log(loader.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]));
-				} catch (err)  {
-					console.log("failed to parse input.");
-				}
-				continue;
-			}
-			default: console.log("unknown sub-command for \"search\".");
-			}
-			continue;
-		}
-		default: console.log("unknown command.");
-		}
-	}
-*/
-
-type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
-type inputNode = [string,inputNode[]|commandFunc];
-
-const inputTree:[string,inputNode[]] = ["",[
-	["help",():void=>{term("WIP");}],
-	["clear",():void=>{term.clear()}],
-	["exit",(t):void=>inputProcessing.exit(t)],
-	["quit",(t):void=>inputProcessing.exit(t)],
-	["stop",(t):void=>inputProcessing.exit(t)],
-	["load",():void=>{term("WIP");}],
-	["list",[
-		["aspects",():void=>{term("WIP");}],
-	]],
-	["info",[
-		["items",():void=>{term("WIP");}],
-	]],
-	["search",[
-		["items",():void=>{term("WIP");}],
-		["recipes",():void=>{term("WIP");}],
-	]],
-]];
 function findCommand(parts:string[]):[commandFunc,string[]]|undefined{
 	// TODO: clean this up
 	let targetNode:inputNode = inputTree;
@@ -173,3 +118,7 @@ function generateAutocomplete([name,data]:inputNode): string[]{
 	}
 	return [name]
 } 
+
+main().finally(():void=>{
+	term.processExit(0);
+})

@@ -1,7 +1,39 @@
 import terminalKit from "terminal-kit";
-import * as loader from "./bohLoader.js";
+import * as loader from "./fileLoader.js";
 import * as inputProcessing from "./inputProcessing.js";
 const term = terminalKit.terminal;
+const inputTree = ["", [
+        ["help", () => { term("WIP\n"); }],
+        ["clear", () => { term.clear(); }],
+        ["exit", inputProcessing.exit],
+        ["quit", inputProcessing.exit],
+        ["stop", inputProcessing.exit],
+        ["load", inputProcessing.load],
+        ["list", [
+                ["aspects", inputProcessing.listAspects],
+                // locked recipes? maybe. could cause spoiler issues
+                // shorthands for empty searches. see "search *" commands
+            ]],
+        ["info", [
+                ["items", inputProcessing.infoItems],
+            ]],
+        ["search", [
+                // crafting areas
+                // locked rooms
+                ["items", inputProcessing.searchItems],
+                ["recipes", inputProcessing.searchRecipes],
+            ]],
+        // something for missing things?
+        // how many skills are left
+        // current loot tables for searches.
+        // must ignore inaccessable searches.
+        // ????? for resulting items that are not curently in the library.
+        // IDK what to do for memories & items that are "discovered" but not present.
+        // something for advanced stuff.
+        // list all recipes that create items, where X amount of the item is not already created
+        // list max aspects possible for given crafting bench.
+        // list max aspects possible for arbitrary crafting options (books).
+    ]];
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });
     term.yellow("Book of Hours' Watcher\n");
@@ -23,27 +55,26 @@ async function main() {
             }
             case "failed": {
                 fileLoadingProgress.stop();
-                term.red("failed to load " + filename);
+                term.red("failed to load " + filename + "\n");
                 break;
             }
         }
     });
+    term("\n");
     await inputLoop();
 }
-main().finally(() => {
-    term.processExit(0);
-});
 async function inputLoop() {
-    // TODO: save history
+    // TODO: persist history
     const history = [];
     while (true) {
-        term("\n> ");
+        term("> ");
         const input = await term.inputField({
             history: history,
             autoComplete: inputTree[1].flatMap(command => generateAutocomplete(command)),
             autoCompleteMenu: true,
             autoCompleteHint: true,
         }).promise;
+        term("\n");
         if (!input) {
             term.eraseLine();
             term.previousLine(0);
@@ -52,32 +83,13 @@ async function inputLoop() {
         history.push(input);
         const parts = input.split(" ").filter(part => part !== "");
         const commandLookup = findCommand(parts);
-        term("\n");
         if (commandLookup === undefined) {
-            term.yellow("command not found.");
+            term.yellow("command not found.\n");
             continue;
         }
         await commandLookup[0](term, commandLookup[1]);
     }
 }
-const inputTree = ["", [
-        ["help", () => { term("WIP"); }],
-        ["clear", () => { term.clear(); }],
-        ["exit", (t) => inputProcessing.exit(t)],
-        ["quit", (t) => inputProcessing.exit(t)],
-        ["stop", (t) => inputProcessing.exit(t)],
-        ["load", () => { term("WIP"); }],
-        ["list", [
-                ["aspects", () => { term("WIP"); }],
-            ]],
-        ["info", [
-                ["items", () => { term("WIP"); }],
-            ]],
-        ["search", [
-                ["items", () => { term("WIP"); }],
-                ["recipes", () => { term("WIP"); }],
-            ]],
-    ]];
 function findCommand(parts) {
     // TODO: clean this up
     let targetNode = inputTree;
@@ -103,3 +115,6 @@ function generateAutocomplete([name, data]) {
     }
     return [name];
 }
+main().finally(() => {
+    term.processExit(0);
+});

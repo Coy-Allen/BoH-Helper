@@ -1,5 +1,7 @@
 import fs from "fs/promises";
 import iconv from "iconv-lite";
+import * as loader from "./loader.js";
+import type * as types from "./types.js";
 
 export const fileMetaDataList: {
 	name: string;
@@ -22,7 +24,7 @@ const fileOutputs = new Map<string,any[]>();
 
 export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:string)=>void): Promise<void> {
 	// TODO: find BoH save folder
-	const installFolder = "E:\\Steam\\steamapps\\common\\Book of Hours";
+	const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
 	const dataFolder = installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
 	for (let i=0;i<fileMetaDataList.length;i++) {
 		const fileMetaData = fileMetaDataList[i];
@@ -40,19 +42,17 @@ export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:s
 			throw err;
 		}
 	}
-/*
-	const saveFolderQuestion = await rl.question("Userfolder: ");
-	const saveFolder = ((saveFolderQuestion!==""?saveFolderQuestion:os.homedir())+
-		"\\AppData\\LocalLow\\Weather Factory\\Book of Hours"
-	);
-	// load items
-	loader.setDataItems([
-		correspondenceElements,
-		journal,
-		aspecteditems,
-		tomes,
-		prototypes,
-	].flatMap(files=>files.elements.map((element:any):types.dataItem=>({
+	dispatch("start","finalizing");
+	pushData();
+	dispatch("success","finalizing");
+}
+
+export async function loadSave(saveFile:string): Promise<string> {
+	return await fs.readFile(saveFile).then(file=>iconv.decode(file,"utf8").toLowerCase());
+}
+
+function pushData(){
+	loader.setDataItems((fileOutputs.get("items")??[]).flatMap(files=>files.elements.map((element:any):types.dataItem=>({
 		id: element.id,
 		uniquenessgroup: element.uniquenessgroup ?? "",
 		label: element.label ?? "",
@@ -63,16 +63,5 @@ export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:s
 		xtriggers: element.xtriggers ?? {},
 		xexts: element.xexts ?? "",
 	}))));
-	loader.setDataRecipes([
-		craftingSkillsKeeper,
-		craftingSkillsScholar,
-		craftingSkillsPrentice,
-		craftingDlcHolCorrespondence,
-	].flatMap(recipes=>recipes.recipes));
-	// load save file
-	console.log("loading autosave file.");
-	const autosave = JSON.parse(await readFileJson(`${saveFolder}\\AUTOSAVE.json`,"utf8"));
-	loader.loadSave(autosave);
-	console.log("everything loaded.");
-*/
+	loader.setDataRecipes((fileOutputs.get("recipes")??[]).flatMap(recipes=>recipes.recipes));
 }
