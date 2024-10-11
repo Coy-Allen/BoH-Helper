@@ -1,3 +1,9 @@
+import type terminalKit from "terminal-kit";
+
+
+export type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
+export type inputNode = [string,inputNode[]|commandFunc,string];
+
 
 export type aspects = Record<string,number>;
 export type cards = Record<string,number>;
@@ -30,7 +36,8 @@ export interface dataRecipe {
 	startdescription: string;
 	desc: string;
 	reqs: aspects;
-	effects: cards;
+	effects?: cards;
+	deckeffects?: cards;
 	aspects?: aspects;
 	linked:	{
 		id: string;

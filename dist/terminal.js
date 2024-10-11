@@ -3,27 +3,29 @@ import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 const term = terminalKit.terminal;
 const inputTree = ["", [
-        ["help", () => { term("WIP\n"); }],
-        ["clear", () => { term.clear(); }],
-        ["exit", commandProcessing.exit],
-        ["quit", commandProcessing.exit],
-        ["stop", commandProcessing.exit],
-        ["load", commandProcessing.load],
+        ["help", (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
+        ["clear", () => { term.clear(); }, "clears the terminal"],
+        ["exit", commandProcessing.exit, "exits the terminal"],
+        ["quit", commandProcessing.exit, "exits the terminal"],
+        ["stop", commandProcessing.exit, "exits the terminal"],
+        ["load", commandProcessing.load, "load user save files"],
         ["list", [
-                ["aspects", commandProcessing.listAspects],
+                ["aspects", commandProcessing.listAspects, "displays all aspects in the game (even hidden ones)"],
                 // locked recipes? maybe. could cause spoiler issues
                 // shorthands for empty searches. see "search *" commands
-            ]],
+            ], "lists things in the game. CAN CONTAIN SPOILERS!"],
         ["info", [
-                ["items", commandProcessing.infoItems],
-            ]],
+                ["items", commandProcessing.infoItems, "info on item aspects and results for inspect/talk."],
+            ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"],
         ["search", [
-                ["verbs", commandProcessing.searchVerbs],
+                ["verbs", commandProcessing.searchVerbs, "search found popups and their card inputs."],
                 // crafting areas
                 // locked rooms
-                ["items", commandProcessing.searchItems],
-                ["recipes", commandProcessing.searchRecipes],
-            ]],
+                ["items", commandProcessing.searchItems, "search owned items and their aspects."],
+                ["recipes", commandProcessing.searchRecipes, "search discovered (non-???) recipes and their outputs."],
+            ], "finds unlocked things in your save file. load your save file 1st."],
+        // overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
+        // recipes. some recipes' discovery are not recorded in the save file.
         // something for missing things?
         // how many skills are left
         // current loot tables for searches.
@@ -34,7 +36,7 @@ const inputTree = ["", [
         // list all recipes that create items, where X amount of the item is not already created
         // list max aspects possible for given crafting bench.
         // list max aspects possible for arbitrary crafting options (books).
-    ]];
+    ], ""];
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });
     term.yellow("Book of Hours' Watcher\n");

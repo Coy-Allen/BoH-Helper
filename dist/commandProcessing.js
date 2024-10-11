@@ -54,3 +54,30 @@ export function searchRecipes(term, parts) {
     const result = dataProcessing.findRecipes(arg).map(recipe => [recipe[0].reqs, recipe[1]]);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
 }
+export function help(term, _parts, inputNode) {
+    const getHelp = (node, depth) => {
+        const [name, data, helpText] = node;
+        if (depth >= 0) {
+            term("  ".repeat(depth));
+            term.cyan(name);
+            term(": " + helpText + "\n");
+        }
+        if (Array.isArray(data)) {
+            for (const subNode of data) {
+                getHelp(subNode, depth + 1);
+            }
+        }
+    };
+    getHelp(inputNode, -1);
+}
+// helpers
+//@ts-expect-error unused
+async function getAspects(term) {
+    // TODO: stub
+    return {};
+}
+//@ts-expect-error unused
+async function getStrArray(term, autocomplete) {
+    // TODO: stub
+    return [];
+}

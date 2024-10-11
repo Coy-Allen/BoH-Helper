@@ -41,13 +41,30 @@ export function infoItems(term: Terminal, parts: string[]):void {
 }
 export function searchVerbs(term: Terminal, parts: string[]): void {
 	// TODO: move "parts" into a custom input handler
-	const args = JSON.parse(parts.join(" "));
+	const args:{
+		slotMeta?:{
+			minCount?: number;
+			maxCount?: number;
+		};
+		slots?:{
+			required?:string[];
+			essential?:string[];
+			forbidden?:string[];
+			missingRequired?:string[];
+			missingEssential?:string[];
+			missingForbidden?:string[];
+		}[];
+	} = JSON.parse(parts.join(" "));
 	const result = dataProcessing.findVerbs(args);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
 export function searchItems(term: Terminal, parts: string[]):void {
 	// TODO: move "parts" into a custom input handler
-	const args = JSON.parse(parts.join(" "));
+	const args:{
+		min?: types.aspects;
+		any?: types.aspects;
+		max?: types.aspects;
+	} = JSON.parse(parts.join(" "));
 	const result = dataProcessing.findItems(args);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
@@ -65,4 +82,33 @@ export function searchRecipes(term: Terminal, parts: string[]):void {
 	} = JSON.parse(parts.join(" "));
 	const result = dataProcessing.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
+}
+export function help(term: Terminal, _parts: string[], inputNode:types.inputNode):void{
+	const getHelp = (node:types.inputNode, depth:number):void=>{
+		const [name,data,helpText] = node;
+		if(depth>=0){
+			term("  ".repeat(depth));
+			term.cyan(name);
+			term(": "+helpText+"\n");
+		}
+		if(Array.isArray(data)){
+			for(const subNode of data){
+				getHelp(subNode,depth+1);
+			}
+		}
+	}
+	getHelp(inputNode,-1);
+}
+
+// helpers
+
+//@ts-expect-error unused
+async function getAspects(term: Terminal): Promise<types.aspects> {
+	// TODO: stub
+	return {};
+}
+//@ts-expect-error unused
+async function getStrArray(term: Terminal, autocomplete?: string[]): Promise<string[]> {
+	// TODO: stub
+	return [];
 }

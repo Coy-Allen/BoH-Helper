@@ -84,7 +84,6 @@ function getItemsFromSave() {
             const itemIds = items.map((item) => {
                 const aspects = [item.payload.mutations, ...grabAllAspects(item.payload.entityid)];
                 const mergedAspects = mergeAspects(aspects);
-                // FIXME: overlaped aspects don't get merged
                 // remove typing
                 delete mergedAspects["$type"];
                 return {
@@ -102,6 +101,7 @@ function getItemsFromSave() {
     });
 }
 function mergeAspects(aspects) {
+    // FIXME: overlaped aspects don't get merged
     return aspects.map(aspects => Object.entries(aspects)).reduce((res, entries) => {
         for (const [aspect, count] of entries) {
             if (!res[aspect]) {
@@ -282,7 +282,8 @@ export function findRecipes(options) {
                 }
             }
         }
-        const recipeOutputId = Object.entries(recipe.effects)?.[0]?.[0];
+        // FIXME: what do we do for deck effects?
+        const recipeOutputId = Object.entries(recipe.effects ?? {})?.[0]?.[0];
         if (options.output && !recipeOutputId) {
             return undefined;
         }
