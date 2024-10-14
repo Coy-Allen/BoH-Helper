@@ -1,9 +1,10 @@
 import os from "os";
-import { loadSave } from "./fileLoader.js";
+import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
 const jsonSpacing = "  ";
-export function exit(term) {
+export async function exit(term) {
     term("exiting...");
+    await saveHistory();
     term.processExit(0);
 }
 export async function load(term) {

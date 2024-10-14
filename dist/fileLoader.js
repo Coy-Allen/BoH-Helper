@@ -27,6 +27,7 @@ export const fileMetaDataList = [
     { name: "verbs\\workstations_village.json", encoding: "utf8", type: "verbs" },
 ];
 const fileOutputs = new Map();
+let history;
 export async function loadFiles(dispatch) {
     // TODO: find BoH save folder
     const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
@@ -71,4 +72,38 @@ function pushData() {
     }))));
     dataProcessing.setDataRecipes((fileOutputs.get("recipes") ?? []).flatMap(recipes => recipes.recipes));
     dataProcessing.setDataVerbs((fileOutputs.get("verbs") ?? []).flatMap(verbs => verbs.verbs));
+}
+// history handler
+export async function getHistory() {
+    if (history) {
+        return history;
+    }
+    try {
+        history = (await fs.readFile(import.meta.dirname + "/../history.txt", "utf8")).split("\n");
+    }
+    catch (err) {
+        history = [];
+    }
+    return history;
+}
+export async function addHistory(line) {
+    if (!history) {
+        await getHistory();
+    }
+    if (!history) {
+        console.error("failed to initalize history.");
+        return;
+    }
+    history.push(line);
+}
+export async function saveHistory() {
+    if (!history) {
+        // no history to save
+        return;
+    }
+    try {
+        fs.writeFile(import.meta.dirname + "/../history.txt", history.join("\n"));
+    }
+    catch (err) {
+    }
 }

@@ -35,6 +35,7 @@ export const fileMetaDataList: {
 ];
 
 const fileOutputs = new Map<string,any[]>();
+let history:string[]|undefined;
 
 export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:string)=>void): Promise<void> {
 	// TODO: find BoH save folder
@@ -79,4 +80,37 @@ function pushData(): void{
 	}))));
 	dataProcessing.setDataRecipes((fileOutputs.get("recipes")??[]).flatMap(recipes=>recipes.recipes));
 	dataProcessing.setDataVerbs((fileOutputs.get("verbs")??[]).flatMap(verbs=>verbs.verbs));
+}
+
+// history handler
+
+export async function getHistory(): Promise<string[]> {
+	if(history){return history;}
+	try {
+		history = (await fs.readFile(import.meta.dirname+"/../history.txt","utf8")).split("\n");
+	} catch(err) {
+		history = [];
+	}
+	return history;
+}
+export async function addHistory(line:string): Promise<void> {
+	if(!history){
+		await getHistory();
+	}
+	if(!history){
+		console.error("failed to initalize history.");
+		return;
+	}
+	history.push(line);
+}
+export async function saveHistory(): Promise<void> {
+	if(!history){
+		// no history to save
+		return;
+	}
+	try {
+		fs.writeFile(import.meta.dirname+"/../history.txt",history.join("\n"));
+	} catch(err) {
+
+	}
 }

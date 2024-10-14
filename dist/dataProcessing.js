@@ -191,10 +191,10 @@ export function findVerbs(options) {
         }
         const slots = verb.slots ?? (verb.slot !== undefined ? [verb.slot] : []);
         if (options.slotMeta) {
-            if (options.slotMeta.minCount && options.slotMeta.minCount > (slots.length)) {
+            if (options.slotMeta.minCount && options.slotMeta.minCount > slots.length) {
                 return false;
             }
-            if (options.slotMeta.maxCount && options.slotMeta.maxCount < (slots.length)) {
+            if (options.slotMeta.maxCount && options.slotMeta.maxCount < slots.length) {
                 return false;
             }
         }

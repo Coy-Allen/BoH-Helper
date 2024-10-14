@@ -76,11 +76,10 @@ async function main(): Promise<void> {
 
 async function inputLoop(): Promise<void> {
 	// TODO: persist history
-	const history: string[] = [];
 	while(true){
 		term("> ");
 		const input = await term.inputField({
-			history: history,
+			history: await fileLoader.getHistory(),
 			autoComplete: inputTree[1].flatMap(command=>generateAutocomplete(command)),
 			autoCompleteMenu: true,
 			autoCompleteHint: true,
@@ -91,7 +90,7 @@ async function inputLoop(): Promise<void> {
 			term.previousLine(0);
 			continue;
 		}
-		history.push(input);
+		fileLoader.addHistory(input);
 		const parts = input.split(" ").filter(part=>part!=="");
 		const commandLookup = findCommand(parts);
 		if(commandLookup===undefined){

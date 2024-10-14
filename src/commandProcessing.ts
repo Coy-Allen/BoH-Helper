@@ -1,13 +1,14 @@
 import type {Terminal} from "terminal-kit";
 import os from "os";
-import {loadSave} from "./fileLoader.js";
+import {loadSave,saveHistory} from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
 import type * as types from "./types.js";
 
 const jsonSpacing = "  ";
 
-export function exit(term: Terminal): void {
+export async function exit(term: Terminal): Promise<void> {
 	term("exiting...");
+	await saveHistory();
 	term.processExit(0);
 }
 export async function load(term: Terminal):Promise<void> {
