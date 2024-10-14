@@ -10,6 +10,7 @@ export async function load(term) {
     term("save file> ");
     const filename = await term.fileInput({
         baseDir: os.homedir() + "\\AppData\\LocalLow\\Weather Factory\\Book of Hours",
+        default: "AUTOSAVE.json",
     }).catch(_ => {
         //TODO: catch directory does not exist.
     });
@@ -40,13 +41,25 @@ export function searchVerbs(term, parts) {
     // TODO: move "parts" into a custom input handler
     const args = JSON.parse(parts.join(" "));
     const result = dataProcessing.findVerbs(args);
-    term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    term(JSON.stringify("res: " + result.length, null, jsonSpacing) + "\n");
 }
 export function searchItems(term, parts) {
     // TODO: move "parts" into a custom input handler
     const args = JSON.parse(parts.join(" "));
     const result = dataProcessing.findItems(args);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
+}
+export function searchItemCounts(term, parts) {
+    // TODO: move "parts" into a custom input handler
+    const args = JSON.parse(parts.join(" "));
+    const counts = new Map();
+    dataProcessing.findItems(args).forEach(item => {
+        counts.set(item.entityid, (counts.get(item.entityid) ?? 0) + 1);
+    });
+    term([...counts.entries()]
+        .sort(([_A, countA], [_B, countB]) => countA - countB)
+        .map(([name, count]) => `${name}: ${count}\n`)
+        .join(""));
 }
 export function searchRecipes(term, parts) {
     // TODO: move "parts" into a custom input handler

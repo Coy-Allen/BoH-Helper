@@ -60,7 +60,7 @@ function getVerbsFromSave() {
         }
         const verbs = itemDomain.spheres.flatMap(
         // TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
-        sphere => sphere.tokens.filter(token => token.payload["$type"] === "SituationCreationCommand"));
+        sphere => sphere.tokens.filter(token => token.payload["$type"] === "situationcreationcommand"));
         return verbs.map(token => token.payload.verbid);
     });
 }
@@ -182,16 +182,19 @@ export function setDataItems(items) {
         DATA_ITEMS.push(item);
     }
 }
+// search/find
 export function findVerbs(options) {
+    // code is unverified
     return DATA_VERBS.filter(verb => {
         if (!SAVE_VERBS.has(verb.id)) {
             return false;
         }
+        const slots = verb.slots ?? (verb.slot !== undefined ? [verb.slot] : []);
         if (options.slotMeta) {
-            if (options.slotMeta.minCount && options.slotMeta.minCount > verb.slots.length) {
+            if (options.slotMeta.minCount && options.slotMeta.minCount > (slots.length)) {
                 return false;
             }
-            if (options.slotMeta.maxCount && options.slotMeta.maxCount < verb.slots.length) {
+            if (options.slotMeta.maxCount && options.slotMeta.maxCount < (slots.length)) {
                 return false;
             }
         }
@@ -199,7 +202,7 @@ export function findVerbs(options) {
             // FIXME: a slot can match multiple filters. it needs to be changed to do a 1:1 match.
             const validSlot = options.slots.find((oSlot) => {
                 // are there any filters that don't match ANY verb slots
-                const validMatch = verb.slots.find((vSlot) => {
+                const validMatch = slots.find((vSlot) => {
                     // for each check, check if the check fails. if so then move onto the next vSlot
                     if (oSlot.required?.some(check => vSlot.required?.[check] === undefined) ?? false) {
                         return false;
@@ -228,10 +231,13 @@ export function findVerbs(options) {
                 return false;
             }
         }
+        console.log(`${verb.id}: ${JSON.stringify(slots)}`);
         return true;
     });
 }
 export function findItems(options) {
+    const regexValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
+    const regexInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
     return SAVE_ITEMS.filter(item => {
         for (const [aspect, amount] of Object.entries(options.min ?? {})) {
             const aspectCount = item.aspects[aspect];
@@ -245,19 +251,23 @@ export function findItems(options) {
                 return false;
             }
         }
-        if (!Object.entries(options.any ?? {}).some(([aspect, amount]) => {
+        if (!(!options.any || Object.entries(options.any ?? {}).some(([aspect, amount]) => {
             const aspectCount = item.aspects[aspect];
-            if (aspectCount !== undefined && aspectCount > amount) {
-                return true;
-            }
+            return !(aspectCount === undefined || aspectCount < amount);
+        }))) {
             return false;
-        })) {
+        }
+        if (regexValid && !regexValid.test(item.entityid)) {
+            return false;
+        }
+        if (regexInvalid && regexInvalid.test(item.entityid)) {
             return false;
         }
         return true;
     });
 }
 export function findRecipes(options) {
+    // code is unverified
     return [...SAVE_RECIPES]
         .map(recipeName => DATA_RECIPES.find(dataRecipe => dataRecipe.id === recipeName))
         .map((recipe) => {

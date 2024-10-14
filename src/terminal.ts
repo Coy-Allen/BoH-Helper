@@ -24,6 +24,7 @@ const inputTree:[string,types.inputNode[],string] = ["",[
 		// crafting areas
 		// locked rooms
 		["items",commandProcessing.searchItems,"search owned items and their aspects."],
+		["itemCounts",commandProcessing.searchItemCounts,"list owned item counts."],// counts of items in house
 		["recipes",commandProcessing.searchRecipes,"search discovered (non-???) recipes and their outputs."],
 	],"finds unlocked things in your save file. load your save file 1st."],
 	// overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
@@ -97,7 +98,11 @@ async function inputLoop(): Promise<void> {
 			term.yellow("command not found.\n")
 			continue;
 		}
-		await commandLookup[0](term,commandLookup[1]);
+		try {
+			await commandLookup[0](term,commandLookup[1]);
+		} catch (error) {
+			term.red("command threw an error.\n");
+		}
 	}
 }
 function findCommand(parts:string[]):[types.commandFunc,string[]]|undefined{
@@ -107,7 +112,7 @@ function findCommand(parts:string[]):[types.commandFunc,string[]]|undefined{
 		const [_name,data] = targetNode;
 		if(!Array.isArray(data)){return [data,parts.splice(i)];}
 		if(parts.length===i){return;}
-		const nextNode = data.find(([name,_data]):boolean=>name===parts[i].toLowerCase());
+		const nextNode = data.find(([name,_data]):boolean=>name.toLowerCase()===parts[i].toLowerCase());
 		if(nextNode===undefined){return;}
 		targetNode = nextNode;
 	}

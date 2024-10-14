@@ -7,10 +7,12 @@ export const fileMetaDataList = [
     { name: "elements\\_prototypes.json", encoding: "utf8", type: "items" },
     { name: "elements\\journal.json", encoding: "utf8", type: "items" },
     { name: "elements\\correspondence_elements.json", encoding: "utf8", type: "items" },
+    { name: "elements\\uncats.json", encoding: "utf8", type: "items" },
     { name: "recipes\\crafting_2_keeper.json", encoding: "utf8", type: "recipes" },
     { name: "recipes\\crafting_3_scholar.json", encoding: "utf8", type: "recipes" },
     { name: "recipes\\crafting_4b_prentice.json", encoding: "utf8", type: "recipes" },
     { name: "recipes\\DLC_HOL_correspondence_summoning.json", encoding: "utf8", type: "recipes" },
+    { name: "recipes\\DLC_HOL_cooking.json", encoding: "utf16le", type: "recipes" },
     // NOTE: these verbs don't fit the normal verb format and are not needed
     //{name:"verbs\\celestial.json",encoding:"utf8",type:"verbs"},
     //{name:"verbs\\incidents.json",encoding:"utf8",type:"verbs"},
@@ -27,7 +29,7 @@ export const fileMetaDataList = [
 const fileOutputs = new Map();
 export async function loadFiles(dispatch) {
     // TODO: find BoH save folder
-    const installFolder = "E:\\Steam\\steamapps\\common\\Book of Hours";
+    const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
     const dataFolder = installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core";
     for (let i = 0; i < fileMetaDataList.length; i++) {
         const fileMetaData = fileMetaDataList[i];

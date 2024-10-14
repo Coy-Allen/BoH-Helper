@@ -62,7 +62,7 @@ function getVerbsFromSave(): string[]{
 		if(!itemDomain){return [];}
 		const verbs = itemDomain.spheres.flatMap(
 			// TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
-			sphere=>sphere.tokens.filter(token=>token.payload["$type"]==="SituationCreationCommand")
+			sphere=>sphere.tokens.filter(token=>token.payload["$type"]==="situationcreationcommand")
 		);
 		return verbs.map(token=>token.payload.verbid);
 	});
@@ -183,6 +183,9 @@ export function setDataItems(items:types.dataItem[]):void{
 		DATA_ITEMS.push(item);
 	}
 }
+
+// search/find
+
 export function findVerbs(options:{
 	slotMeta?:{
 		minCount?: number;
@@ -197,17 +200,19 @@ export function findVerbs(options:{
 		missingForbidden?:string[];
 	}[];
 }): types.dataVerbs[] {
+	// code is unverified
 	return DATA_VERBS.filter(verb=>{
 		if(!SAVE_VERBS.has(verb.id)){return false;}
+		const slots = verb.slots ?? (verb.slot!==undefined?[verb.slot!]:[]);
 		if(options.slotMeta){
-			if(options.slotMeta.minCount && options.slotMeta.minCount > verb.slots.length){return false;}
-			if(options.slotMeta.maxCount && options.slotMeta.maxCount < verb.slots.length){return false;}
+			if(options.slotMeta.minCount && options.slotMeta.minCount > slots.length){return false;}
+			if(options.slotMeta.maxCount && options.slotMeta.maxCount < slots.length){return false;}
 		}
 		if(options.slots){
 			// FIXME: a slot can match multiple filters. it needs to be changed to do a 1:1 match.
 			const validSlot = options.slots.find((oSlot):boolean=>{
 				// are there any filters that don't match ANY verb slots
-				const validMatch = verb.slots.find((vSlot):boolean=>{
+				const validMatch = slots.find((vSlot):boolean=>{
 					// for each check, check if the check fails. if so then move onto the next vSlot
 					if(oSlot.required?.some(check=>vSlot.required?.[check]===undefined)??false){return false;}
 					if(oSlot.essential?.some(check=>vSlot.essential?.[check]===undefined)??false){return false;}
@@ -222,6 +227,7 @@ export function findVerbs(options:{
 			})
 			if(validSlot===undefined){return false;}
 		}
+		console.log(`${verb.id}: ${JSON.stringify(slots)}`)
 		return true;
 	});
 }
@@ -229,7 +235,11 @@ export function findItems(options:{
 	min?: types.aspects,
 	any?: types.aspects,
 	max?: types.aspects,
+	nameValid?: string,
+	nameInvalid?: string,
 }): types.foundItems[] {
+	const regexValid = options.nameValid? new RegExp(options.nameValid) : undefined;
+	const regexInvalid = options.nameInvalid? new RegExp(options.nameInvalid) : undefined;
 	return SAVE_ITEMS.filter(item=>{
 		for (const [aspect, amount] of Object.entries(options.min??{})) {
 			const aspectCount = item.aspects[aspect];
@@ -239,13 +249,14 @@ export function findItems(options:{
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount!==undefined && aspectCount > amount){return false;}
 		}
-		if (!Object.entries(options.any??{}).some(([aspect, amount]):boolean=>{
+		if (!(!options.any || Object.entries(options.any??{}).some(([aspect, amount]):boolean=>{
 			const aspectCount = item.aspects[aspect];
-			if(aspectCount!==undefined && aspectCount > amount){return true;}
-			return false;
-		})) {return false;}
+			return !(aspectCount===undefined || aspectCount < amount);
+		}))) {return false;}
+		if(regexValid && !regexValid.test(item.entityid)){return false;}
+		if(regexInvalid && regexInvalid.test(item.entityid)){return false;}
 		return true;
-	})
+	});
 }
 export function findRecipes(options:{
 	reqs?: {
@@ -257,6 +268,7 @@ export function findRecipes(options:{
 		max?: types.aspects;
 	}
 }): [types.dataRecipe,types.aspects][] {
+	// code is unverified
 	return [...SAVE_RECIPES]
 		.map(recipeName=>DATA_RECIPES.find(dataRecipe=>dataRecipe.id===recipeName))
 		.map((recipe):[types.dataRecipe,types.aspects]|undefined=>{

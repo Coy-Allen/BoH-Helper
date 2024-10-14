@@ -22,6 +22,7 @@ const inputTree = ["", [
                 // crafting areas
                 // locked rooms
                 ["items", commandProcessing.searchItems, "search owned items and their aspects."],
+                ["itemCounts", commandProcessing.searchItemCounts, "list owned item counts."], // counts of items in house
                 ["recipes", commandProcessing.searchRecipes, "search discovered (non-???) recipes and their outputs."],
             ], "finds unlocked things in your save file. load your save file 1st."],
         // overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
@@ -90,7 +91,12 @@ async function inputLoop() {
             term.yellow("command not found.\n");
             continue;
         }
-        await commandLookup[0](term, commandLookup[1]);
+        try {
+            await commandLookup[0](term, commandLookup[1]);
+        }
+        catch (error) {
+            term.red("command threw an error.\n");
+        }
     }
 }
 function findCommand(parts) {
@@ -104,7 +110,7 @@ function findCommand(parts) {
         if (parts.length === i) {
             return;
         }
-        const nextNode = data.find(([name, _data]) => name === parts[i].toLowerCase());
+        const nextNode = data.find(([name, _data]) => name.toLowerCase() === parts[i].toLowerCase());
         if (nextNode === undefined) {
             return;
         }

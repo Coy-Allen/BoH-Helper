@@ -7,6 +7,13 @@ export type inputNode = [string,inputNode[]|commandFunc,string];
 
 export type aspects = Record<string,number>;
 export type cards = Record<string,number>;
+export interface slot {
+	id: string;
+	label: string;
+	required?: aspects;
+	essential?: aspects;
+	forbidden?: aspects;
+}
 
 export interface dataItem {
 		id: string;
@@ -52,13 +59,8 @@ export interface dataVerbs {
 	label: string;
 	desc: string;
 	audio: string;
-	slots: {
-		id: string;
-		label: string;
-		required?: aspects;
-		essential?: aspects;
-		forbidden?: aspects;
-	}[];
+	slot?: slot;
+	slots?: slot[];
 	comments?: string;
 	hints?: string[];
 	aspects?: aspects;
