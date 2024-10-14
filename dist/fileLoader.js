@@ -1,31 +1,8 @@
 import fs from "fs/promises";
+import json5 from "json5";
 import iconv from "iconv-lite";
+import fileMetaDataList from "./fileList.js";
 import * as dataProcessing from "./dataProcessing.js";
-export const fileMetaDataList = [
-    { name: "elements\\aspecteditems.json", encoding: "utf16le", type: "items" },
-    { name: "elements\\tomes.json", encoding: "utf16le", type: "items", postProcessing: text => text.replaceAll("\n", "") },
-    { name: "elements\\_prototypes.json", encoding: "utf8", type: "items" },
-    { name: "elements\\journal.json", encoding: "utf8", type: "items" },
-    { name: "elements\\correspondence_elements.json", encoding: "utf8", type: "items" },
-    { name: "elements\\uncats.json", encoding: "utf8", type: "items" },
-    { name: "recipes\\crafting_2_keeper.json", encoding: "utf8", type: "recipes" },
-    { name: "recipes\\crafting_3_scholar.json", encoding: "utf8", type: "recipes" },
-    { name: "recipes\\crafting_4b_prentice.json", encoding: "utf8", type: "recipes" },
-    { name: "recipes\\DLC_HOL_correspondence_summoning.json", encoding: "utf8", type: "recipes" },
-    { name: "recipes\\DLC_HOL_cooking.json", encoding: "utf16le", type: "recipes" },
-    // NOTE: these verbs don't fit the normal verb format and are not needed
-    //{name:"verbs\\celestial.json",encoding:"utf8",type:"verbs"},
-    //{name:"verbs\\incidents.json",encoding:"utf8",type:"verbs"},
-    { name: "verbs\\DLC_HOL_verbs.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\librarian.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_beds.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_gathering.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_legacy.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_library_world.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_unusual.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_upgraded.json", encoding: "utf8", type: "verbs" },
-    { name: "verbs\\workstations_village.json", encoding: "utf8", type: "verbs" },
-];
 const fileOutputs = new Map();
 let history;
 export async function loadFiles(dispatch) {
@@ -43,7 +20,7 @@ export async function loadFiles(dispatch) {
             const fileContent = await fs.readFile(dataFolder + "\\" + fileMetaData.name)
                 .then(file => iconv.decode(file, fileMetaData.encoding).toLowerCase())
                 .then(contents => fileMetaData.postProcessing?.(contents) ?? contents);
-            outputs.push(JSON.parse(fileContent));
+            outputs.push(json5.parse(fileContent));
             dispatch("success", fileMetaData.name);
         }
         catch (err) {
@@ -52,6 +29,7 @@ export async function loadFiles(dispatch) {
         }
     }
     dispatch("start", "finalizing");
+    // FIXME: dupe messages have the loading bar behind them. need to clear the line beforehand.
     pushData();
     dispatch("success", "finalizing");
 }
@@ -72,6 +50,7 @@ function pushData() {
     }))));
     dataProcessing.setDataRecipes((fileOutputs.get("recipes") ?? []).flatMap(recipes => recipes.recipes));
     dataProcessing.setDataVerbs((fileOutputs.get("verbs") ?? []).flatMap(verbs => verbs.verbs));
+    dataProcessing.setDataDecks((fileOutputs.get("decks") ?? []).flatMap(decks => decks.decks));
 }
 // history handler
 export async function getHistory() {
@@ -102,7 +81,9 @@ export async function saveHistory() {
         return;
     }
     try {
-        fs.writeFile(import.meta.dirname + "/../history.txt", history.join("\n"));
+        // max history is 50 lines
+        const trunkHistory = history.slice(history.length - 50);
+        fs.writeFile(import.meta.dirname + "/../history.txt", trunkHistory.join("\n"));
     }
     catch (err) {
     }

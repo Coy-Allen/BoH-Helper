@@ -2,6 +2,7 @@
 const DATA_ITEMS = [];
 const DATA_RECIPES = [];
 const DATA_VERBS = [];
+const DATA_DECKS = [];
 const DATA_ASPECTS = new Set();
 const SAVE_ROOMS = [];
 const SAVE_ITEMS = [];
@@ -168,6 +169,17 @@ export function setDataVerbs(verbs) {
         }
         names.add(verb.id);
         DATA_VERBS.push(verb);
+    }
+}
+export function setDataDecks(decks) {
+    DATA_DECKS.length = 0;
+    const names = new Set;
+    for (const deck of decks) {
+        if (names.has(deck.id)) {
+            console.warn("dupe deck found: " + deck.id);
+        }
+        names.add(deck.id);
+        DATA_DECKS.push(deck);
     }
 }
 export function setDataItems(items) {

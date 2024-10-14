@@ -1,6 +1,7 @@
 import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
+import fileMetaDataList from "./fileList.js";
 const term = terminalKit.terminal;
 const inputTree = ["", [
         ["help", (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
@@ -43,7 +44,7 @@ async function main() {
     term.yellow("Book of Hours' Watcher\n");
     const fileLoadingProgress = term.progressBar({
         title: "Loading Files",
-        items: fileLoader.fileMetaDataList.length,
+        items: fileMetaDataList.length,
         inline: true,
         // syncMode: true, // BUGGED: https://github.com/cronvel/terminal-kit/issues/251
     });

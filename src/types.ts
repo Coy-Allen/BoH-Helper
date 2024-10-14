@@ -53,7 +53,14 @@ export interface dataRecipe {
 	craftable: boolean;
 }
 
-export interface dataVerbs {
+export interface dataDeck {
+	id: string;
+	label: string;
+	resetonexhaustion: boolean;
+	spec: string[];
+}
+
+export interface dataVerb {
 	id: string;
 	category: string;
 	label: string;

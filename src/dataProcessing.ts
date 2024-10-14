@@ -4,7 +4,8 @@ import type * as types from "./types.js";
 
 const DATA_ITEMS: types.dataItem[] = [];
 const DATA_RECIPES: types.dataRecipe[] = [];
-const DATA_VERBS: types.dataVerbs[] = [];
+const DATA_VERBS: types.dataVerb[] = [];
+const DATA_DECKS: types.dataDeck[] = [];
 const DATA_ASPECTS = new Set<string>();
 
 const SAVE_ROOMS: types.saveRoom[] = [];
@@ -158,7 +159,7 @@ export function setDataRecipes(recipes:types.dataRecipe[]):void{
 		DATA_RECIPES.push(recipe);
 	}
 }
-export function setDataVerbs(verbs:types.dataVerbs[]):void{
+export function setDataVerbs(verbs:types.dataVerb[]):void{
 	DATA_VERBS.length = 0;
 	const names = new Set<string>;
 	for(const verb of verbs) {
@@ -169,6 +170,17 @@ export function setDataVerbs(verbs:types.dataVerbs[]):void{
 		}
 		names.add(verb.id);
 		DATA_VERBS.push(verb);
+	}
+}
+export function setDataDecks(decks:types.dataDeck[]):void{
+	DATA_DECKS.length = 0;
+	const names = new Set<string>;
+	for(const deck of decks) {
+		if(names.has(deck.id)){
+			console.warn("dupe deck found: "+deck.id);
+		}
+		names.add(deck.id);
+		DATA_DECKS.push(deck);
 	}
 }
 export function setDataItems(items:types.dataItem[]):void{
@@ -199,7 +211,7 @@ export function findVerbs(options:{
 		missingEssential?:string[];
 		missingForbidden?:string[];
 	}[];
-}): types.dataVerbs[] {
+}): types.dataVerb[] {
 	// code is unverified
 	return DATA_VERBS.filter(verb=>{
 		if(!SAVE_VERBS.has(verb.id)){return false;}
