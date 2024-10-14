@@ -20,7 +20,6 @@ const inputTree = ["", [
             ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"],
         ["search", [
                 ["verbs", commandProcessing.searchVerbs, "search found popups and their card inputs."],
-                // crafting areas
                 // locked rooms
                 ["items", commandProcessing.searchItems, "search owned items and their aspects."],
                 ["itemCounts", commandProcessing.searchItemCounts, "list owned item counts."], // counts of items in house
@@ -35,6 +34,10 @@ const inputTree = ["", [
         // ????? for resulting items that are not curently in the library.
         // IDK what to do for memories & items that are "discovered" but not present.
         // something for advanced stuff.
+        ["misc", [
+                ["missingCraftable", commandProcessing.missingCraftable, "lists all known recipes & ALL decks that create items you don't have. no spoilers for actual rewards."],
+                ["missingCraftableDetailed", commandProcessing.missingCraftableDetailed, "same as missingCraftable but includes the specific items needed."],
+            ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"]
         // list all recipes that create items, where X amount of the item is not already created
         // list max aspects possible for given crafting bench.
         // list max aspects possible for arbitrary crafting options (books).

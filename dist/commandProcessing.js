@@ -84,6 +84,20 @@ export function help(term, _parts, inputNode) {
     };
     getHelp(inputNode, -1);
 }
+export async function missingCraftable(term) {
+    const found = dataProcessing.missingCraftable();
+    for (const [name, items] of found) {
+        term.cyan(`${name}`);
+        term(`: ${items.length}\n`);
+    }
+}
+export async function missingCraftableDetailed(term) {
+    const found = dataProcessing.missingCraftable();
+    for (const [name, items] of found) {
+        term.cyan(`${name}`);
+        term(`: ${items.join(", ")}\n`);
+    }
+}
 // helpers
 //@ts-expect-error unused
 async function getAspects(term) {

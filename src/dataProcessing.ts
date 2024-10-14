@@ -8,6 +8,7 @@ const DATA_VERBS: types.dataVerb[] = [];
 const DATA_DECKS: types.dataDeck[] = [];
 const DATA_ASPECTS = new Set<string>();
 
+let SAVE_RAW: types.saveData|undefined;
 const SAVE_ROOMS: types.saveRoom[] = [];
 const SAVE_ITEMS: types.foundItems[] = [];
 const SAVE_RECIPES = new Set<string>();
@@ -137,6 +138,7 @@ export function lookupItem(id: string):[types.dataItem,types.aspects]|undefined 
 	return [item,aspects];
 }
 export function loadSave(save:types.saveData): void {
+	SAVE_RAW = save;
 	setUnlockedRooms(getUnlockedRoomsFromSave(save));
 	setSaveItems(getItemsFromSave());
 	setSaveVerbs(getVerbsFromSave());
@@ -320,4 +322,65 @@ export function findRecipes(options:{
 			return [recipe,outputLookup];
 		})
 		.filter(recipe=>recipe!==undefined);
+}
+
+//advanced
+
+export function missingCraftable(): [string,string[]][] {
+	const result:[string,string[]][] = [];
+	for(const recipe of SAVE_RECIPES) {
+		const recipeData = DATA_RECIPES.find(recipeInfo=>recipeInfo.id===recipe);
+		if(!recipeData){
+			console.warn(`recipe ${recipe} could not be found.`);
+			continue;
+		}
+		const effects = recipeData.effects;
+		if(effects){result.push([recipeData.id,Object.keys(effects)]);}
+	};
+	for(const deck of DATA_DECKS) {
+		if([
+			"sweetbones.employables",
+			"incidents",
+			"incidents.numa",
+			"numa.possibility",
+			"d.books.dawn",
+			"d.books.solar",
+			"d.books.baronial",
+			"d.books.curia",
+			"d.books.nocturnal",
+			"d.books.divers",
+			"d.challenges.opportunities",
+		].includes(deck.id)){continue;}
+		// we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
+		// if(!/^(be|m|ne|w|g|cav|ch).*/.test(deck.id)){continue;}
+		result.push([deck.id,deck.spec]);
+	};
+	const uniqueItemsSave = SAVE_RAW?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
+	const allItems = new Set<string>(result.flatMap(groups=>groups[1]));
+	const validItems = new Set<string>([...allItems.values()].filter(item=>{
+		const foundItem = DATA_ITEMS.find(itemData=>itemData.id===item);
+		if(!foundItem){
+			console.warn(`item ${foundItem} could not be found.`);
+			// keep it by default
+			return false;
+		}
+		const aspects = mergeAspects(grabAllAspects(item));
+		if(aspects["memory"]||aspects["correspondence"]||aspects["invitation"]){
+			return false;
+		}
+		// if item exists in library
+		if(SAVE_ITEMS.find(saveItem=>saveItem.entityid===item)!==undefined){return false;}
+		// if it's unique value already exists
+		if(uniqueItemsSave.includes(item)){return false;}
+		return true;
+	}));
+	return result
+		.map(([name,items]):[string,string[]]=>{
+			const uniqueItems = new Set<string>(items);
+			return [name,[...uniqueItems.values()].filter(item=>validItems.has(item))];
+		})
+		.filter(target=>{
+			if(target[1].length===0){return false;}
+			return true;
+		});
 }

@@ -82,8 +82,8 @@ export function searchItemCounts(term: Terminal, parts: string[]):void {
 		counts.set(item.entityid,(counts.get(item.entityid)??0)+1)
 	});
 	term([...counts.entries()]
-		.sort(([_A,countA],[_B,countB])=>countA-countB)
-		.map(([name,count])=>`${name}: ${count}\n`)
+		.sort(([_A,countA],[_B,countB]):number=>countA-countB)
+		.map(([name,count]):string=>`${name}: ${count}\n`)
 		.join("")
 	);
 }
@@ -118,6 +118,21 @@ export function help(term: Terminal, _parts: string[], inputNode:types.inputNode
 	}
 	getHelp(inputNode,-1);
 }
+export async function missingCraftable(term: Terminal): Promise<void> {
+	const found = dataProcessing.missingCraftable();
+	for(const [name,items] of found){
+		term.cyan(`${name}`)
+		term(`: ${items.length}\n`)
+	}
+}
+export async function missingCraftableDetailed(term: Terminal): Promise<void> {
+	const found = dataProcessing.missingCraftable();
+	for(const [name,items] of found){
+		term.cyan(`${name}`)
+		term(`: ${items.join(", ")}\n`)
+	}
+}
+
 
 // helpers
 
