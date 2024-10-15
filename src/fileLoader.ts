@@ -11,7 +11,7 @@ const fileOutputs = new Map<string,any[]>();
 let history:string[]|undefined;
 
 export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:string)=>void): Promise<void> {
-	// TODO: find BoH save folder
+	// TODO: find BoH data folder even if installed elsewhere
 	const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
 	const dataFolder = installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
 	for (let i=0;i<fileMetaDataList.length;i++) {

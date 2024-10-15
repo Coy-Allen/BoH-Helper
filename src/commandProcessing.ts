@@ -106,7 +106,7 @@ export function help(term: Terminal, _parts: string[], inputNode:types.inputNode
 	const getHelp = (node:types.inputNode, depth:number):void=>{
 		const [name,data,helpText] = node;
 		if(depth>=0){
-			term("  ".repeat(depth));
+			term(jsonSpacing.repeat(depth));
 			term.cyan(name);
 			term(": "+helpText+"\n");
 		}
@@ -118,21 +118,60 @@ export function help(term: Terminal, _parts: string[], inputNode:types.inputNode
 	}
 	getHelp(inputNode,-1);
 }
-export async function missingCraftable(term: Terminal): Promise<void> {
-	const found = dataProcessing.missingCraftable();
+export async function missingCraftable(term: Terminal, parts: string[]): Promise<void> {
+	const arg:{
+		detailed?:boolean,
+		maxOwned?:number,
+	} = JSON.parse(parts.join(" "));
+	const found = dataProcessing.missingCraftable(arg);
 	for(const [name,items] of found){
+		const detail = arg.detailed?items.join(", "):items.length.toString();
 		term.cyan(`${name}`)
-		term(`: ${items.length}\n`)
+		term(`: ${detail}\n`)
 	}
 }
-export async function missingCraftableDetailed(term: Terminal): Promise<void> {
-	const found = dataProcessing.missingCraftable();
-	for(const [name,items] of found){
-		term.cyan(`${name}`)
-		term(`: ${items.join(", ")}\n`)
+export async function availiableMemories(term: Terminal, parts: string[]): Promise<void> {
+	const genListOutput = (memories:[string,string[]][]):void=>{
+		for(const [memId,targs] of memories){
+			term(jsonSpacing);
+			term.cyan(memId);
+			term(": "+targs.join(", "));
+		}
 	}
-}
+	const arg:{
+		recipes?:boolean,
+		itemsReusable?:boolean,
+		itemsConsumable?:boolean,
+		books?:boolean,
+	} = JSON.parse(parts.join(" "));
+	const result = dataProcessing.availiableMemories(arg);
+	if(result.recipes){
+		term.cyan("Recipes");
+		term(":\n");
+		genListOutput(result.recipes);
+	}
+	if(result.itemsConsumableInspect){
+		term.cyan("Consumables (Inspect)");
+		term(":\n");
+		genListOutput(result.itemsConsumableInspect);
+	}
+	if(result.itemsConsumableTalk){
+		term.cyan("Consumables (Talk)");
+		term(":\n");
+		genListOutput(result.itemsConsumableTalk);
+	}
+	if(result.itemsReusableInspect){
+		term.cyan("Reusables (Inspect)");
+		term(":\n");
+		genListOutput(result.itemsReusableInspect);
+	}
+	if(result.itemsReusableTalk){
+		term.cyan("Reusables (Talk)");
+		term(":\n");
+		genListOutput(result.itemsReusableTalk);
+	}
 
+}
 
 // helpers
 

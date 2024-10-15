@@ -23,7 +23,11 @@ export interface dataItem {
 		inherits: string;
 		audio: string;
 		aspects: aspects;
-		xtriggers: object;
+		xtriggers: Record<string,{
+			id: string;
+			morpheffect: string;
+			level?: number;
+		}>;
 		xexts: object;
 }
 

@@ -35,12 +35,12 @@ const inputTree = ["", [
         // IDK what to do for memories & items that are "discovered" but not present.
         // something for advanced stuff.
         ["misc", [
-                ["missingCraftable", commandProcessing.missingCraftable, "lists all known recipes & ALL decks that create items you don't have. no spoilers for actual rewards."],
-                ["missingCraftableDetailed", commandProcessing.missingCraftableDetailed, "same as missingCraftable but includes the specific items needed."],
+                ["missingCraftable", commandProcessing.missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
+                ["availiableMemories", commandProcessing.availiableMemories, "shows all memories that can be obtained."],
+                // list all possible memories that can be created. WILL contain spoilers
+                // list max aspects possible for given crafting bench.
+                // list max aspects possible for arbitrary crafting options (books).
             ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"]
-        // list all recipes that create items, where X amount of the item is not already created
-        // list max aspects possible for given crafting bench.
-        // list max aspects possible for arbitrary crafting options (books).
     ], ""];
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });

@@ -326,8 +326,70 @@ export function findRecipes(options:{
 
 //advanced
 
-export function missingCraftable(): [string,string[]][] {
+type availiableMemoriesResult = Partial<Record<
+	"recipes"|`items${"Reusable"|"Consumable"}${"Inspect"|"Talk"}`, //obtain group
+	[string,string[]][] // memory id, specific item needed
+>>;
+export function availiableMemories(options:{
+	recipes?:boolean,
+	itemsReusable?:boolean,
+	itemsConsumable?:boolean,
+	books?:boolean,
+}): availiableMemoriesResult {
+	const appendToMap = (map:Map<string,string[]>,key:string,value:string):void=>{
+		if(!map.has(key)){map.set(key,[]);}
+		const array = map.get(key);
+		if(!array){return;}
+		array.push(value);
+	}
+	const result: availiableMemoriesResult = {};
+	if(options.recipes) {
+		const foundRecipes = new Map<string,string[]>();
+		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.actionid));
+		for(const recipe of recipes){
+			for(const [cardId,_count] of Object.entries(recipe.effects??{})) {
+				if(mergeAspects(grabAllAspects(cardId))["memory"]){
+					appendToMap(foundRecipes,cardId,recipe.id);
+				}
+			}
+		}
+		result.recipes = Object.entries(foundRecipes);
+	}
+	if(options.itemsReusable || options.itemsConsumable || options.books) {
+		// const foundReusableInspect = new Map<string,string[]>();
+		// const foundReusableTalk = new Map<string,string[]>();
+		const foundConsumableInspect = new Map<string,string[]>();
+		const foundConsumableTalk = new Map<string,string[]>();
+		const items = [...new Set(SAVE_ITEMS.map(item=>item.entityid))]
+			.map(itemId=>DATA_ITEMS.find(itemData=>itemData.id===itemId))
+			.filter(itemData=>itemData!==undefined);
+		for(const item of items){
+			for(const [type,info] of Object.entries(item.xtriggers)) {
+				if(info.morpheffect !== "spawn"){continue;}
+				if(!mergeAspects(grabAllAspects(info.id))["memory"]){continue;}
+				// FIXME: can't figure out what determines if something gets "used up"
+				// ignore books if asked
+				if(/^reading\./.test(type) && !options.books){continue;}
+				if(type==="dist"){
+					appendToMap(foundConsumableTalk,info.id,item.id);
+					continue;
+				}
+				if(type==="scrutiny"){
+					appendToMap(foundConsumableInspect,info.id,item.id);
+					continue;
+				}
+			}
+		}
+	}
+	return result;
+}
+
+export function missingCraftable(options:{maxOwned?:number}): [string,string[]][] {
 	const result:[string,string[]][] = [];
+	const saveItems = new Map<string,number>();
+	for(const saveItem of SAVE_ITEMS) {
+		saveItems.set(saveItem.entityid,(saveItems.get(saveItem.entityid)??0)+(saveItem.count??1));
+	}
 	for(const recipe of SAVE_RECIPES) {
 		const recipeData = DATA_RECIPES.find(recipeInfo=>recipeInfo.id===recipe);
 		if(!recipeData){
@@ -338,6 +400,7 @@ export function missingCraftable(): [string,string[]][] {
 		if(effects){result.push([recipeData.id,Object.keys(effects)]);}
 	};
 	for(const deck of DATA_DECKS) {
+		// we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
 		if([
 			"sweetbones.employables",
 			"incidents",
@@ -351,8 +414,6 @@ export function missingCraftable(): [string,string[]][] {
 			"d.books.divers",
 			"d.challenges.opportunities",
 		].includes(deck.id)){continue;}
-		// we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
-		// if(!/^(be|m|ne|w|g|cav|ch).*/.test(deck.id)){continue;}
 		result.push([deck.id,deck.spec]);
 	};
 	const uniqueItemsSave = SAVE_RAW?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
@@ -369,7 +430,8 @@ export function missingCraftable(): [string,string[]][] {
 			return false;
 		}
 		// if item exists in library
-		if(SAVE_ITEMS.find(saveItem=>saveItem.entityid===item)!==undefined){return false;}
+		const countOwned = saveItems.get(item);
+		if((countOwned??0) > (options.maxOwned??0)){return false;}
 		// if it's unique value already exists
 		if(uniqueItemsSave.includes(item)){return false;}
 		return true;
