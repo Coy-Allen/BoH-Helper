@@ -346,21 +346,25 @@ export function availiableMemories(options) {
         array.push(value);
     };
     const result = {};
-    if (options.recipes) {
+    if (options.inputs?.includes("recipes")) {
         const foundRecipes = new Map();
-        const recipes = DATA_RECIPES.filter(recipe => SAVE_RECIPES.has(recipe.actionid));
+        const recipes = DATA_RECIPES.filter(recipe => SAVE_RECIPES.has(recipe.id));
         for (const recipe of recipes) {
             for (const [cardId, _count] of Object.entries(recipe.effects ?? {})) {
-                if (mergeAspects(grabAllAspects(cardId))["memory"]) {
+                const aspects = mergeAspects(grabAllAspects(cardId));
+                if (aspects["memory"]) {
                     appendToMap(foundRecipes, cardId, recipe.id);
                 }
             }
         }
-        result.recipes = Object.entries(foundRecipes);
+        result.recipes = [...foundRecipes.entries()];
     }
-    if (options.itemsReusable || options.itemsConsumable || options.books) {
-        // const foundReusableInspect = new Map<string,string[]>();
-        // const foundReusableTalk = new Map<string,string[]>();
+    // FIXME: items are broken
+    if (options.inputs?.includes("itemsReusable") ||
+        options.inputs?.includes("itemsConsumable") ||
+        options.inputs?.includes("books")) {
+        const foundReusableInspect = new Map();
+        const foundReusableTalk = new Map();
         const foundConsumableInspect = new Map();
         const foundConsumableTalk = new Map();
         const items = [...new Set(SAVE_ITEMS.map(item => item.entityid))]
@@ -376,7 +380,7 @@ export function availiableMemories(options) {
                 }
                 // FIXME: can't figure out what determines if something gets "used up"
                 // ignore books if asked
-                if (/^reading\./.test(type) && !options.books) {
+                if (/^reading\./.test(type) && !options.inputs?.includes("books")) {
                     continue;
                 }
                 if (type === "dist") {
@@ -389,7 +393,13 @@ export function availiableMemories(options) {
                 }
             }
         }
+        result.itemsReusableInspect = [...foundReusableInspect.entries()];
+        result.itemsReusableTalk = [...foundReusableTalk.entries()];
+        result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
+        result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
     }
+    // TODO: filter out wrong aspected memories
+    // TODO: filter out already obtained
     return result;
 }
 export function missingCraftable(options) {

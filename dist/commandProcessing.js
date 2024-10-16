@@ -98,7 +98,7 @@ export async function availiableMemories(term, parts) {
         for (const [memId, targs] of memories) {
             term(jsonSpacing);
             term.cyan(memId);
-            term(": " + targs.join(", "));
+            term(": " + targs.join(", ") + "\n");
         }
     };
     const arg = JSON.parse(parts.join(" "));

@@ -241,7 +241,7 @@ export function findVerbs(options:{
 			})
 			if(validSlot===undefined){return false;}
 		}
-		console.log(`${verb.id}: ${JSON.stringify(slots)}`)
+		console.log(`${verb.id}: ${JSON.stringify(slots)}`);
 		return true;
 	});
 }
@@ -330,12 +330,14 @@ type availiableMemoriesResult = Partial<Record<
 	"recipes"|`items${"Reusable"|"Consumable"}${"Inspect"|"Talk"}`, //obtain group
 	[string,string[]][] // memory id, specific item needed
 >>;
-export function availiableMemories(options:{
-	recipes?:boolean,
-	itemsReusable?:boolean,
-	itemsConsumable?:boolean,
-	books?:boolean,
-}): availiableMemoriesResult {
+interface availiableMemoriesInput {
+	inputs:("recipes"|"itemsReusable"|"itemsConsumable"|"books")[];
+	memFilter?:{
+		any?:types.aspects;
+		ignoreObtained?:boolean;
+	};
+}
+export function availiableMemories(options:availiableMemoriesInput): availiableMemoriesResult {
 	const appendToMap = (map:Map<string,string[]>,key:string,value:string):void=>{
 		if(!map.has(key)){map.set(key,[]);}
 		const array = map.get(key);
@@ -343,21 +345,27 @@ export function availiableMemories(options:{
 		array.push(value);
 	}
 	const result: availiableMemoriesResult = {};
-	if(options.recipes) {
+	if(options.inputs?.includes("recipes")) {
 		const foundRecipes = new Map<string,string[]>();
-		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.actionid));
+		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.id));
 		for(const recipe of recipes){
 			for(const [cardId,_count] of Object.entries(recipe.effects??{})) {
-				if(mergeAspects(grabAllAspects(cardId))["memory"]){
+				const aspects = mergeAspects(grabAllAspects(cardId));
+				if(aspects["memory"]){
 					appendToMap(foundRecipes,cardId,recipe.id);
 				}
 			}
 		}
-		result.recipes = Object.entries(foundRecipes);
+		result.recipes = [...foundRecipes.entries()];
 	}
-	if(options.itemsReusable || options.itemsConsumable || options.books) {
-		// const foundReusableInspect = new Map<string,string[]>();
-		// const foundReusableTalk = new Map<string,string[]>();
+	// FIXME: items are broken
+	if(
+		options.inputs?.includes("itemsReusable") ||
+		options.inputs?.includes("itemsConsumable") ||
+		options.inputs?.includes("books")
+	) {
+		const foundReusableInspect = new Map<string,string[]>();
+		const foundReusableTalk = new Map<string,string[]>();
 		const foundConsumableInspect = new Map<string,string[]>();
 		const foundConsumableTalk = new Map<string,string[]>();
 		const items = [...new Set(SAVE_ITEMS.map(item=>item.entityid))]
@@ -369,7 +377,7 @@ export function availiableMemories(options:{
 				if(!mergeAspects(grabAllAspects(info.id))["memory"]){continue;}
 				// FIXME: can't figure out what determines if something gets "used up"
 				// ignore books if asked
-				if(/^reading\./.test(type) && !options.books){continue;}
+				if(/^reading\./.test(type) && !options.inputs?.includes("books")){continue;}
 				if(type==="dist"){
 					appendToMap(foundConsumableTalk,info.id,item.id);
 					continue;
@@ -380,7 +388,13 @@ export function availiableMemories(options:{
 				}
 			}
 		}
+		result.itemsReusableInspect = [...foundReusableInspect.entries()];
+		result.itemsReusableTalk = [...foundReusableTalk.entries()];
+		result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
+		result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
 	}
+	// TODO: filter out wrong aspected memories
+	// TODO: filter out already obtained
 	return result;
 }
 

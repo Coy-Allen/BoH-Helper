@@ -135,14 +135,15 @@ export async function availiableMemories(term: Terminal, parts: string[]): Promi
 		for(const [memId,targs] of memories){
 			term(jsonSpacing);
 			term.cyan(memId);
-			term(": "+targs.join(", "));
+			term(": "+targs.join(", ")+"\n");
 		}
 	}
 	const arg:{
-		recipes?:boolean,
-		itemsReusable?:boolean,
-		itemsConsumable?:boolean,
-		books?:boolean,
+		inputs:("recipes"|"itemsReusable"|"itemsConsumable"|"books")[];
+		memFilter?:{
+			any?:types.aspects;
+			ignoreObtained?:boolean;
+		};
 	} = JSON.parse(parts.join(" "));
 	const result = dataProcessing.availiableMemories(arg);
 	if(result.recipes){
