@@ -146,8 +146,8 @@ export function loadSave(save:types.saveData): void {
 		character=>character.ambittablerecipesunlocked
 	));
 }
-export function getAllAspects():SetIterator<string> {
-	return DATA_ASPECTS.values();
+export function getAllAspects():string[] {
+	return [...DATA_ASPECTS.values()];
 }
 export function setDataRecipes(recipes:types.dataRecipe[]):void{
 	DATA_RECIPES.length = 0;
@@ -263,10 +263,14 @@ export function findItems(options:{
 			const aspectCount = item.aspects[aspect];
 			if(aspectCount!==undefined && aspectCount > amount){return false;}
 		}
-		if (!(!options.any || Object.entries(options.any??{}).some(([aspect, amount]):boolean=>{
-			const aspectCount = item.aspects[aspect];
-			return !(aspectCount===undefined || aspectCount < amount);
-		}))) {return false;}
+		if (
+			options.any &&
+			Object.entries(options.any).length>0 &&
+			!Object.entries(options.any).some(([aspect, amount]):boolean=>{
+				const aspectCount = item.aspects[aspect];
+				return !(aspectCount===undefined || aspectCount < amount);
+			})
+		) {return false;}
 		if(regexValid && !regexValid.test(item.entityid)){return false;}
 		if(regexInvalid && regexInvalid.test(item.entityid)){return false;}
 		return true;
@@ -356,7 +360,9 @@ export function availiableMemories(options:availiableMemoriesInput): availiableM
 				}
 			}
 		}
-		result.recipes = [...foundRecipes.entries()];
+		if(foundRecipes.size>0){
+			result.recipes = [...foundRecipes.entries()];
+		}
 	}
 	// FIXME: items are broken
 	if(
@@ -372,26 +378,50 @@ export function availiableMemories(options:availiableMemoriesInput): availiableM
 			.map(itemId=>DATA_ITEMS.find(itemData=>itemData.id===itemId))
 			.filter(itemData=>itemData!==undefined);
 		for(const item of items){
-			for(const [type,info] of Object.entries(item.xtriggers)) {
-				if(info.morpheffect !== "spawn"){continue;}
-				if(!mergeAspects(grabAllAspects(info.id))["memory"]){continue;}
-				// FIXME: can't figure out what determines if something gets "used up"
-				// ignore books if asked
-				if(/^reading\./.test(type) && !options.inputs?.includes("books")){continue;}
-				if(type==="dist"){
-					appendToMap(foundConsumableTalk,info.id,item.id);
-					continue;
-				}
-				if(type==="scrutiny"){
-					appendToMap(foundConsumableInspect,info.id,item.id);
-					continue;
+			for(const [type,infoArr] of Object.entries(item.xtriggers)) {
+				for(const info of infoArr) {
+					if(info.morpheffect !== "spawn"){continue;}
+					if(!mergeAspects(grabAllAspects(info.id))["memory"]){continue;}
+					// ignore books if asked
+					if(/^reading\./.test(type)){
+						if(options.inputs?.includes("books")){
+							// FIXME: filter out non-mastered books
+							appendToMap(foundReusableInspect,info.id,item.id);
+						}
+						continue;
+					}
+					// FIXME: can't figure out what determines if something gets "used up"
+					// TEMP: just treat them as the same for now.
+					if(
+						!options.inputs?.includes("itemsReusable") &&
+						!options.inputs?.includes("itemsConsumable")
+					){
+						continue;
+					}
+
+					if(type==="dist"){
+						appendToMap(foundConsumableTalk,info.id,item.id);
+						continue;
+					}
+					if(type==="scrutiny"){
+						appendToMap(foundConsumableInspect,info.id,item.id);
+						continue;
+					}
 				}
 			}
 		}
-		result.itemsReusableInspect = [...foundReusableInspect.entries()];
-		result.itemsReusableTalk = [...foundReusableTalk.entries()];
-		result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
-		result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
+		if(foundReusableInspect.size>0){
+			result.itemsReusableInspect = [...foundReusableInspect.entries()];
+		}
+		if(foundReusableTalk.size>0){
+			result.itemsReusableTalk = [...foundReusableTalk.entries()];
+		}
+		if(foundConsumableInspect.size>0){
+			result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
+		}
+		if(foundConsumableTalk.size>0){
+			result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
+		}
 	}
 	// TODO: filter out wrong aspected memories
 	// TODO: filter out already obtained

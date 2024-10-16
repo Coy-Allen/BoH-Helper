@@ -33,7 +33,7 @@ export async function load(term: Terminal):Promise<void> {
 	}
 }
 export function listAspects(term: Terminal):void {
-	term([...dataProcessing.getAllAspects()].sort().join(", ")+"\n");
+	term(dataProcessing.getAllAspects().sort().join(", ")+"\n");
 }
 export function infoItems(term: Terminal, parts: string[]):void {
 	// TODO: move "parts" into a custom input handler
@@ -60,25 +60,33 @@ export function searchVerbs(term: Terminal, parts: string[]): void {
 	const result = dataProcessing.findVerbs(args);
 	term(JSON.stringify("res: "+result.length,null,jsonSpacing)+"\n");
 }
-export function searchItems(term: Terminal, parts: string[]):void {
-	// TODO: move "parts" into a custom input handler
-	const args:{
-		min?: types.aspects;
-		any?: types.aspects;
-		max?: types.aspects;
-	} = JSON.parse(parts.join(" "));
-	const result = dataProcessing.findItems(args);
+export async function searchItems(term: Terminal, parts: string[]):Promise<void> {
+	const arg = (parts.length !== 0 ? 
+		JSON.parse(parts.join(" ")) :
+		{
+			min: await getAspects(term, "Min"),
+			any: await getAspects(term, "Any"),
+			max: await getAspects(term, "Max"),
+			// TODO: nameValid?: string,
+			// TODO: nameInvalid?: string,
+		}
+	);
+	const result = dataProcessing.findItems(arg);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
-export function searchItemCounts(term: Terminal, parts: string[]):void {
-	// TODO: move "parts" into a custom input handler
-	const args:{
-		min?: types.aspects;
-		any?: types.aspects;
-		max?: types.aspects;
-	} = JSON.parse(parts.join(" "));
+export async function searchItemCounts(term: Terminal, parts: string[]):Promise<void> {
+	const arg = (parts.length !== 0 ? 
+		JSON.parse(parts.join(" ")) :
+		{
+			min: await getAspects(term, "Min"),
+			any: await getAspects(term, "Any"),
+			max: await getAspects(term, "Max"),
+			// TODO: nameValid?: string,
+			// TODO: nameInvalid?: string,
+		}
+	);
 	const counts = new Map<string,number>();
-	dataProcessing.findItems(args).forEach(item=>{
+	dataProcessing.findItems(arg).forEach(item=>{
 		counts.set(item.entityid,(counts.get(item.entityid)??0)+1)
 	});
 	term([...counts.entries()]
@@ -87,18 +95,20 @@ export function searchItemCounts(term: Terminal, parts: string[]):void {
 		.join("")
 	);
 }
-export function searchRecipes(term: Terminal, parts: string[]):void {
-	// TODO: move "parts" into a custom input handler
-	const arg:{
-		reqs?: {
-			min?: types.aspects;
-			max?: types.aspects;
+export async function searchRecipes(term: Terminal, parts: string[]):Promise<void> {
+	const arg = (parts.length !== 0 ? 
+		JSON.parse(parts.join(" ")) :
+		{
+			reqs: {
+				min: await getAspects(term, "Min input"),
+				max: await getAspects(term, "Max input"),
+			},
+			output: {
+				min: await getAspects(term, "Min output"),
+				max: await getAspects(term, "Max output"),
+			}
 		}
-		output?: {
-			min?: types.aspects;
-			max?: types.aspects;
-		}
-	} = JSON.parse(parts.join(" "));
+	);
 	const result = dataProcessing.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
 }
@@ -131,11 +141,18 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	}
 }
 export async function availiableMemories(term: Terminal, parts: string[]): Promise<void> {
+	const maxTargLen = 15;
 	const genListOutput = (memories:[string,string[]][]):void=>{
 		for(const [memId,targs] of memories){
 			term(jsonSpacing);
 			term.cyan(memId);
-			term(": "+targs.join(", ")+"\n");
+			if(targs.length <= maxTargLen){
+				term(": "+targs.join(", ")+"\n");
+			} else {
+				targs.length = maxTargLen;
+				term(": "+targs.join(", ")+", ");
+				term.gray("...\n");
+			}
 		}
 	}
 	const arg:{
@@ -174,15 +191,80 @@ export async function availiableMemories(term: Terminal, parts: string[]): Promi
 
 }
 
-// helpers
+// helpers //
+// these are for commands to request the specific thing from the user. user input shorthand
 
-//@ts-expect-error unused
-async function getAspects(term: Terminal): Promise<types.aspects> {
-	// TODO: stub
-	return {};
+async function getAspects(term: Terminal, name: string): Promise<types.aspects> {
+	const aspectNames = dataProcessing.getAllAspects();
+	const result:types.aspects = {};
+	let aspect:string = "";
+	let count:string = "";
+	term("\n");
+	while (true){
+		// print current result
+		term.previousLine(0);
+		term.eraseLine();
+		term(`${name} = ${Object.entries(result).map(entry=>`${entry[0]}:${entry[1]}`).join(", ")}\n`);
+		// input
+		term.eraseLine();
+		term("aspect> ");
+		aspect = (await term.inputField({
+			autoComplete: aspectNames,
+			autoCompleteMenu: true,
+			autoCompleteHint: true,
+			cancelable: true,
+		}).promise) ?? "";
+		if(aspect===""){break;}
+		while (true){
+			term.eraseLine();
+			term.column(0);
+			term("count> ");
+			count = (await term.inputField({
+				cancelable: true,
+			}).promise) ?? "";
+			if(count === ""){break;}
+			const countNumber = Number(count);
+			if(!Number.isSafeInteger(countNumber)){continue;}
+			// add to result
+			result[aspect]=countNumber;
+			if(result[aspect] <= 0){delete result[aspect];}
+			break;
+		}
+	}
+	// clear the user input line
+	term.eraseLine();
+	term.column(0);
+	return result;
 }
 //@ts-expect-error unused
-async function getStrArray(term: Terminal, autocomplete?: string[]): Promise<string[]> {
-	// TODO: stub
-	return [];
+async function getStrArray(term: Terminal, name: string, autocomplete?: string[]): Promise<string[]> {
+	const result = new Set<string>();
+	let input:string = "";
+	term("\n");
+	while (true){
+		// print current result
+		term.previousLine(0);
+		term.eraseLine();
+		term(`${name} = ${[...result.values()].join(", ")}\n`);
+		// input
+		term.eraseLine();
+		term("input> ");
+		input = (await term.inputField({
+			autoComplete: autocomplete ?? [],
+			autoCompleteMenu: true,
+			autoCompleteHint: true,
+			cancelable: true,
+		}).promise) ?? "";
+		if(input===""){break;}
+		if(result.has(input)){
+			result.delete(input);
+		} else {
+			result.add(input);
+		}
+	}
+	// clear the user input line
+	term.eraseLine();
+	term.column(0);
+	return [...result.values()];
+
 }

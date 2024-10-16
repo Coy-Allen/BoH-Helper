@@ -27,7 +27,7 @@ export interface dataItem {
 			id: string;
 			morpheffect: string;
 			level?: number;
-		}>;
+		}[]>;
 		xexts: object;
 }
 

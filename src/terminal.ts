@@ -40,7 +40,6 @@ const inputTree:[string,types.inputNode[],string] = ["",[
 	["misc",[
 		["missingCraftable",commandProcessing.missingCraftable,"lists all known recipes & ALL gathering spots that create items you don't have."],
 		["availiableMemories",commandProcessing.availiableMemories,"shows all memories that can be obtained."],
-		// list all possible memories that can be created. WILL contain spoilers
 		// list max aspects possible for given crafting bench.
 		// list max aspects possible for arbitrary crafting options (books).
 	],"things I couldn't categorize. CAN CONTAIN SPOILERS!"]
