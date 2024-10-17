@@ -343,14 +343,26 @@ export function availableMemories(options:availableMemoriesInput): availableMemo
 		if(!array){return;}
 		array.push(value);
 	}
+	const isValid = (itemId:string):boolean=>{
+		const aspects = mergeAspects(grabAllAspects(itemId));
+		if(!aspects["memory"]){return false;}
+		if(options.memFilter?.any !== undefined) {
+			const filterEntries = Object.entries(options.memFilter.any);
+			if(filterEntries.length===0){return true;}
+			for(const [aspect,count] of filterEntries) {
+				if(aspects[aspect] >= count){return true;}
+			}
+			return false;
+		}
+		return true;
+	}
 	const result: availableMemoriesResult = {};
 	if(options.inputs?.includes("recipes")) {
 		const foundRecipes = new Map<string,string[]>();
 		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.id));
 		for(const recipe of recipes){
 			for(const [cardId,_count] of Object.entries(recipe.effects??{})) {
-				const aspects = mergeAspects(grabAllAspects(cardId));
-				if(aspects["memory"]){
+				if(isValid(cardId)){
 					appendToMap(foundRecipes,cardId,recipe.id);
 				}
 			}
@@ -376,7 +388,7 @@ export function availableMemories(options:availableMemoriesInput): availableMemo
 			for(const [type,infoArr] of Object.entries(item.xtriggers)) {
 				for(const info of infoArr) {
 					if(info.morpheffect !== "spawn"){continue;}
-					if(!mergeAspects(grabAllAspects(info.id))["memory"]){continue;}
+					if(!isValid(info.id)){continue;}
 					// ignore books if asked
 					if(/^reading\./.test(type)){
 						if(options.inputs?.includes("books")){

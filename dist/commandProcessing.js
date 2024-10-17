@@ -136,27 +136,27 @@ export async function availableMemories(term, parts) {
     const arg = JSON.parse(parts.join(" "));
     const result = dataProcessing.availableMemories(arg);
     if (result.recipes) {
-        term.cyan("Recipes");
+        term.blue("Recipes");
         term(":\n");
         genListOutput(result.recipes);
     }
     if (result.itemsConsumableInspect) {
-        term.cyan("Consumables (Inspect)");
+        term.blue("Consumables (Inspect)");
         term(":\n");
         genListOutput(result.itemsConsumableInspect);
     }
     if (result.itemsConsumableTalk) {
-        term.cyan("Consumables (Talk)");
+        term.blue("Consumables (Talk)");
         term(":\n");
         genListOutput(result.itemsConsumableTalk);
     }
     if (result.itemsReusableInspect) {
-        term.cyan("Reusables (Inspect)");
+        term.blue("Reusables (Inspect)");
         term(":\n");
         genListOutput(result.itemsReusableInspect);
     }
     if (result.itemsReusableTalk) {
-        term.cyan("Reusables (Talk)");
+        term.blue("Reusables (Talk)");
         term(":\n");
         genListOutput(result.itemsReusableTalk);
     }
