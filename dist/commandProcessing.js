@@ -56,6 +56,10 @@ export async function searchItems(term, parts) {
         });
     const result = dataProcessing.findItems(arg);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    if (parts.length === 0) {
+        return JSON.stringify(arg);
+    }
+    return;
 }
 export async function searchItemCounts(term, parts) {
     const arg = (parts.length !== 0 ?
@@ -75,6 +79,10 @@ export async function searchItemCounts(term, parts) {
         .sort(([_A, countA], [_B, countB]) => countA - countB)
         .map(([name, count]) => `${name}: ${count}\n`)
         .join(""));
+    if (parts.length === 0) {
+        return JSON.stringify(arg);
+    }
+    return;
 }
 export async function searchRecipes(term, parts) {
     const arg = (parts.length !== 0 ?
@@ -91,6 +99,10 @@ export async function searchRecipes(term, parts) {
         });
     const result = dataProcessing.findRecipes(arg).map(recipe => [recipe[0].reqs, recipe[1]]);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    if (parts.length === 0) {
+        return JSON.stringify(arg);
+    }
+    return;
 }
 export function help(term, _parts, inputNode) {
     const getHelp = (node, depth) => {

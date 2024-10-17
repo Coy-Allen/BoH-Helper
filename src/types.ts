@@ -1,7 +1,7 @@
 import type terminalKit from "terminal-kit";
 
 
-export type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
+export type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void|string>|void|string);
 export type inputNode = [string,inputNode[]|commandFunc,string];
 
 

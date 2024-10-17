@@ -87,18 +87,20 @@ async function inputLoop() {
             term.previousLine(0);
             continue;
         }
-        fileLoader.addHistory(input);
         const parts = input.split(" ").filter(part => part !== "");
         const commandLookup = findCommand(parts);
         if (commandLookup === undefined) {
             term.yellow("command not found.\n");
+            fileLoader.addHistory(input);
             continue;
         }
         try {
-            await commandLookup[0](term, commandLookup[1]);
+            const historyAppend = await commandLookup[0](term, commandLookup[1]);
+            fileLoader.addHistory(input + (historyAppend ? " " + historyAppend : ""));
         }
         catch (error) {
             term.red("command threw an error.\n");
+            fileLoader.addHistory(input);
         }
     }
 }

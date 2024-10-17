@@ -60,7 +60,7 @@ export function searchVerbs(term: Terminal, parts: string[]): void {
 	const result = dataProcessing.findVerbs(args);
 	term(JSON.stringify("res: "+result.length,null,jsonSpacing)+"\n");
 }
-export async function searchItems(term: Terminal, parts: string[]):Promise<void> {
+export async function searchItems(term: Terminal, parts: string[]):Promise<string|undefined> {
 	const arg = (parts.length !== 0 ? 
 		JSON.parse(parts.join(" ")) :
 		{
@@ -73,8 +73,12 @@ export async function searchItems(term: Terminal, parts: string[]):Promise<void>
 	);
 	const result = dataProcessing.findItems(arg);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
+	if(parts.length === 0){
+		return JSON.stringify(arg);
+	}
+	return;
 }
-export async function searchItemCounts(term: Terminal, parts: string[]):Promise<void> {
+export async function searchItemCounts(term: Terminal, parts: string[]):Promise<string|undefined> {
 	const arg = (parts.length !== 0 ? 
 		JSON.parse(parts.join(" ")) :
 		{
@@ -94,8 +98,12 @@ export async function searchItemCounts(term: Terminal, parts: string[]):Promise<
 		.map(([name,count]):string=>`${name}: ${count}\n`)
 		.join("")
 	);
+	if(parts.length === 0){
+		return JSON.stringify(arg);
+	}
+	return;
 }
-export async function searchRecipes(term: Terminal, parts: string[]):Promise<void> {
+export async function searchRecipes(term: Terminal, parts: string[]):Promise<string|undefined> {
 	const arg = (parts.length !== 0 ? 
 		JSON.parse(parts.join(" ")) :
 		{
@@ -111,6 +119,10 @@ export async function searchRecipes(term: Terminal, parts: string[]):Promise<voi
 	);
 	const result = dataProcessing.findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
+	if(parts.length === 0){
+		return JSON.stringify(arg);
+	}
+	return;
 }
 export function help(term: Terminal, _parts: string[], inputNode:types.inputNode):void{
 	const getHelp = (node:types.inputNode, depth:number):void=>{
