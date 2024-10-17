@@ -63,13 +63,7 @@ export function searchVerbs(term: Terminal, parts: string[]): void {
 export async function searchItems(term: Terminal, parts: string[]):Promise<string|undefined> {
 	const arg = (parts.length !== 0 ? 
 		JSON.parse(parts.join(" ")) :
-		{
-			min: await getAspects(term, "Min"),
-			any: await getAspects(term, "Any"),
-			max: await getAspects(term, "Max"),
-			// TODO: nameValid?: string,
-			// TODO: nameInvalid?: string,
-		}
+		await getItemSearchOptions(term)
 	);
 	const result = dataProcessing.findItems(arg);
 	term(JSON.stringify(result,null,jsonSpacing)+"\n");
@@ -81,13 +75,7 @@ export async function searchItems(term: Terminal, parts: string[]):Promise<strin
 export async function searchItemCounts(term: Terminal, parts: string[]):Promise<string|undefined> {
 	const arg = (parts.length !== 0 ? 
 		JSON.parse(parts.join(" ")) :
-		{
-			min: await getAspects(term, "Min"),
-			any: await getAspects(term, "Any"),
-			max: await getAspects(term, "Max"),
-			// TODO: nameValid?: string,
-			// TODO: nameInvalid?: string,
-		}
+		await getItemSearchOptions(term)
 	);
 	const counts = new Map<string,number>();
 	dataProcessing.findItems(arg).forEach(item=>{
@@ -152,7 +140,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		term(`: ${detail}\n`)
 	}
 }
-export async function availiableMemories(term: Terminal, parts: string[]): Promise<void> {
+export async function availableMemories(term: Terminal, parts: string[]): Promise<void> {
 	const maxTargLen = 15;
 	const genListOutput = (memories:[string,string[]][]):void=>{
 		for(const [memId,targs] of memories){
@@ -174,7 +162,7 @@ export async function availiableMemories(term: Terminal, parts: string[]): Promi
 			ignoreObtained?:boolean;
 		};
 	} = JSON.parse(parts.join(" "));
-	const result = dataProcessing.availiableMemories(arg);
+	const result = dataProcessing.availableMemories(arg);
 	if(result.recipes){
 		term.cyan("Recipes");
 		term(":\n");
@@ -202,9 +190,46 @@ export async function availiableMemories(term: Terminal, parts: string[]): Promi
 	}
 
 }
+export async function maxAspects(term: Terminal, parts: string[]): Promise<string|undefined> {
+
+	const arg:[types.itemSearchOptions[],string[]] = (parts.length !== 0 ? 
+		JSON.parse(parts.join(" ")) :
+		await (async():Promise<[types.itemSearchOptions[],string[]]|[types.itemSearchOptions[]]>=>{
+			const rows: types.itemSearchOptions[] = [];
+			while(true) {
+				rows.push(await getItemSearchOptions(term));
+				term("add another row? [y|N]\n");
+				if(!await term.yesOrNo({yes:["y"],no:["n","ENTER"]}).promise){break;}
+			}
+			term("change target aspects? [y|N]\n");
+			if(await term.yesOrNo({yes:["y"],no:["n","ENTER"]}).promise) {
+				return [rows,await getStrArray(term,"target aspects",dataProcessing.getAllAspects())];
+			}
+			return [rows]
+		})()
+	);
+	const result = await dataProcessing.maxAspects(...arg);
+	term.table(result,{
+		contentHasMarkup: true,
+		// borderChars: "lightRounded",
+	});
+	if(parts.length === 0){
+		return JSON.stringify(arg);
+	}
+	return;
+}
 
 // helpers //
 // these are for commands to request the specific thing from the user. user input shorthand
+async function getItemSearchOptions(term: Terminal, name?:string): Promise<types.itemSearchOptions> {
+	return {
+		min: await getAspects(term, "Min"+(name?" "+name:"")),
+		any: await getAspects(term, "Any"+(name?" "+name:"")),
+		max: await getAspects(term, "Max"+(name?" "+name:"")),
+		// TODO: nameValid?: string,
+		// TODO: nameInvalid?: string,
+	}
+}
 
 async function getAspects(term: Terminal, name: string): Promise<types.aspects> {
 	const aspectNames = dataProcessing.getAllAspects();
@@ -248,7 +273,6 @@ async function getAspects(term: Terminal, name: string): Promise<types.aspects> 
 	term.column(0);
 	return result;
 }
-//@ts-expect-error unused
 async function getStrArray(term: Terminal, name: string, autocomplete?: string[]): Promise<string[]> {
 	const result = new Set<string>();
 	let input:string = "";
@@ -278,5 +302,4 @@ async function getStrArray(term: Terminal, name: string, autocomplete?: string[]
 	term.eraseLine();
 	term.column(0);
 	return [...result.values()];
-
 }

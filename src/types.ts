@@ -15,6 +15,14 @@ export interface slot {
 	forbidden?: aspects;
 }
 
+export interface itemSearchOptions {
+	min?: aspects,
+	any?: aspects,
+	max?: aspects,
+	nameValid?: string,
+	nameInvalid?: string,
+}
+
 export interface dataItem {
 		id: string;
 		uniquenessgroup: string;

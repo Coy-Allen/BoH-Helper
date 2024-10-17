@@ -47,13 +47,7 @@ export function searchVerbs(term, parts) {
 export async function searchItems(term, parts) {
     const arg = (parts.length !== 0 ?
         JSON.parse(parts.join(" ")) :
-        {
-            min: await getAspects(term, "Min"),
-            any: await getAspects(term, "Any"),
-            max: await getAspects(term, "Max"),
-            // TODO: nameValid?: string,
-            // TODO: nameInvalid?: string,
-        });
+        await getItemSearchOptions(term));
     const result = dataProcessing.findItems(arg);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
     if (parts.length === 0) {
@@ -64,13 +58,7 @@ export async function searchItems(term, parts) {
 export async function searchItemCounts(term, parts) {
     const arg = (parts.length !== 0 ?
         JSON.parse(parts.join(" ")) :
-        {
-            min: await getAspects(term, "Min"),
-            any: await getAspects(term, "Any"),
-            max: await getAspects(term, "Max"),
-            // TODO: nameValid?: string,
-            // TODO: nameInvalid?: string,
-        });
+        await getItemSearchOptions(term));
     const counts = new Map();
     dataProcessing.findItems(arg).forEach(item => {
         counts.set(item.entityid, (counts.get(item.entityid) ?? 0) + 1);
@@ -129,7 +117,7 @@ export async function missingCraftable(term, parts) {
         term(`: ${detail}\n`);
     }
 }
-export async function availiableMemories(term, parts) {
+export async function availableMemories(term, parts) {
     const maxTargLen = 15;
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
@@ -146,7 +134,7 @@ export async function availiableMemories(term, parts) {
         }
     };
     const arg = JSON.parse(parts.join(" "));
-    const result = dataProcessing.availiableMemories(arg);
+    const result = dataProcessing.availableMemories(arg);
     if (result.recipes) {
         term.cyan("Recipes");
         term(":\n");
@@ -173,8 +161,45 @@ export async function availiableMemories(term, parts) {
         genListOutput(result.itemsReusableTalk);
     }
 }
+export async function maxAspects(term, parts) {
+    const arg = (parts.length !== 0 ?
+        JSON.parse(parts.join(" ")) :
+        await (async () => {
+            const rows = [];
+            while (true) {
+                rows.push(await getItemSearchOptions(term));
+                term("add another row? [y|N]\n");
+                if (!await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
+                    break;
+                }
+            }
+            term("change target aspects? [y|N]\n");
+            if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
+                return [rows, await getStrArray(term, "target aspects", dataProcessing.getAllAspects())];
+            }
+            return [rows];
+        })());
+    const result = await dataProcessing.maxAspects(...arg);
+    term.table(result, {
+        contentHasMarkup: true,
+        // borderChars: "lightRounded",
+    });
+    if (parts.length === 0) {
+        return JSON.stringify(arg);
+    }
+    return;
+}
 // helpers //
 // these are for commands to request the specific thing from the user. user input shorthand
+async function getItemSearchOptions(term, name) {
+    return {
+        min: await getAspects(term, "Min" + (name ? " " + name : "")),
+        any: await getAspects(term, "Any" + (name ? " " + name : "")),
+        max: await getAspects(term, "Max" + (name ? " " + name : "")),
+        // TODO: nameValid?: string,
+        // TODO: nameInvalid?: string,
+    };
+}
 async function getAspects(term, name) {
     const aspectNames = dataProcessing.getAllAspects();
     const result = {};
@@ -225,7 +250,6 @@ async function getAspects(term, name) {
     term.column(0);
     return result;
 }
-//@ts-expect-error unused
 async function getStrArray(term, name, autocomplete) {
     const result = new Set();
     let input = "";

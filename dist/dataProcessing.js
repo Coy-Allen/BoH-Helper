@@ -9,6 +9,7 @@ const SAVE_ROOMS = [];
 const SAVE_ITEMS = [];
 const SAVE_RECIPES = new Set();
 const SAVE_VERBS = new Set();
+// const SAVE_INVENTORY: types.foundItems[] = []; // TODO: stub
 function setUnlockedRooms(rooms) {
     SAVE_ROOMS.length = 0;
     rooms.forEach(room => {
@@ -336,7 +337,7 @@ export function findRecipes(options) {
     })
         .filter(recipe => recipe !== undefined);
 }
-export function availiableMemories(options) {
+export function availableMemories(options) {
     const appendToMap = (map, key, value) => {
         if (!map.has(key)) {
             map.set(key, []);
@@ -498,4 +499,40 @@ export function missingCraftable(options) {
         }
         return true;
     });
+}
+export async function maxAspects(rowFilters, aspects = [
+    "moon", "nectar", "rose", "scale", "sky",
+    "knock", "lantern", "forge", "edge", "winter", "heart", "grail", "moth",
+]) {
+    const header = ["filter query", ...aspects];
+    const rowContents = [];
+    const counts = new Array(aspects.length).fill(0);
+    for (const rowFilter of rowFilters) {
+        const rowContent = [];
+        const foundItems = findItems(rowFilter);
+        for (const aspect of aspects) {
+            let name = "-";
+            let max = 0;
+            for (const item of foundItems) {
+                if (item.aspects[aspect] > max) {
+                    name = item.entityid;
+                    max = item.aspects[aspect];
+                }
+            }
+            rowContent.push([name, max]);
+        }
+        rowContents.push(rowContent);
+        for (let i = 0; i < rowContent.length; i++) {
+            counts[i] += rowContent[i][1];
+        }
+    }
+    return [
+        // TODO: color cells based on aspect
+        header,
+        ...rowContents.map((row, rowIndex) => {
+            // TODO: color the cells
+            return [JSON.stringify(rowFilters[rowIndex]), ...row.map(cell => `^c${cell[0]}^::\n^b${cell[1]}^:`)];
+        }),
+        ["totals", ...counts.map(count => "^b" + count.toString() + "^:")],
+    ];
 }

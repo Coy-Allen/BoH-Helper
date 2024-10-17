@@ -37,10 +37,18 @@ const inputTree = ["", [
         // something for advanced stuff.
         ["misc", [
                 ["missingCraftable", commandProcessing.missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
-                ["availiableMemories", commandProcessing.availiableMemories, "shows all memories that can be obtained."],
+                ["availableMemories", commandProcessing.availableMemories, "shows all memories that can be obtained."],
                 // list max aspects possible for given crafting bench.
                 // list max aspects possible for arbitrary crafting options (books).
-            ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"]
+            ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"],
+        // show max aspects \w specific inputs (skill, knowledge, memories, fuel, flower, ...)
+        ["tables", [
+                ["maxAspects", commandProcessing.maxAspects, "shows max aspects available."],
+            ], "display's tables of info"],
+        // ["alias",[
+        // 	["save",(_=>undefined),"saves the last used command"],
+        // 	["load",(_=>undefined),"loads a specific alias and runs the command"],
+        // ],"save frequently used commands for easy use"],
     ], ""];
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });

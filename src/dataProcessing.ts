@@ -13,6 +13,7 @@ const SAVE_ROOMS: types.saveRoom[] = [];
 const SAVE_ITEMS: types.foundItems[] = [];
 const SAVE_RECIPES = new Set<string>();
 const SAVE_VERBS = new Set<string>();
+// const SAVE_INVENTORY: types.foundItems[] = []; // TODO: stub
 
 
 function setUnlockedRooms(rooms:types.saveRoom[]): void {
@@ -245,13 +246,7 @@ export function findVerbs(options:{
 		return true;
 	});
 }
-export function findItems(options:{
-	min?: types.aspects,
-	any?: types.aspects,
-	max?: types.aspects,
-	nameValid?: string,
-	nameInvalid?: string,
-}): types.foundItems[] {
+export function findItems(options:types.itemSearchOptions): types.foundItems[] {
 	const regexValid = options.nameValid? new RegExp(options.nameValid) : undefined;
 	const regexInvalid = options.nameInvalid? new RegExp(options.nameInvalid) : undefined;
 	return SAVE_ITEMS.filter(item=>{
@@ -330,25 +325,25 @@ export function findRecipes(options:{
 
 //advanced
 
-type availiableMemoriesResult = Partial<Record<
+type availableMemoriesResult = Partial<Record<
 	"recipes"|`items${"Reusable"|"Consumable"}${"Inspect"|"Talk"}`, //obtain group
 	[string,string[]][] // memory id, specific item needed
 >>;
-interface availiableMemoriesInput {
+interface availableMemoriesInput {
 	inputs:("recipes"|"itemsReusable"|"itemsConsumable"|"books")[];
 	memFilter?:{
 		any?:types.aspects;
 		ignoreObtained?:boolean;
 	};
 }
-export function availiableMemories(options:availiableMemoriesInput): availiableMemoriesResult {
+export function availableMemories(options:availableMemoriesInput): availableMemoriesResult {
 	const appendToMap = (map:Map<string,string[]>,key:string,value:string):void=>{
 		if(!map.has(key)){map.set(key,[]);}
 		const array = map.get(key);
 		if(!array){return;}
 		array.push(value);
 	}
-	const result: availiableMemoriesResult = {};
+	const result: availableMemoriesResult = {};
 	if(options.inputs?.includes("recipes")) {
 		const foundRecipes = new Map<string,string[]>();
 		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.id));
@@ -489,4 +484,46 @@ export function missingCraftable(options:{maxOwned?:number}): [string,string[]][
 			if(target[1].length===0){return false;}
 			return true;
 		});
+}
+
+export async function maxAspects(
+	rowFilters:types.itemSearchOptions[],
+	aspects:string[]=[
+		"moon","nectar","rose","scale","sky",
+		"knock","lantern","forge","edge","winter","heart","grail","moth",
+	],
+): Promise<string[][]> {
+	const header = ["filter query",...aspects];
+	const rowContents:[string,number][][] = [];
+	const counts:number[] = new Array(aspects.length).fill(0);
+
+	for(const rowFilter of rowFilters) {
+		const rowContent:[string,number][] = [];
+		const foundItems = findItems(rowFilter);
+		for(const aspect of aspects) {
+			let name = "-";
+			let max = 0;
+			for(const item of foundItems) {
+				if(item.aspects[aspect]>max){
+					name = item.entityid;
+					max = item.aspects[aspect];
+				}
+			}
+			rowContent.push([name,max]);
+		}
+		rowContents.push(rowContent);
+		for(let i=0;i<rowContent.length;i++){
+			counts[i]+=rowContent[i][1];
+		}
+	}
+
+	return [
+		// TODO: color cells based on aspect
+		header,
+		...rowContents.map((row,rowIndex):string[]=>{
+			// TODO: color the cells
+			return [JSON.stringify(rowFilters[rowIndex]),...row.map(cell=>`^c${cell[0]}^::\n^b${cell[1]}^:`)]
+		}),
+		["totals",...counts.map(count=>"^b"+count.toString()+"^:")],
+	]
 }
