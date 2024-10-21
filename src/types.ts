@@ -111,6 +111,9 @@ export interface saveRoom {
 	};
 	payload: {
 		id: string;
+		entityid: string;
+		quantity: number;
+		mutations: aspects;
 		issealed: boolean;
 		isshrouded: boolean;
 		dominions: {

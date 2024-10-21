@@ -47,6 +47,29 @@ function setSaveItems(items:types.foundItems[]):void{
 		SAVE_ITEMS.push(item);
 	}
 }
+function getHand(json:types.saveData): types.foundItems[] {
+	const getSphere = (id:string):types.saveRoom[]=>json.rootpopulationcommand.spheres.find(
+		(sphere):boolean=>sphere.governingspherespec.id===id
+	)?.tokens ?? [];
+	const cards = [
+		getSphere("hand.abilities"),
+		getSphere("hand.skills"),
+		getSphere("hand.memories"),
+		getSphere("hand.misc"),
+	].flatMap(tokens=>tokens.map((token):types.foundItems=>{
+		const aspects = [token.payload.mutations, ...grabAllAspects(token.payload.entityid)];
+		const mergedAspects = mergeAspects(aspects);
+		// remove typing
+		delete mergedAspects["$type"];
+		return {
+			entityid:token.payload.entityid,
+			aspects:mergedAspects,
+			count:token.payload.quantity,
+			room:"hand",
+		}
+	}));
+	return cards;
+}
 function getUnlockedRoomsFromSave(json:types.saveData): types.saveRoom[] {
 	// FIXME: can't keep track of parent relationships due to filtering arrays
 	const library = json.rootpopulationcommand.spheres.find((sphere):boolean=>sphere.governingspherespec.id==="library")
@@ -141,7 +164,7 @@ export function lookupItem(id: string):[types.dataItem,types.aspects]|undefined 
 export function loadSave(save:types.saveData): void {
 	SAVE_RAW = save;
 	setUnlockedRooms(getUnlockedRoomsFromSave(save));
-	setSaveItems(getItemsFromSave());
+	setSaveItems([getItemsFromSave(),getHand(save)].flat());
 	setSaveVerbs(getVerbsFromSave());
 	setSaveRecipes(save.charactercreationcommands.flatMap(
 		character=>character.ambittablerecipesunlocked
