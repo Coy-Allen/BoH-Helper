@@ -127,33 +127,6 @@ function getItemsFromSave(): types.foundItems[]{
 		return allItems;
 	});
 }
-function mergeAspects(aspects: types.aspects[]): types.aspects {
-	// FIXME: overlaped aspects don't get merged
-	return aspects.map(aspects=>Object.entries(aspects)).reduce((res:types.aspects,entries):types.aspects=>{
-		for(const [aspect,count] of entries) {
-			if(!res[aspect]){
-				res[aspect] = 0;
-			}
-			res[aspect]+=count;
-		}
-		return res;
-	},{})
-}
-
-function grabAllAspects(id: string): types.aspects[] {
-	const results: types.aspects[] = [];
-	const itemLookup = DATA_ITEMS.find((check):boolean=>check.id===id);
-	if(!itemLookup){
-		console.warn(`item ${id} could not be found.`);
-		return results;
-	}
-	results.push(itemLookup.aspects);
-	if(itemLookup.inherits){
-		results.push(...grabAllAspects(itemLookup.inherits));
-	}
-	return results;
-}
-
 // exports
 export function lookupItem(id: string):[types.dataItem,types.aspects]|undefined {
 	const item = DATA_ITEMS.find((check):boolean=>check.id===id);
@@ -170,9 +143,58 @@ export function loadSave(save:types.saveData): void {
 		character=>character.ambittablerecipesunlocked
 	));
 }
+// getters
 export function getAllAspects():string[] {
 	return [...DATA_ASPECTS.values()];
 }
+export function getAllVerbs():types.dataVerb[] {
+	return [...DATA_VERBS];
+}
+export function getSaveItems(): types.foundItems[]{
+	return [...SAVE_ITEMS];
+}
+export function getSaveRecipes(): string[]{
+	return [...SAVE_RECIPES];
+}
+export function getDataRecipes(): types.dataRecipe[]{
+	return [...DATA_RECIPES];
+}
+export function getDataDecks(): types.dataDeck[]{
+	return [...DATA_DECKS];
+}
+export function getSaveRaw(): types.saveData|undefined{
+	return SAVE_RAW;
+}
+export function getDataItems(): types.dataItem[]{
+	return [...DATA_ITEMS];
+}
+export function mergeAspects(aspects: types.aspects[]): types.aspects {
+	// FIXME: overlaped aspects don't get merged
+	return aspects.map(aspects=>Object.entries(aspects)).reduce((res:types.aspects,entries):types.aspects=>{
+		for(const [aspect,count] of entries) {
+			if(!res[aspect]){
+				res[aspect] = 0;
+			}
+			res[aspect]+=count;
+		}
+		return res;
+	},{})
+}
+
+export function grabAllAspects(id: string): types.aspects[] {
+	const results: types.aspects[] = [];
+	const itemLookup = DATA_ITEMS.find((check):boolean=>check.id===id);
+	if(!itemLookup){
+		console.warn(`item ${id} could not be found.`);
+		return results;
+	}
+	results.push(itemLookup.aspects);
+	if(itemLookup.inherits){
+		results.push(...grabAllAspects(itemLookup.inherits));
+	}
+	return results;
+}
+
 export function setDataRecipes(recipes:types.dataRecipe[]):void{
 	DATA_RECIPES.length = 0;
 	const names = new Set<string>;
@@ -347,218 +369,3 @@ export function findRecipes(options:{
 }
 
 //advanced
-
-type availableMemoriesResult = Partial<Record<
-	"recipes"|`items${"Reusable"|"Consumable"}${"Inspect"|"Talk"}`, //obtain group
-	[string,string[]][] // memory id, specific item needed
->>;
-interface availableMemoriesInput {
-	inputs:("recipes"|"itemsReusable"|"itemsConsumable"|"books")[];
-	memFilter?:{
-		any?:types.aspects;
-		ignoreObtained?:boolean;
-	};
-}
-export function availableMemories(options:availableMemoriesInput): availableMemoriesResult {
-	const appendToMap = (map:Map<string,string[]>,key:string,value:string):void=>{
-		if(!map.has(key)){map.set(key,[]);}
-		const array = map.get(key);
-		if(!array){return;}
-		array.push(value);
-	}
-	const isValid = (itemId:string):boolean=>{
-		const aspects = mergeAspects(grabAllAspects(itemId));
-		if(!aspects["memory"]){return false;}
-		if(options.memFilter?.any !== undefined) {
-			const filterEntries = Object.entries(options.memFilter.any);
-			if(filterEntries.length===0){return true;}
-			for(const [aspect,count] of filterEntries) {
-				if(aspects[aspect] >= count){return true;}
-			}
-			return false;
-		}
-		return true;
-	}
-	const result: availableMemoriesResult = {};
-	if(options.inputs?.includes("recipes")) {
-		const foundRecipes = new Map<string,string[]>();
-		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.has(recipe.id));
-		for(const recipe of recipes){
-			for(const [cardId,_count] of Object.entries(recipe.effects??{})) {
-				if(isValid(cardId)){
-					appendToMap(foundRecipes,cardId,recipe.id);
-				}
-			}
-		}
-		if(foundRecipes.size>0){
-			result.recipes = [...foundRecipes.entries()];
-		}
-	}
-	// FIXME: items are broken
-	if(
-		options.inputs?.includes("itemsReusable") ||
-		options.inputs?.includes("itemsConsumable") ||
-		options.inputs?.includes("books")
-	) {
-		const foundReusableInspect = new Map<string,string[]>();
-		const foundReusableTalk = new Map<string,string[]>();
-		const foundConsumableInspect = new Map<string,string[]>();
-		const foundConsumableTalk = new Map<string,string[]>();
-		const items = [...new Set(SAVE_ITEMS.map(item=>item.entityid))]
-			.map(itemId=>DATA_ITEMS.find(itemData=>itemData.id===itemId))
-			.filter(itemData=>itemData!==undefined);
-		for(const item of items){
-			for(const [type,infoArr] of Object.entries(item.xtriggers)) {
-				for(const info of infoArr) {
-					if(info.morpheffect !== "spawn"){continue;}
-					if(!isValid(info.id)){continue;}
-					// ignore books if asked
-					if(/^reading\./.test(type)){
-						if(options.inputs?.includes("books")){
-							// FIXME: filter out non-mastered books
-							appendToMap(foundReusableInspect,info.id,item.id);
-						}
-						continue;
-					}
-					// FIXME: can't figure out what determines if something gets "used up"
-					// TEMP: just treat them as the same for now.
-					if(
-						!options.inputs?.includes("itemsReusable") &&
-						!options.inputs?.includes("itemsConsumable")
-					){
-						continue;
-					}
-
-					if(type==="dist"){
-						appendToMap(foundConsumableTalk,info.id,item.id);
-						continue;
-					}
-					if(type==="scrutiny"){
-						appendToMap(foundConsumableInspect,info.id,item.id);
-						continue;
-					}
-				}
-			}
-		}
-		if(foundReusableInspect.size>0){
-			result.itemsReusableInspect = [...foundReusableInspect.entries()];
-		}
-		if(foundReusableTalk.size>0){
-			result.itemsReusableTalk = [...foundReusableTalk.entries()];
-		}
-		if(foundConsumableInspect.size>0){
-			result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
-		}
-		if(foundConsumableTalk.size>0){
-			result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
-		}
-	}
-	// TODO: filter out wrong aspected memories
-	// TODO: filter out already obtained
-	return result;
-}
-
-export function missingCraftable(options:{maxOwned?:number}): [string,string[]][] {
-	const result:[string,string[]][] = [];
-	const saveItems = new Map<string,number>();
-	for(const saveItem of SAVE_ITEMS) {
-		saveItems.set(saveItem.entityid,(saveItems.get(saveItem.entityid)??0)+(saveItem.count??1));
-	}
-	for(const recipe of SAVE_RECIPES) {
-		const recipeData = DATA_RECIPES.find(recipeInfo=>recipeInfo.id===recipe);
-		if(!recipeData){
-			console.warn(`recipe ${recipe} could not be found.`);
-			continue;
-		}
-		const effects = recipeData.effects;
-		if(effects){result.push([recipeData.id,Object.keys(effects)]);}
-	};
-	for(const deck of DATA_DECKS) {
-		// we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
-		if([
-			"sweetbones.employables",
-			"incidents",
-			"incidents.numa",
-			"numa.possibility",
-			"d.books.dawn",
-			"d.books.solar",
-			"d.books.baronial",
-			"d.books.curia",
-			"d.books.nocturnal",
-			"d.books.divers",
-			"d.challenges.opportunities",
-		].includes(deck.id)){continue;}
-		result.push([deck.id,deck.spec]);
-	};
-	const uniqueItemsSave = SAVE_RAW?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
-	const allItems = new Set<string>(result.flatMap(groups=>groups[1]));
-	const validItems = new Set<string>([...allItems.values()].filter(item=>{
-		const foundItem = DATA_ITEMS.find(itemData=>itemData.id===item);
-		if(!foundItem){
-			console.warn(`item ${foundItem} could not be found.`);
-			// keep it by default
-			return false;
-		}
-		const aspects = mergeAspects(grabAllAspects(item));
-		if(aspects["memory"]||aspects["correspondence"]||aspects["invitation"]){
-			return false;
-		}
-		// if item exists in library
-		const countOwned = saveItems.get(item);
-		if((countOwned??0) > (options.maxOwned??0)){return false;}
-		// if it's unique value already exists
-		if(uniqueItemsSave.includes(item)){return false;}
-		return true;
-	}));
-	return result
-		.map(([name,items]):[string,string[]]=>{
-			const uniqueItems = new Set<string>(items);
-			return [name,[...uniqueItems.values()].filter(item=>validItems.has(item))];
-		})
-		.filter(target=>{
-			if(target[1].length===0){return false;}
-			return true;
-		});
-}
-
-export async function maxAspects(
-	rowFilters:types.itemSearchOptions[],
-	aspects:string[]=[
-		"moon","nectar","rose","scale","sky",
-		"knock","lantern","forge","edge","winter","heart","grail","moth",
-	],
-): Promise<string[][]> {
-	const header = ["filter query",...aspects];
-	const rowContents:[string,number][][] = [];
-	const counts:number[] = new Array(aspects.length).fill(0);
-
-	for(const rowFilter of rowFilters) {
-		const rowContent:[string,number][] = [];
-		const foundItems = findItems(rowFilter);
-		for(const aspect of aspects) {
-			let name = "-";
-			let max = 0;
-			for(const item of foundItems) {
-				if(item.aspects[aspect]>max){
-					name = item.entityid;
-					max = item.aspects[aspect];
-				}
-			}
-			rowContent.push([name,max]);
-		}
-		rowContents.push(rowContent);
-		for(let i=0;i<rowContent.length;i++){
-			counts[i]+=rowContent[i][1];
-		}
-	}
-
-	return [
-		// TODO: color cells based on aspect
-		header,
-		...rowContents.map((row,rowIndex):string[]=>{
-			// TODO: color the cells
-			return [JSON.stringify(rowFilters[rowIndex]),...row.map(cell=>`^c${cell[0]}^::\n^b${cell[1]}^:`)]
-		}),
-		["totals",...counts.map(count=>"^b"+count.toString()+"^:")],
-	]
-}

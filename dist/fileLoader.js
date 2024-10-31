@@ -3,11 +3,11 @@ import json5 from "json5";
 import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
 import * as dataProcessing from "./dataProcessing.js";
+import { installFolder } from "./config.js";
 const fileOutputs = new Map();
 let history;
 export async function loadFiles(dispatch) {
     // TODO: find BoH data folder even if installed elsewhere
-    const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
     const dataFolder = installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core";
     for (let i = 0; i < fileMetaDataList.length; i++) {
         const fileMetaData = fileMetaDataList[i];
