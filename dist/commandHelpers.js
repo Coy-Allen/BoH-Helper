@@ -9,11 +9,15 @@ export async function getItemSearchOptions(term, name) {
     };
 }
 export async function getAspects(term, name) {
+    // TODO: add strict to options
     const aspectNames = getAllAspects();
     const result = {};
     let aspect = "";
     let count = "";
     term("\n");
+    const autocompleteList = (input) => {
+        return generateAutocomplete(generateCommandNames(aspectNames, "\\."), input);
+    };
     while (true) {
         // print current result
         term.previousLine(0);
@@ -23,7 +27,7 @@ export async function getAspects(term, name) {
         term.eraseLine();
         term("aspect> ");
         aspect = (await term.inputField({
-            autoComplete: aspectNames,
+            autoComplete: autocompleteList,
             autoCompleteMenu: true,
             autoCompleteHint: true,
             cancelable: true,
@@ -66,6 +70,10 @@ export async function getStrArray(term, name, options) {
         max: options?.max,
         strict: options?.strict ?? true,
     };
+    const autocompleteDelimiter = options?.autocompleteDelimiter;
+    const autocompleteList = autocompleteDelimiter === undefined ?
+        optionsFull.autocomplete :
+        input => { return generateAutocomplete(generateCommandNames(optionsFull.autocomplete, autocompleteDelimiter), input); };
     let input = "";
     term("\n");
     while (true) {
@@ -77,18 +85,18 @@ export async function getStrArray(term, name, options) {
         term.eraseLine();
         term("input> ");
         input = (await term.inputField({
-            autoComplete: optionsFull.autocomplete,
+            autoComplete: autocompleteList,
             autoCompleteMenu: true,
             autoCompleteHint: true,
             cancelable: true,
         }).promise) ?? "";
+        if (input === "" && optionsFull.min <= result.size) {
+            break;
+        }
         if (optionsFull.strict &&
             optionsFull.autocomplete.length !== 0 &&
             !optionsFull.autocomplete.includes(input)) {
             continue;
-        }
-        if (input === "" && optionsFull.min <= result.size) {
-            break;
         }
         if (result.has(input)) {
             result.delete(input);
@@ -102,4 +110,43 @@ export async function getStrArray(term, name, options) {
     term.eraseLine();
     term.column(0);
     return [...result.values()];
+}
+function generateCommandNames(options, delimiter) {
+    const result = [];
+    const regexSplit = new RegExp(`(?=${delimiter})`);
+    for (const option of options) {
+        const parts = [...option.split(regexSplit), ""];
+        let prevSections = result;
+        for (const part of parts) {
+            if (!prevSections.map(section => section[0]).includes(part)) {
+                prevSections.push([part, []]);
+            }
+            prevSections = prevSections.find(section => section[0] === part)?.[1] ?? [];
+        }
+    }
+    return result;
+}
+function generateAutocomplete(options, inputRaw) {
+    const input = inputRaw.toLowerCase();
+    let inputIndex = 0;
+    let outputTargets = ["", options];
+    const output = [];
+    while (true) {
+        const commands = outputTargets[1].filter(outputTarget => {
+            return outputTarget[0].startsWith(input.slice(inputIndex)) ||
+                input.startsWith(outputTarget[0], inputIndex);
+        });
+        if (commands.length > 1) {
+            // multiple possible commands
+            return commands.map(command => [...output, command[0]].join(""));
+        }
+        if (commands.length === 0) {
+            // unknown command
+            return output.join("");
+        }
+        const command = commands[0];
+        output.push(command[0]);
+        inputIndex += command[0].length;
+        outputTargets = command;
+    }
 }

@@ -45,6 +45,7 @@ async function maxAspectsPreset(term, parts) {
             const name = (await commandHelpers.getStrArray(term, "target station", {
                 autocomplete: verbs.map(verb => verb.id),
                 max: 1,
+                autocompleteDelimiter: "\\.",
             }))[0]; // TODO: stub
             term("change target aspects? [y|N]\n");
             if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
@@ -88,13 +89,13 @@ async function maxAspectsPreset(term, parts) {
 }
 // Shared code
 function calcMaxAspects(rowFilters, aspects) {
-    const header = ["filter query", ...aspects];
     const rowContents = [];
-    const counts = new Array(aspects.length).fill(0);
     const aspectsToUse = aspects.length !== 0 ? aspects : [
         "moon", "nectar", "rose", "scale", "sky",
         "knock", "lantern", "forge", "edge", "winter", "heart", "grail", "moth",
     ];
+    const header = ["filter query", ...aspectsToUse];
+    const counts = new Array(aspectsToUse.length).fill(0);
     for (const rowFilter of rowFilters) {
         const rowContent = [];
         const foundItems = findItems(rowFilter);

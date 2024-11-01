@@ -118,6 +118,7 @@ function findCommand(parts:string[]):[types.commandFunc,string[]]|undefined{
 	return;
 }
 function generateAutocomplete(input:string): string|string[]{
+	// FIXME: tabbing at end of fully complete command causes autocomplete to show parent command
 	const parts = input.toLowerCase().split(" ").filter(part=>part!=="");
 	let outputTarget:types.inputNode = inputTree;
 	let index = 0;
@@ -150,7 +151,7 @@ function generateAutocomplete(input:string): string|string[]{
 		output.push(getAliasName(subCommands[0][0],part));
 		index++;
 	}
-} 
+}
 
 main().finally(():void=>{
 	term.processExit(0);

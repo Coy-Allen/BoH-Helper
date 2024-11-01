@@ -114,6 +114,7 @@ function findCommand(parts) {
     return;
 }
 function generateAutocomplete(input) {
+    // FIXME: tabbing at end of fully complete command causes autocomplete to show parent command
     const parts = input.toLowerCase().split(" ").filter(part => part !== "");
     let outputTarget = inputTree;
     let index = 0;
