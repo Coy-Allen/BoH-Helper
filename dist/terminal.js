@@ -7,16 +7,14 @@ import list from "./commands/list.js";
 import misc from "./commands/misc.js";
 import search from "./commands/search.js";
 const term = terminalKit.terminal;
-const inputTree = ["", [
-        ["help", (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
-        ["clear", () => { term.clear(); }, "clears the terminal"],
-        ["exit", commandProcessing.exit, "exits the terminal"],
-        ["quit", commandProcessing.exit, "exits the terminal"],
-        ["stop", commandProcessing.exit, "exits the terminal"],
-        ["load", commandProcessing.load, "load user save files"],
+const inputTree = [[""], [
+        [["help", "?"], (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
+        [["clear"], () => { term.clear(); }, "clears the terminal"],
+        [["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
+        [["load"], commandProcessing.load, "load user save files"],
         list,
-        ["info", [
-                ["items", commandProcessing.infoItems, "info on item aspects and results for inspect/talk."],
+        [["info"], [
+                [["items"], commandProcessing.infoItems, "info on item aspects and results for inspect/talk."],
             ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"],
         search,
         // overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
@@ -66,12 +64,11 @@ async function main() {
     await inputLoop();
 }
 async function inputLoop() {
-    // TODO: persist history
     while (true) {
         term("> ");
         const input = await term.inputField({
             history: await fileLoader.getHistory(),
-            autoComplete: inputTree[1].flatMap(command => generateAutocomplete(command)),
+            autoComplete: generateAutocomplete,
             autoCompleteMenu: true,
             autoCompleteHint: true,
         }).promise;
@@ -99,7 +96,6 @@ async function inputLoop() {
     }
 }
 function findCommand(parts) {
-    // TODO: clean this up
     let targetNode = inputTree;
     for (let i = 0; i <= parts.length; i++) {
         const [_name, data] = targetNode;
@@ -109,7 +105,7 @@ function findCommand(parts) {
         if (parts.length === i) {
             return;
         }
-        const nextNode = data.find(([name, _data]) => name.toLowerCase() === parts[i].toLowerCase());
+        const nextNode = data.find(([names, _data]) => names.some(name => name.toLowerCase() === parts[i].toLowerCase()));
         if (nextNode === undefined) {
             return;
         }
@@ -117,11 +113,39 @@ function findCommand(parts) {
     }
     return;
 }
-function generateAutocomplete([name, data]) {
-    if (Array.isArray(data)) {
-        return data.flatMap(subCommand => generateAutocomplete(subCommand).map(part => name + " " + part));
+function generateAutocomplete(input) {
+    const parts = input.toLowerCase().split(" ").filter(part => part !== "");
+    let outputTarget = inputTree;
+    let index = 0;
+    const output = [];
+    const getAliasName = (aliases, targ) => {
+        return aliases.find(name => name.startsWith(targ)) ?? aliases[0];
+    };
+    while (true) {
+        const command = outputTarget[1];
+        if (!Array.isArray(command)) {
+            // command found. keep the rest of user input
+            return [...output, ...parts.slice(index)].join(" ");
+        }
+        const part = parts[index] ?? "";
+        const subCommands = command.filter(inputNode => inputNode[0].some(name => name.startsWith(part)));
+        if (subCommands.length > 1) {
+            // multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
+            return subCommands.map(subCommand => [...output, getAliasName(subCommand[0], part)].join(" "));
+        }
+        if (subCommands.length === 0) {
+            // unknown command
+            return output;
+        }
+        if (parts.length <= index + 1 && part.length < subCommands[0].length) {
+            // still typing command
+            return [...output, getAliasName(subCommands[0][0], part)].join(" ");
+        }
+        // switch target to the only command left
+        outputTarget = subCommands[0];
+        output.push(getAliasName(subCommands[0][0], part));
+        index++;
     }
-    return [name];
 }
 main().finally(() => {
     term.processExit(0);

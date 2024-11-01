@@ -1,8 +1,8 @@
 import * as commandHelpers from "../commandHelpers.js";
 import { getAllAspects, getAllVerbs, findItems } from "../dataProcessing.js";
-const tables = ["tables", [
-        ["maxAspects", maxAspects, "shows max aspects available."],
-        ["maxAspectsPreset", maxAspectsPreset, "shows max aspects available for a given workbench."],
+const tables = [["tables"], [
+        [["maxAspects"], maxAspects, "shows max aspects available."],
+        [["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],
         // list max aspects possible for given crafting bench.
     ], "display's tables of info"];
 async function maxAspects(term, parts) {

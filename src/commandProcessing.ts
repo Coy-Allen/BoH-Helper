@@ -44,7 +44,7 @@ export function help(term: Terminal, _parts: string[], inputNode:types.inputNode
 		const [name,data,helpText] = node;
 		if(depth>=0){
 			term(jsonSpacing.repeat(depth));
-			term.cyan(name);
+			term.cyan(name.join("/"));
 			term(": "+helpText+"\n");
 		}
 		if(Array.isArray(data)){

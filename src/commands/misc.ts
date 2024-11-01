@@ -17,9 +17,9 @@ interface availableMemoriesInput {
 	};
 }
 
-const misc: types.inputNode = ["misc",[
-	["missingCraftable",missingCraftable,"lists all known recipes & ALL gathering spots that create items you don't have."],
-	["availableMemories",availableMemories,"shows all memories that can be obtained."],
+const misc: types.inputNode = [["misc"],[
+	[["missingCraftable"],missingCraftable,"lists all known recipes & ALL gathering spots that create items you don't have."],
+	[["availableMemories"],availableMemories,"shows all memories that can be obtained."],
 ],"things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 
 export async function missingCraftable(term: Terminal, parts: string[]): Promise<void> {

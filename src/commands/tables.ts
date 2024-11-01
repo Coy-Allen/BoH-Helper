@@ -4,9 +4,9 @@ import type * as types from "../types.js";
 import * as commandHelpers from "../commandHelpers.js";
 import {getAllAspects,getAllVerbs,findItems} from "../dataProcessing.js";
 
-const tables: types.inputNode = ["tables",[
-	["maxAspects",maxAspects,"shows max aspects available."],
-	["maxAspectsPreset",maxAspectsPreset,"shows max aspects available for a given workbench."],
+const tables: types.inputNode = [["tables"],[
+	[["maxAspects"],maxAspects,"shows max aspects available."],
+	[["maxAspectsPreset"],maxAspectsPreset,"shows max aspects available for a given workbench."],
 	// list max aspects possible for given crafting bench.
 ],"display's tables of info"];
 

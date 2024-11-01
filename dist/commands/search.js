@@ -1,12 +1,12 @@
 import { getItemSearchOptions, getAspects } from "../commandHelpers.js";
 import { findVerbs, findItems, findRecipes } from "../dataProcessing.js";
 import { jsonSpacing } from "../config.js";
-const search = ["search", [
-        ["verbs", searchVerbs, "search found popups and their card inputs."],
+const search = [["search"], [
+        [["verbs"], searchVerbs, "search found popups and their card inputs."],
         // locked rooms
-        ["items", searchItems, "search owned items and their aspects."],
-        ["itemCounts", searchItemCounts, "list owned item counts."], // counts of items in house
-        ["recipes", searchRecipes, "search discovered (non-???) recipes and their outputs."],
+        [["items"], searchItems, "search owned items and their aspects."],
+        [["itemCounts"], searchItemCounts, "list owned item counts."], // counts of items in house
+        [["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
     ], "finds unlocked things in your save file. load your save file 1st."];
 export function searchVerbs(term, parts) {
     // TODO: move "parts" into a custom input handler
