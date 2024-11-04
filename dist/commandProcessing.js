@@ -1,7 +1,6 @@
-import os from "os";
 import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
-import { jsonSpacing } from "./config.js";
+import { jsonSpacing, saveLocation } from "./config.js";
 export async function exit(term) {
     term("exiting...");
     await saveHistory();
@@ -10,10 +9,10 @@ export async function exit(term) {
 export async function load(term) {
     term("save file> ");
     const filename = await term.fileInput({
-        baseDir: os.homedir() + "\\AppData\\LocalLow\\Weather Factory\\Book of Hours",
+        baseDir: saveLocation,
         default: "AUTOSAVE.json",
     }).catch(_ => {
-        //TODO: catch directory does not exist.
+        term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
     });
     term("\n");
     if (!filename) {

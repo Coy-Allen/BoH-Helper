@@ -91,10 +91,10 @@ async function maxAspectsPreset(term, parts) {
 function calcMaxAspects(rowFilters, aspects) {
     const rowContents = [];
     const aspectsToUse = aspects.length !== 0 ? aspects : [
-        "moon", "nectar", "rose", "scale", "sky",
-        "knock", "lantern", "forge", "edge", "winter", "heart", "grail", "moth",
+        "lantern", "forge", "edge", "winter", "heart", "grail", "moth", "knock",
+        "sky", "moon", "nectar", "scale", "rose",
     ];
-    const header = ["filter query", ...aspectsToUse];
+    const header = ["filter query", ...commandHelpers.markupReplace(aspectsToUse)];
     const counts = new Array(aspectsToUse.length).fill(0);
     for (const rowFilter of rowFilters) {
         const rowContent = [];

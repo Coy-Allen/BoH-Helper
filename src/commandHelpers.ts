@@ -2,14 +2,30 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "./types.js";
 
 import {getAllAspects} from "./dataProcessing.js";
+import {markupReplaceList} from "./config.js";
 
+export function markupReplace<t extends string[]|string>(text: t): t {
+	const isArray = Array.isArray(text);
+	const input:string[] = isArray?text:[text];
+	const res:string[] = [];
+	for(const str of input){
+		const replaced = markupReplaceList.reduce((prev:string,[regex,color]:[RegExp,string]):string=>{
+			return prev.replaceAll(regex,`^[${color}]$&^:`);
+		},str);
+		res.push(replaced);
+	}
+	if (isArray) {
+		return res as t;
+	}
+	return res[0] as t;
+}
 export async function getItemSearchOptions(term: Terminal, name?:string): Promise<types.itemSearchOptions> {
 	return {
 		min: await getAspects(term, "Min"+(name?" "+name:"")),
 		any: await getAspects(term, "Any"+(name?" "+name:"")),
 		max: await getAspects(term, "Max"+(name?" "+name:"")),
-		// TODO: nameValid?: string,
-		// TODO: nameInvalid?: string,
+		nameValid: (await getStrArray(term, "Name Matches"+(name?" "+name:""),{min:0,max:1}))[0],
+		nameInvalid: (await getStrArray(term, "Name NOT Matches"+(name?" "+name:""),{min:0,max:1}))[0],
 	}
 }
 export async function getAspects(term: Terminal, name: string): Promise<types.aspects> {

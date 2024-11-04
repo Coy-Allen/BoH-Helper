@@ -1,11 +1,27 @@
 import { getAllAspects } from "./dataProcessing.js";
+import { markupReplaceList } from "./config.js";
+export function markupReplace(text) {
+    const isArray = Array.isArray(text);
+    const input = isArray ? text : [text];
+    const res = [];
+    for (const str of input) {
+        const replaced = markupReplaceList.reduce((prev, [regex, color]) => {
+            return prev.replaceAll(regex, `^[${color}]$&^:`);
+        }, str);
+        res.push(replaced);
+    }
+    if (isArray) {
+        return res;
+    }
+    return res[0];
+}
 export async function getItemSearchOptions(term, name) {
     return {
         min: await getAspects(term, "Min" + (name ? " " + name : "")),
         any: await getAspects(term, "Any" + (name ? " " + name : "")),
         max: await getAspects(term, "Max" + (name ? " " + name : "")),
-        // TODO: nameValid?: string,
-        // TODO: nameInvalid?: string,
+        nameValid: (await getStrArray(term, "Name Matches" + (name ? " " + name : ""), { min: 0, max: 1 }))[0],
+        nameInvalid: (await getStrArray(term, "Name NOT Matches" + (name ? " " + name : ""), { min: 0, max: 1 }))[0],
     };
 }
 export async function getAspects(term, name) {

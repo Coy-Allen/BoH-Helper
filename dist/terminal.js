@@ -115,6 +115,7 @@ function findCommand(parts) {
 }
 function generateAutocomplete(input) {
     // FIXME: tabbing at end of fully complete command causes autocomplete to show parent command
+    // FIXME: tabbing \w just a single ` as input causes a crash. maybe returns empty array?
     const parts = input.toLowerCase().split(" ").filter(part => part !== "");
     let outputTarget = inputTree;
     let index = 0;
