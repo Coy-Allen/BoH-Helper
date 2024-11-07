@@ -1,3 +1,4 @@
+import { debug } from "./config.js";
 // FIXME: replace all console.* calls with terminal calls
 const DATA_ITEMS = [];
 const DATA_RECIPES = [];
@@ -19,7 +20,7 @@ function setUnlockedRooms(rooms) {
 function setSaveRecipes(recipes) {
     SAVE_RECIPES.clear();
     recipes.forEach(recipe => {
-        if (!DATA_RECIPES.some(dataRecipe => dataRecipe.id === recipe)) {
+        if (debug && !DATA_RECIPES.some(dataRecipe => dataRecipe.id === recipe)) {
             console.warn(`recipe ${recipe} could not be found.`);
         }
         SAVE_RECIPES.add(recipe);
@@ -28,7 +29,7 @@ function setSaveRecipes(recipes) {
 function setSaveVerbs(verbs) {
     SAVE_VERBS.clear();
     verbs.forEach(verb => {
-        if (!DATA_VERBS.some(dataVerb => dataVerb.id === verb)) {
+        if (debug && !DATA_VERBS.some(dataVerb => dataVerb.id === verb)) {
             console.warn(`verb ${verb} could not be found.`);
         }
         SAVE_VERBS.add(verb);
@@ -195,7 +196,7 @@ export function setDataRecipes(recipes) {
     const names = new Set;
     for (const recipe of recipes) {
         Object.entries(recipe?.aspects ?? {}).forEach(aspect => DATA_ASPECTS.add(aspect[0]));
-        if (names.has(recipe.id)) {
+        if (debug && names.has(recipe.id)) {
             console.warn("dupe recipe found: " + recipe.id);
         }
         names.add(recipe.id);
@@ -210,7 +211,7 @@ export function setDataVerbs(verbs) {
         if (verb.spontaneous) {
             continue;
         }
-        if (names.has(verb.id)) {
+        if (debug && names.has(verb.id)) {
             console.warn("dupe verb found: " + verb.id);
         }
         names.add(verb.id);
@@ -221,7 +222,7 @@ export function setDataDecks(decks) {
     DATA_DECKS.length = 0;
     const names = new Set;
     for (const deck of decks) {
-        if (names.has(deck.id)) {
+        if (debug && names.has(deck.id)) {
             console.warn("dupe deck found: " + deck.id);
         }
         names.add(deck.id);
@@ -233,7 +234,7 @@ export function setDataItems(items) {
     const names = new Set;
     for (const item of items) {
         Object.entries(item.aspects).forEach(aspect => DATA_ASPECTS.add(aspect[0]));
-        if (names.has(item.id)) {
+        if (debug && names.has(item.id)) {
             console.warn("dupe item found: " + item.id);
         }
         names.add(item.id);
@@ -289,7 +290,6 @@ export function findVerbs(options) {
                 return false;
             }
         }
-        console.log(`${verb.id}: ${JSON.stringify(slots)}`);
         return true;
     });
 }

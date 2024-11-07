@@ -4,7 +4,7 @@ import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js"
 import * as dataProcessing from "./dataProcessing.js";
 import type * as types from "./types.js";
-import {installFolder} from "./config.js";
+import {dataFolder} from "./config.js";
 
 
 
@@ -13,7 +13,6 @@ let history:string[]|undefined;
 
 export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:string)=>void): Promise<void> {
 	// TODO: find BoH data folder even if installed elsewhere
-	const dataFolder = installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
 	for (let i=0;i<fileMetaDataList.length;i++) {
 		const fileMetaData = fileMetaDataList[i];
 		dispatch("start",fileMetaData.name);
@@ -27,7 +26,6 @@ export async function loadFiles(dispatch:(type:"start"|"success"|"failed",file:s
 			dispatch("success",fileMetaData.name);
 		} catch(err: any) {
 			dispatch("failed",fileMetaData.name);
-			throw err;
 		}
 	}
 	dispatch("start","finalizing");

@@ -1,12 +1,18 @@
 import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
 import { jsonSpacing, saveLocation } from "./config.js";
+import { watch } from "fs";
+let saveFileWatcher;
 export async function exit(term) {
     term("exiting...");
+    closeWatcher();
     await saveHistory();
     term.processExit(0);
 }
 export async function load(term) {
+    if (!closeWatcher()) {
+        term("closing previous save file watcher.\n");
+    }
     term("save file> ");
     const filename = await term.fileInput({
         baseDir: saveLocation,
@@ -19,13 +25,40 @@ export async function load(term) {
         term.yellow("File not found.\n");
         return;
     }
+    if (!loadFile(filename)) {
+        term.yellow("File failed to load.\n");
+        return;
+    }
+    term("watch file for changes? [y|N]\n");
+    if (!await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
+        return;
+    }
+    saveFileWatcher = watch(filename, (_event) => {
+        loadFile(filename).then(res => {
+            if (res) {
+                term("save file reloaded.\n");
+                return;
+            }
+            term.red("save file watcher encountered an error and will close.\n");
+            closeWatcher();
+        });
+    });
+}
+function closeWatcher() {
+    if (saveFileWatcher === undefined) {
+        return false;
+    }
+    saveFileWatcher.close();
+    saveFileWatcher = undefined;
+    return true;
+}
+async function loadFile(filename) {
     try {
-        const save = JSON.parse(await loadSave(filename));
-        dataProcessing.loadSave(save);
+        dataProcessing.loadSave(JSON.parse(await loadSave(filename)));
+        return true;
     }
     catch (err) {
-        term.yellow("File failed to load.\n");
-        //TODO: catch invalid file.
+        return false;
     }
 }
 export function infoItems(term, parts) {

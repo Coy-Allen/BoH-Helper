@@ -1,8 +1,12 @@
+import type * as types from "./types.js";
+
 import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import type * as types from "./types.js";
+import {dataFolder} from "./config.js";
+
+
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
 import misc from "./commands/misc.js";
@@ -61,8 +65,9 @@ async function main(): Promise<void> {
 			}
 			case "failed":{
 				fileLoadingProgress.stop();
-				term.red("failed to load "+filename+"\n");
-				break;
+				term.red("failed to load "+dataFolder+"\\"+filename+"\n");
+				term.red("Check \"installFolder\" in the config.js file or verify your game's integrity.\n");
+				throw new Error();
 			}
 		}
 	});
@@ -141,7 +146,7 @@ function generateAutocomplete(input:string): string|string[]{
 		}
 		if(subCommands.length === 0){
 			// unknown command
-			return output;
+			return [...output,...parts.slice(index)].join(" ");
 		}
 		if(parts.length <= index+1 && part.length < subCommands[0].length){
 			// still typing command

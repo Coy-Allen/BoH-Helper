@@ -9,6 +9,8 @@ export const saveLocation = os.homedir()+"\\AppData\\LocalLow\\Weather Factory\\
 export const trueColor = true;
 
 // internal config. do not edit unless you know what you are doing.
+export const debug = false;
+export const dataFolder = installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
 export const jsonSpacing = "  ";
 export const markupReplaceList: [RegExp,string][] = [
 	[/\blantern\b/gi, "#ffe300"],

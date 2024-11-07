@@ -4,14 +4,18 @@ import type * as types from "./types.js";
 import {loadSave,saveHistory} from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
 import {jsonSpacing,saveLocation} from "./config.js";
+import {watch, type FSWatcher} from "fs";
 
+let saveFileWatcher:FSWatcher|undefined;
 
 export async function exit(term: Terminal): Promise<void> {
 	term("exiting...");
+	closeWatcher();
 	await saveHistory();
 	term.processExit(0);
 }
 export async function load(term: Terminal):Promise<void> {
+	if(!closeWatcher()){term("closing previous save file watcher.\n");}
 	term("save file> ");
 	const filename = await term.fileInput({
 		baseDir: saveLocation,
@@ -24,14 +28,40 @@ export async function load(term: Terminal):Promise<void> {
 		term.yellow("File not found.\n");
 		return;
 	}
-	try{
-		const save: types.saveData = JSON.parse(await loadSave(filename));
-		dataProcessing.loadSave(save);
-	} catch(err){
+	if(!loadFile(filename)){
 		term.yellow("File failed to load.\n");
-		//TODO: catch invalid file.
+		return;
+	}
+	term("watch file for changes? [y|N]\n");
+	if(!await term.yesOrNo({yes:["y"],no:["n","ENTER"]}).promise){return;}
+	saveFileWatcher = watch(filename,(_event):void=>{
+		loadFile(filename).then(res=>{
+			if(res){
+				term("save file reloaded.\n");
+				return;
+			}
+			term.red("save file watcher encountered an error and will close.\n");
+			closeWatcher();
+		});
+	});
+}
+
+function closeWatcher(): boolean {
+	if(saveFileWatcher===undefined){return false;}
+	saveFileWatcher.close();
+	saveFileWatcher=undefined;
+	return true;
+}
+
+async function loadFile(filename:string):Promise<boolean>{
+	try{
+		dataProcessing.loadSave(JSON.parse(await loadSave(filename)));
+		return true;
+	} catch(err){
+		return false;
 	}
 }
+
 export function infoItems(term: Terminal, parts: string[]):void {
 	// TODO: move "parts" into a custom input handler
 	const args = parts.join(" ");
