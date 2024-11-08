@@ -43,6 +43,7 @@ export async function load(term) {
             closeWatcher();
         });
     });
+    term("file watcher created\n");
 }
 function closeWatcher() {
     if (saveFileWatcher === undefined) {

@@ -1,8 +1,8 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {getItemSearchOptions, getAspects} from "../commandHelpers.js";
-import {findVerbs, findItems, findRecipes} from "../dataProcessing.js"
+import {getItemSearchOptions, getAspects, getStrArray} from "../commandHelpers.js";
+import {findVerbs, findItems, findRecipes, getAllAspects} from "../dataProcessing.js"
 import {jsonSpacing} from "../config.js";
 
 const search: types.inputNode = [["search"],[
@@ -13,8 +13,9 @@ const search: types.inputNode = [["search"],[
 	[["recipes"],searchRecipes,"search discovered (non-???) recipes and their outputs."],
 ],"finds unlocked things in your save file. load your save file 1st."];
 
-export function searchVerbs(term: Terminal, parts: string[]): void {
+export async function searchVerbs(term: Terminal, parts: string[]): Promise<void> {
 	// TODO: move "parts" into a custom input handler
+	const strArrayOptions = {min:0,autocomplete:getAllAspects(),autocompleteDelimiter:"\\."};
 	const args:{
 		slotMeta?:{
 			minCount?: number;
@@ -28,7 +29,25 @@ export function searchVerbs(term: Terminal, parts: string[]): void {
 			missingEssential?:string[];
 			missingForbidden?:string[];
 		}[];
-	} = JSON.parse(parts.join(" "));
+	} = (parts.length !== 0 ? 
+		JSON.parse(parts.join(" ")) :
+		{
+			// TODO: allow user input
+			slotMeta:{
+				minCount: 0,// await getNum(term,"min slot count",{min:0}),
+				maxCount: 10,// await getNum(term,"max slot count",{min:0}),
+			},
+			// TODO: allow more than 1 slot
+			slots:[{
+				required: await getStrArray(term,"in required",strArrayOptions),
+				essential: await getStrArray(term,"in essential",strArrayOptions),
+				forbidden: await getStrArray(term,"in forbidden",strArrayOptions),
+				missingRequired: await getStrArray(term,"not in required",strArrayOptions),
+				missingEssential: await getStrArray(term,"not in essential",strArrayOptions),
+				missingForbidden: await getStrArray(term,"not in forbidden",strArrayOptions),
+			}],
+		}
+	);
 	const result = findVerbs(args);
 	term(JSON.stringify("res: "+result.length,null,jsonSpacing)+"\n");
 }

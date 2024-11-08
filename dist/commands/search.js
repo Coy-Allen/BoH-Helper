@@ -1,5 +1,5 @@
-import { getItemSearchOptions, getAspects } from "../commandHelpers.js";
-import { findVerbs, findItems, findRecipes } from "../dataProcessing.js";
+import { getItemSearchOptions, getAspects, getStrArray } from "../commandHelpers.js";
+import { findVerbs, findItems, findRecipes, getAllAspects } from "../dataProcessing.js";
 import { jsonSpacing } from "../config.js";
 const search = [["search"], [
         [["verbs"], searchVerbs, "search found popups and their card inputs."],
@@ -8,9 +8,27 @@ const search = [["search"], [
         [["itemCounts"], searchItemCounts, "list owned item counts."], // counts of items in house
         [["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
     ], "finds unlocked things in your save file. load your save file 1st."];
-export function searchVerbs(term, parts) {
+export async function searchVerbs(term, parts) {
     // TODO: move "parts" into a custom input handler
-    const args = JSON.parse(parts.join(" "));
+    const strArrayOptions = { min: 0, autocomplete: getAllAspects(), autocompleteDelimiter: "\\." };
+    const args = (parts.length !== 0 ?
+        JSON.parse(parts.join(" ")) :
+        {
+            // TODO: allow user input
+            slotMeta: {
+                minCount: 0, // await getNum(term,"min slot count",{min:0}),
+                maxCount: 10, // await getNum(term,"max slot count",{min:0}),
+            },
+            // TODO: allow more than 1 slot
+            slots: [{
+                    required: await getStrArray(term, "in required", strArrayOptions),
+                    essential: await getStrArray(term, "in essential", strArrayOptions),
+                    forbidden: await getStrArray(term, "in forbidden", strArrayOptions),
+                    missingRequired: await getStrArray(term, "not in required", strArrayOptions),
+                    missingEssential: await getStrArray(term, "not in essential", strArrayOptions),
+                    missingForbidden: await getStrArray(term, "not in forbidden", strArrayOptions),
+                }],
+        });
     const result = findVerbs(args);
     term(JSON.stringify("res: " + result.length, null, jsonSpacing) + "\n");
 }

@@ -44,6 +44,7 @@ export async function load(term: Terminal):Promise<void> {
 			closeWatcher();
 		});
 	});
+	term("file watcher created\n");
 }
 
 function closeWatcher(): boolean {

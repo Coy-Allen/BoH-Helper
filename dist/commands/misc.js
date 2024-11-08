@@ -135,15 +135,17 @@ export async function availableMemories(term, parts) {
         }
         if (options.memFilter?.any !== undefined) {
             const filterEntries = Object.entries(options.memFilter.any);
-            if (filterEntries.length === 0) {
-                return true;
-            }
             for (const [aspect, count] of filterEntries) {
-                if (aspects[aspect] >= count) {
-                    return true;
+                if ((aspects[aspect] ?? 0) < count) {
+                    return false;
                 }
             }
-            return false;
+        }
+        if ((options.memFilter?.ignoreObtained ?? false) === true) {
+            const alreadyObtained = SAVE_ITEMS.find(item => item.entityid === itemId);
+            if (alreadyObtained) {
+                return false;
+            }
         }
         return true;
     };

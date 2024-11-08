@@ -77,6 +77,40 @@ export async function getAspects(term: Terminal, name: string): Promise<types.as
 	term.column(0);
 	return result;
 }
+export async function getNum(term: Terminal, name: string, options?: {
+	min?: number;
+	default?: number;
+	max?: number;
+}): Promise<number> {
+	const optionsFull = {
+		min: options?.min ?? Number.MIN_SAFE_INTEGER,
+		default: options?.default,
+		max: options?.max ?? Number.MAX_SAFE_INTEGER,
+	};
+	let result:number|undefined = undefined;
+	term("");
+	while (true) {
+		term.eraseLine();
+		term(name+"> ");
+		const input = (await term.inputField({
+			cancelable: true,
+		}).promise) ?? "";
+		if(optionsFull.default !== undefined && input === "") {
+			result = optionsFull.default;
+			break;
+		}
+		const num = parseInt(input, 10);
+		if(isNaN(num)){continue;}
+		if(Number.isSafeInteger(num)){continue;}
+		if(optionsFull.min > num || optionsFull.max < num) {continue;}
+		result = num;
+		break;
+	}
+	// clear the user input line
+	term.eraseLine();
+	term.column(0);
+	return result;
+}
 export async function getStrArray(term: Terminal, name: string, options?: {
 	autocomplete?: string[];
 	autocompleteDelimiter?: string;

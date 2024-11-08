@@ -78,6 +78,42 @@ export async function getAspects(term, name) {
     term.column(0);
     return result;
 }
+export async function getNum(term, name, options) {
+    const optionsFull = {
+        min: options?.min ?? Number.MIN_SAFE_INTEGER,
+        default: options?.default,
+        max: options?.max ?? Number.MAX_SAFE_INTEGER,
+    };
+    let result = undefined;
+    term("");
+    while (true) {
+        term.eraseLine();
+        term(name + "> ");
+        const input = (await term.inputField({
+            cancelable: true,
+        }).promise) ?? "";
+        if (optionsFull.default !== undefined && input === "") {
+            result = optionsFull.default;
+            break;
+        }
+        const num = parseInt(input, 10);
+        if (isNaN(num)) {
+            continue;
+        }
+        if (Number.isSafeInteger(num)) {
+            continue;
+        }
+        if (optionsFull.min > num || optionsFull.max < num) {
+            continue;
+        }
+        result = num;
+        break;
+    }
+    // clear the user input line
+    term.eraseLine();
+    term.column(0);
+    return result;
+}
 export async function getStrArray(term, name, options) {
     const result = new Set();
     const optionsFull = {

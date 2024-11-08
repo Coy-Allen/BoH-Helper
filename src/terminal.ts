@@ -4,7 +4,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import {dataFolder} from "./config.js";
+import {dataFolder, debug} from "./config.js";
 
 
 import tables from "./commands/tables.js";
@@ -102,6 +102,11 @@ async function inputLoop(): Promise<void> {
 			fileLoader.addHistory(input+(historyAppend?" "+historyAppend:""));
 		} catch (error) {
 			term.red("command threw an error.\n");
+			if(debug){
+				term.red((error as Error).stack+"\n");
+				term.red((error as Error).name+"\n");
+				term.red((error as Error).message+"\n");
+			}
 			fileLoader.addHistory(input);
 		}
 	}
