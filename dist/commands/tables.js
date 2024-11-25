@@ -7,7 +7,7 @@ const tables = [["tables"], [
     ], "display's tables of info"];
 async function maxAspects(term, parts) {
     // get input
-    const [rowFilters, aspects] = (parts.length !== 0 ?
+    const [rowFilters, aspects] = parts.length !== 0 ?
         JSON.parse(parts.join(" ")) :
         await (async () => {
             const rows = [];
@@ -21,11 +21,11 @@ async function maxAspects(term, parts) {
             term("change target aspects? [y|N]\n");
             if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
                 return [rows, await commandHelpers.getStrArray(term, "target aspects", {
-                        autocomplete: getAllAspects()
+                        autocomplete: getAllAspects(),
                     })];
             }
             return [rows, []];
-        })());
+        })();
     // calculate
     const result = calcMaxAspects(rowFilters, aspects);
     // print result
@@ -39,7 +39,7 @@ async function maxAspectsPreset(term, parts) {
     // TODO: grab all possible stations
     const verbs = getAllVerbs();
     // get input
-    const [verbId, aspects] = (parts.length !== 0 ?
+    const [verbId, aspects] = parts.length !== 0 ?
         JSON.parse(parts.join(" ")) :
         await (async () => {
             const name = (await commandHelpers.getStrArray(term, "target station", {
@@ -50,11 +50,11 @@ async function maxAspectsPreset(term, parts) {
             term("change target aspects? [y|N]\n");
             if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
                 return [name, await commandHelpers.getStrArray(term, "target aspects", {
-                        autocomplete: getAllAspects()
+                        autocomplete: getAllAspects(),
                     })];
             }
             return [name, []];
-        })());
+        })();
     // get station info
     const targetVerb = verbs.find(verb => verb.id === verbId);
     if (targetVerb === undefined) {
@@ -91,8 +91,19 @@ async function maxAspectsPreset(term, parts) {
 function calcMaxAspects(rowFilters, aspects) {
     const rowContents = [];
     const aspectsToUse = aspects.length !== 0 ? aspects : [
-        "lantern", "forge", "edge", "winter", "heart", "grail", "moth", "knock",
-        "sky", "moon", "nectar", "scale", "rose",
+        "lantern",
+        "forge",
+        "edge",
+        "winter",
+        "heart",
+        "grail",
+        "moth",
+        "knock",
+        "sky",
+        "moon",
+        "nectar",
+        "scale",
+        "rose",
     ];
     const header = ["filter query", ...commandHelpers.markupReplace(aspectsToUse)];
     const counts = new Array(aspectsToUse.length).fill(0);

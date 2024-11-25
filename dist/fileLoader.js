@@ -4,17 +4,18 @@ import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
 import * as dataProcessing from "./dataProcessing.js";
 import { dataFolder } from "./config.js";
-const fileOutputs = new Map();
+const fileOutputs = {
+    decks: [],
+    items: [],
+    recipes: [],
+    verbs: [],
+};
 let history;
 export async function loadFiles(dispatch) {
     // TODO: find BoH data folder even if installed elsewhere
-    for (let i = 0; i < fileMetaDataList.length; i++) {
-        const fileMetaData = fileMetaDataList[i];
+    for (const fileMetaData of fileMetaDataList) {
         dispatch("start", fileMetaData.name);
-        const outputs = fileOutputs.get(fileMetaData.type) ?? [];
-        if (!fileOutputs.has(fileMetaData.type)) {
-            fileOutputs.set(fileMetaData.type, outputs);
-        }
+        const outputs = fileOutputs[fileMetaData.type];
         try {
             const fileContent = await fs.readFile(dataFolder + "\\" + fileMetaData.name)
                 .then(file => iconv.decode(file, fileMetaData.encoding).toLowerCase())
@@ -22,7 +23,7 @@ export async function loadFiles(dispatch) {
             outputs.push(json5.parse(fileContent));
             dispatch("success", fileMetaData.name);
         }
-        catch (err) {
+        catch (_) {
             dispatch("failed", fileMetaData.name);
         }
     }
@@ -35,20 +36,20 @@ export async function loadSave(saveFile) {
     return await fs.readFile(saveFile).then(file => iconv.decode(file, "utf8").toLowerCase());
 }
 function pushData() {
-    dataProcessing.setDataItems((fileOutputs.get("items") ?? []).flatMap(files => files.elements.map((element) => ({
+    dataProcessing.setDataItems(fileOutputs.items.flatMap(files => files.elements.map((element) => ({
         id: element.id,
-        uniquenessgroup: element.uniquenessgroup ?? "",
-        label: element.label ?? "",
-        desc: element.desc ?? "",
-        inherits: element.inherits ?? "",
-        audio: element.audio ?? "",
-        aspects: element.aspects ?? "",
-        xtriggers: element.xtriggers ?? {},
-        xexts: element.xexts ?? "",
+        uniquenessgroup: element.uniquenessgroup,
+        label: element.label,
+        desc: element.desc,
+        inherits: element.inherits,
+        audio: element.audio,
+        aspects: element.aspects,
+        xtriggers: element.xtriggers,
+        xexts: element.xexts,
     }))));
-    dataProcessing.setDataRecipes((fileOutputs.get("recipes") ?? []).flatMap(recipes => recipes.recipes));
-    dataProcessing.setDataVerbs((fileOutputs.get("verbs") ?? []).flatMap(verbs => verbs.verbs));
-    dataProcessing.setDataDecks((fileOutputs.get("decks") ?? []).flatMap(decks => decks.decks));
+    dataProcessing.setDataRecipes(fileOutputs.recipes.flatMap(recipes => recipes.recipes));
+    dataProcessing.setDataVerbs(fileOutputs.verbs.flatMap(verbs => verbs.verbs));
+    dataProcessing.setDataDecks(fileOutputs.decks.flatMap(decks => decks.decks));
 }
 // history handler
 export async function getHistory() {
@@ -58,7 +59,7 @@ export async function getHistory() {
     try {
         history = (await fs.readFile(import.meta.dirname + "/../history.txt", "utf8")).split("\n");
     }
-    catch (err) {
+    catch (_) {
         history = [];
     }
     return history;
@@ -81,8 +82,9 @@ export async function saveHistory() {
     try {
         // max history is 50 lines
         const trunkHistory = history.slice(history.length - 50);
-        fs.writeFile(import.meta.dirname + "/../history.txt", trunkHistory.join("\n"));
+        await fs.writeFile(import.meta.dirname + "/../history.txt", trunkHistory.join("\n"));
     }
-    catch (err) {
+    catch (_) {
+        // TODO: alert user of save issue
     }
 }

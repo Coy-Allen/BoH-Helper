@@ -6,6 +6,8 @@ const misc = [["misc"], [
     ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 export async function missingCraftable(term, parts) {
     // input
+    // TODO: move "parts" into a custom input handler
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const options = JSON.parse(parts.join(" "));
     // TODO: input requesting if parts don't exist
     // processing
@@ -94,7 +96,7 @@ export async function missingCraftable(term, parts) {
         term(`: ${detail}\n`);
     }
 }
-export async function availableMemories(term, parts) {
+export function availableMemories(term, parts) {
     const maxTargLen = 15;
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
@@ -176,6 +178,9 @@ export async function availableMemories(term, parts) {
             .map(itemId => DATA_ITEMS.find(itemData => itemData.id === itemId))
             .filter(itemData => itemData !== undefined);
         for (const item of items) {
+            if (!item.xtriggers) {
+                continue;
+            }
             for (const [type, infoArr] of Object.entries(item.xtriggers)) {
                 for (const info of infoArr) {
                     if (info.morpheffect !== "spawn") {
@@ -185,7 +190,7 @@ export async function availableMemories(term, parts) {
                         continue;
                     }
                     // ignore books if asked
-                    if (/^reading\./.test(type)) {
+                    if (type.startsWith("reading.")) {
                         if (options.inputs?.includes("books")) {
                             // FIXME: filter out non-mastered books
                             appendToMap(foundReusableInspect, info.id, item.id);

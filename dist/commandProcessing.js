@@ -17,7 +17,7 @@ export async function load(term) {
     const filename = await term.fileInput({
         baseDir: saveLocation,
         default: "AUTOSAVE.json",
-    }).catch(_ => {
+    }).catch((_) => {
         term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
     });
     term("\n");
@@ -25,7 +25,7 @@ export async function load(term) {
         term.yellow("File not found.\n");
         return;
     }
-    if (!loadFile(filename)) {
+    if (!await loadFile(filename)) {
         term.yellow("File failed to load.\n");
         return;
     }
@@ -34,7 +34,7 @@ export async function load(term) {
         return;
     }
     saveFileWatcher = watch(filename, (_event) => {
-        loadFile(filename).then(res => {
+        void loadFile(filename).then(res => {
             if (res) {
                 term("save file reloaded.\n");
                 return;
@@ -58,7 +58,7 @@ async function loadFile(filename) {
         dataProcessing.loadSave(JSON.parse(await loadSave(filename)));
         return true;
     }
-    catch (err) {
+    catch (_) {
         return false;
     }
 }

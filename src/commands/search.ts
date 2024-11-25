@@ -1,89 +1,95 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {getItemSearchOptions, getAspects, getStrArray} from "../commandHelpers.js";
-import {findVerbs, findItems, findRecipes, getAllAspects} from "../dataProcessing.js"
+import {getItemSearchOptions, getAspects, getStrArray, getNum, getArray} from "../commandHelpers.js";
+import {findVerbs, findItems, findRecipes, getAllAspects} from "../dataProcessing.js";
 import {jsonSpacing} from "../config.js";
 
-const search: types.inputNode = [["search"],[
-	[["verbs"],searchVerbs,"search found popups and their card inputs."],
+const search: types.inputNode = [["search"], [
+	[["verbs"], searchVerbs, "search found popups and their card inputs."],
 	// locked rooms
-	[["items"],searchItems,"search owned items and their aspects."],
-	[["itemCounts"],searchItemCounts,"list owned item counts."],// counts of items in house
-	[["recipes"],searchRecipes,"search discovered (non-???) recipes and their outputs."],
-],"finds unlocked things in your save file. load your save file 1st."];
+	[["items"], searchItems, "search owned items and their aspects."],
+	[["itemCounts"], searchItemCounts, "list owned item counts."], // counts of items in house
+	[["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
+], "finds unlocked things in your save file. load your save file 1st."];
 
-export async function searchVerbs(term: Terminal, parts: string[]): Promise<void> {
+type slot = Record<"required"|"essential"|"forbidden"|"missingRequired"|"missingEssential"|"missingForbidden", string[]>;
+
+export async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> {
+	const strArrayOptions = {min: 0, autocomplete: getAllAspects(), autocompleteDelimiter: "\\."};
 	// TODO: move "parts" into a custom input handler
-	const strArrayOptions = {min:0,autocomplete:getAllAspects(),autocompleteDelimiter:"\\."};
-	const args:{
-		slotMeta?:{
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const args: {
+		slotMeta?: {
 			minCount?: number;
 			maxCount?: number;
 		};
-		slots?:{
-			required?:string[];
-			essential?:string[];
-			forbidden?:string[];
-			missingRequired?:string[];
-			missingEssential?:string[];
-			missingForbidden?:string[];
+		slots?: {
+			required?: string[];
+			essential?: string[];
+			forbidden?: string[];
+			missingRequired?: string[];
+			missingEssential?: string[];
+			missingForbidden?: string[];
 		}[];
-	} = (parts.length !== 0 ? 
+	} = parts.length !== 0 ?
 		JSON.parse(parts.join(" ")) :
 		{
-			// TODO: allow user input
-			slotMeta:{
-				minCount: 0,// await getNum(term,"min slot count",{min:0}),
-				maxCount: 10,// await getNum(term,"max slot count",{min:0}),
+			slotMeta: {
+				minCount: await getNum(term, "min slot count", {min: 0, default: 1}),
+				maxCount: await getNum(term, "max slot count", {min: 0, default: 256}),
 			},
-			// TODO: allow more than 1 slot
-			slots:[{
-				required: await getStrArray(term,"in required",strArrayOptions),
-				essential: await getStrArray(term,"in essential",strArrayOptions),
-				forbidden: await getStrArray(term,"in forbidden",strArrayOptions),
-				missingRequired: await getStrArray(term,"not in required",strArrayOptions),
-				missingEssential: await getStrArray(term,"not in essential",strArrayOptions),
-				missingForbidden: await getStrArray(term,"not in forbidden",strArrayOptions),
-			}],
+			slots: await getArray(term, "slots", async(): Promise<slot>=>({
+				required: await getStrArray(term, jsonSpacing+"in required", strArrayOptions),
+				essential: await getStrArray(term, jsonSpacing+"in essential", strArrayOptions),
+				forbidden: await getStrArray(term, jsonSpacing+"in forbidden", strArrayOptions),
+				missingRequired: await getStrArray(term, jsonSpacing+"not in required", strArrayOptions),
+				missingEssential: await getStrArray(term, jsonSpacing+"not in essential", strArrayOptions),
+				missingForbidden: await getStrArray(term, jsonSpacing+"not in forbidden", strArrayOptions),
+			})),
 		}
-	);
+	;
 	const result = findVerbs(args);
-	term(JSON.stringify("res: "+result.length,null,jsonSpacing)+"\n");
+	term(`res: ${result.length}\n`);
 }
-export async function searchItems(term: Terminal, parts: string[]):Promise<string|undefined> {
-	const arg = (parts.length !== 0 ? 
+export async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
+	// TODO: move "parts" into a custom input handler
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const arg = parts.length !== 0 ?
 		JSON.parse(parts.join(" ")) :
 		await getItemSearchOptions(term)
-	);
+	;
 	const result = findItems(arg);
-	term(JSON.stringify(result,null,jsonSpacing)+"\n");
-	if(parts.length === 0){
+	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	if (parts.length === 0) {
 		return JSON.stringify(arg);
 	}
 	return;
 }
-export async function searchItemCounts(term: Terminal, parts: string[]):Promise<string|undefined> {
-	const arg = (parts.length !== 0 ? 
+export async function searchItemCounts(term: Terminal, parts: string[]): Promise<string|undefined> {
+	// TODO: move "parts" into a custom input handler
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const arg = parts.length !== 0 ?
 		JSON.parse(parts.join(" ")) :
 		await getItemSearchOptions(term)
-	);
-	const counts = new Map<string,number>();
+	;
+	const counts = new Map<string, number>();
 	findItems(arg).forEach(item=>{
-		counts.set(item.entityid,(counts.get(item.entityid)??0)+1)
+		counts.set(item.entityid, (counts.get(item.entityid)??0)+1);
 	});
 	term([...counts.entries()]
-		.sort(([_A,countA],[_B,countB]):number=>countA-countB)
-		.map(([name,count]):string=>`${name}: ${count}\n`)
-		.join("")
-	);
-	if(parts.length === 0){
+		.sort(([_a, countA], [_b, countB]): number=>countA-countB)
+		.map(([name, count]): string=>`${name}: ${count}\n`)
+		.join(""));
+	if (parts.length === 0) {
 		return JSON.stringify(arg);
 	}
 	return;
 }
-export async function searchRecipes(term: Terminal, parts: string[]):Promise<string|undefined> {
-	const arg = (parts.length !== 0 ? 
+export async function searchRecipes(term: Terminal, parts: string[]): Promise<string|undefined> {
+	// TODO: move "parts" into a custom input handler
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+	const arg = parts.length !== 0 ?
 		JSON.parse(parts.join(" ")) :
 		{
 			reqs: {
@@ -93,12 +99,12 @@ export async function searchRecipes(term: Terminal, parts: string[]):Promise<str
 			output: {
 				min: await getAspects(term, "Min output"),
 				max: await getAspects(term, "Max output"),
-			}
+			},
 		}
-	);
-	const result = findRecipes(arg).map(recipe=>[recipe[0].reqs,recipe[1]]);
-	term(JSON.stringify(result,null,jsonSpacing)+"\n");
-	if(parts.length === 0){
+	;
+	const result = findRecipes(arg).map(recipe=>[recipe[0].reqs, recipe[1]]);
+	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	if (parts.length === 0) {
 		return JSON.stringify(arg);
 	}
 	return;

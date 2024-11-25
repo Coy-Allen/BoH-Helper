@@ -2,11 +2,12 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import { dataFolder, debug } from "./config.js";
+import { dataFolder, isDebug } from "./config.js";
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
 import misc from "./commands/misc.js";
 import search from "./commands/search.js";
+import debugCommands from "./commands/debug.js";
 const term = terminalKit.terminal;
 const inputTree = [[""], [
         [["help", "?"], (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
@@ -19,13 +20,13 @@ const inputTree = [[""], [
             ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"],
         search,
         // overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
-        // recipes. some recipes' discovery are not recorded in the save file.
+        // 	recipes. some recipes' discovery are not recorded in the save file.
         // something for missing things?
-        // how many skills are left
-        // current loot tables for searches.
-        // must ignore inaccessable searches.
-        // ????? for resulting items that are not curently in the library.
-        // IDK what to do for memories & items that are "discovered" but not present.
+        // 	how many skills are left
+        // 	current loot tables for searches.
+        // 		must ignore inaccessable searches.
+        // 		????? for resulting items that are not curently in the library.
+        // 			IDK what to do for memories & items that are "discovered" but not present.
         // something for advanced stuff.
         misc,
         // show max aspects \w specific inputs (skill, knowledge, memories, fuel, flower, ...)
@@ -35,6 +36,9 @@ const inputTree = [[""], [
         // 	["load",(_=>undefined),"loads a specific alias and runs the command"],
         // ],"save frequently used commands for easy use"],
     ], ""];
+if (isDebug) {
+    inputTree[1].push(debugCommands);
+}
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });
     term.yellow("Book of Hours' Watcher\n");
@@ -84,28 +88,28 @@ async function inputLoop() {
         const commandLookup = findCommand(parts);
         if (commandLookup === undefined) {
             term.yellow("command not found.\n");
-            fileLoader.addHistory(input);
+            await fileLoader.addHistory(input);
             continue;
         }
         try {
             const historyAppend = await commandLookup[0](term, commandLookup[1]);
-            fileLoader.addHistory(input + (historyAppend ? " " + historyAppend : ""));
+            await fileLoader.addHistory(input + (historyAppend ? " " + historyAppend : ""));
         }
         catch (error) {
             term.red("command threw an error.\n");
-            if (debug) {
-                term.red(error.stack + "\n");
+            if (isDebug) {
+                term.red(error.stack ?? "" + "\n");
                 term.red(error.name + "\n");
                 term.red(error.message + "\n");
             }
-            fileLoader.addHistory(input);
+            await fileLoader.addHistory(input);
         }
     }
 }
 function findCommand(parts) {
     let targetNode = inputTree;
     for (let i = 0; i <= parts.length; i++) {
-        const [_name, data] = targetNode;
+        const [, data] = targetNode;
         if (!Array.isArray(data)) {
             return [data, parts.splice(i)];
         }
@@ -156,6 +160,6 @@ function generateAutocomplete(input) {
         index++;
     }
 }
-main().finally(() => {
+void main().finally(() => {
     term.processExit(0);
 });

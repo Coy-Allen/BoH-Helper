@@ -1,12 +1,12 @@
 import type terminalKit from "terminal-kit";
 
 
-export type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void|string>|void|string);
-export type inputNode = [string[],inputNode[]|commandFunc,string];
+export type commandFunc = ((term: terminalKit.Terminal, args: string[]) => Promise<undefined|string>|undefined|string);
+export type inputNode = [string[], inputNode[]|commandFunc, string];
 
 
-export type aspects = Record<string,number>;
-export type cards = Record<string,number>;
+export type aspects = Record<string, number>;
+export type cards = Record<string, number>;
 export interface slot {
 	id: string;
 	label: string;
@@ -16,27 +16,29 @@ export interface slot {
 }
 
 export interface itemSearchOptions {
-	min?: aspects,
-	any?: aspects,
-	max?: aspects,
-	nameValid?: string,
-	nameInvalid?: string,
+	min?: aspects;
+	any?: aspects;
+	max?: aspects;
+	nameValid?: string;
+	nameInvalid?: string;
 }
 
+
+// FIXME: not correct
 export interface dataItem {
 		id: string;
-		uniquenessgroup: string;
+		uniquenessgroup?: undefined | string;
 		label: string;
-		desc: string;
-		inherits: string;
-		audio: string;
-		aspects: aspects;
-		xtriggers: Record<string,{
+		desc?: undefined | string;
+		inherits?: undefined | string;
+		audio?: undefined | string;
+		aspects?: undefined | aspects;
+		xtriggers?: undefined | Record<string, {
 			id: string;
 			morpheffect: string;
-			level?: number;
+			level?: undefined | number;
 		}[]>;
-		xexts: object;
+		xexts?: undefined | object;
 }
 
 export interface foundItems {
@@ -84,30 +86,30 @@ export interface dataVerb {
 	hints?: string[];
 	aspects?: aspects;
 	ambits?: boolean; // default false
-	xtriggers?: Record<string,string>;
+	xtriggers?: Record<string, string>;
 	maxnotes?: number;
 	// spontaneous verbs are filtered out and will never be loaded
 	spontaneous?: boolean; // default false
-	multiple?: boolean // default false
+	multiple?: boolean; // default false
 }
 
 export interface saveRoom {
 	location: {
-		$type: string,
+		$type: string;
 		localposition: {
 			$type: string;
 			x: number;
 			y: number;
 			z: number;
-			normalized?: unknown,
+			normalized?: unknown;
 			magnitude: number;
 			sqrmagnitude: number;
-		},
+		};
 		atspherepath: {
 			$type: string;
 			filter: null;
 			path: string;
-		}
+		};
 	};
 	payload: {
 		id: string;
@@ -126,13 +128,13 @@ export interface saveRoom {
 				};
 				tokens: {
 					location: {
-						$type: string,
+						$type: string;
 						localposition: {
 							$type: string;
 							x: number;
 							y: number;
 							z: number;
-							normalized?: unknown,
+							normalized?: unknown;
 							magnitude: number;
 							sqrmagnitude: number;
 						};
@@ -140,27 +142,27 @@ export interface saveRoom {
 							$type: string;
 							filter: null;
 							path: string;
-						}
-					},
+						};
+					};
 					payload: {
-						$type: string,
+						$type: string;
 						mutations: aspects;
 						entityid: string;
 						verbid: string;
-					}
+					};
 				}[];
 			}[];
 		}[];
-	}
+	};
 }
 
 export interface saveData {
 	$type: string;
 	charactercreationcommands: {
-		$type: string
-		name: string
-		profession: string
-		activelegacyid: string
+		$type: string;
+		name: string;
+		profession: string;
+		activelegacyid: string;
 		endingtriggeredid: unknown;
 		datetimecreated: string;
 		inprogresshistoryrecords: unknown;
