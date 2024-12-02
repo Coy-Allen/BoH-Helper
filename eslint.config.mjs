@@ -69,6 +69,12 @@ export default tseslint.config(
 					"format": ["camelCase"]
 				},
 				{
+					"selector": "variable",
+					"modifiers": ["unused"],
+					"format": ["camelCase"],
+					"leadingUnderscore": "require"
+				},
+				{
 					"selector": "parameter",
 					"modifiers": ["unused"],
 					"format": ["camelCase"],

@@ -15,209 +15,27 @@ export function markupReplace(text) {
     }
     return res[0];
 }
-export async function getItemSearchOptions(term, name) {
-    return {
-        min: await getAspects(term, "Min" + (name ? " " + name : "")),
-        any: await getAspects(term, "Any" + (name ? " " + name : "")),
-        max: await getAspects(term, "Max" + (name ? " " + name : "")),
-        nameValid: (await getStrArray(term, "Name Matches" + (name ? " " + name : ""), { min: 0, max: 1 }))[0],
-        nameInvalid: (await getStrArray(term, "Name NOT Matches" + (name ? " " + name : ""), { min: 0, max: 1 }))[0],
-    };
-}
-/**/
-export async function getAspects(term, name) {
-    // TODO: add strict to options
-    const aspectNames = getAllAspects();
-    const result = {};
-    let aspect = "";
-    let count = "";
-    term("\n");
-    const autocompleteList = (input) => {
-        return generateAutocomplete(generateCommandNames(aspectNames, "\\."), input);
-    };
-    while (true) {
-        // print current result
-        term.previousLine(0);
-        term.eraseLine();
-        term(`${name} = ${Object.entries(result).map(entry => `${entry[0]}:${entry[1]}`).join(", ")}\n`);
-        // input
-        term.eraseLine();
-        term("aspect> ");
-        aspect = await term.inputField({
-            autoComplete: autocompleteList,
-            autoCompleteMenu: true,
-            autoCompleteHint: true,
-            cancelable: true,
-        }).promise ?? "";
-        if (aspect === "") {
-            break;
-        }
-        while (true) {
-            term.eraseLine();
-            term.column(0);
-            term("count> ");
-            count = await term.inputField({
-                cancelable: true,
-            }).promise ?? "";
-            if (count === "") {
-                break;
-            }
-            const countNumber = Number(count);
-            if (!Number.isSafeInteger(countNumber)) {
-                continue;
-            }
-            // add to result
-            result[aspect] = countNumber;
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-            if (result[aspect] <= 0) {
-                delete result[aspect];
-            }
-            break;
-        }
-    }
-    // clear the user input line
-    term.eraseLine();
-    term.column(0);
-    return result;
-}
-export async function getNum(term, name, options) {
-    const optionsFull = {
-        min: options?.min ?? Number.MIN_SAFE_INTEGER,
-        default: options?.default,
-        max: options?.max ?? Number.MAX_SAFE_INTEGER,
-    };
-    let result = undefined;
-    term("");
-    while (true) {
-        term(name + "> ");
-        const input = await term.inputField({
-            cancelable: true,
-        }).promise ?? "";
-        term.eraseLine();
-        term.column(0);
-        if (input === "") {
-            if (optionsFull.default !== undefined) {
-                result = optionsFull.default;
-                break;
-            }
-            continue;
-        }
-        const num = Number(input);
-        if (isNaN(num)) {
-            continue;
-        }
-        if (!Number.isSafeInteger(num)) {
-            continue;
-        }
-        if (optionsFull.min > num || optionsFull.max < num) {
-            continue;
-        }
-        result = num;
-        break;
-    }
-    term(`${name} = ${result}\n`);
-    return result;
-}
-/**/
-export async function getArray(term, name, generator, options) {
-    // FIXME: does not work
-    /*
-    return [await generator()];
-    */
-    const result = [];
-    const optionsFull = {
-        sameLine: options?.sameline ?? false,
-        min: options?.min ?? 0,
-        max: options?.max ?? Number.MAX_SAFE_INTEGER,
-    };
-    while (true) {
-        term(`${name}(${result.length})> `);
-        const userInput = await term.inputField({
-            autoComplete: ["add", "delete", "edit", "submit"],
-            autoCompleteMenu: true,
-            autoCompleteHint: true,
-            cancelable: true,
-        }).promise;
-        term.eraseLine();
-        term.column(0);
-        if (userInput === "add") {
-            if (optionsFull.max <= result.length) {
-                // TODO: can't add new entry.
-                continue;
-            }
-            result.push(await generator());
-        }
-        if (userInput === "delete") {
-            if (result.length === 0) {
-                // TODO: can't remove entry.
-            }
-            // TODO: remove entry.
-        }
-        if (userInput === "edit") {
-            if (result.length === 0) {
-                // TODO: can't edit entry.
-            }
-            // TODO: edit entry.
-        }
-        if (userInput === "submit") {
-            if (result.length < optionsFull.min || result.length > optionsFull.max) {
-                // TODO: can't return.
-                continue;
-            }
-            break;
-        }
-    }
-    return result;
-}
-/**/
-export async function getStrArray(term, name, options) {
-    const result = new Set();
-    const optionsFull = {
-        autocomplete: options?.autocomplete ?? [],
-        min: options?.min ?? 1,
-        max: options?.max,
-        strict: options?.strict ?? true,
-    };
-    const autocompleteDelimiter = options?.autocompleteDelimiter;
-    const autocompleteList = autocompleteDelimiter === undefined ?
-        optionsFull.autocomplete :
-        input => { return generateAutocomplete(generateCommandNames(optionsFull.autocomplete, autocompleteDelimiter), input); };
-    let input = "";
-    term("\n");
-    while (true) {
-        // print current result
-        term.previousLine(0);
-        term.eraseLine();
-        term(`${name} = ${[...result.values()].join(", ")}\n`);
-        // input
-        term(`${name}> `);
-        input = await term.inputField({
-            autoComplete: autocompleteList,
-            autoCompleteMenu: true,
-            autoCompleteHint: true,
-            cancelable: true,
-        }).promise ?? "";
-        if (input === "" && optionsFull.min <= result.size) {
-            break;
-        }
-        if (optionsFull.strict &&
-            optionsFull.autocomplete.length !== 0 &&
-            !optionsFull.autocomplete.includes(input)) {
-            continue;
-        }
-        if (result.has(input)) {
-            result.delete(input);
-            continue;
-        }
-        if (optionsFull.max === undefined || result.size < optionsFull.max) {
-            result.add(input);
-        }
-    }
-    // clear the user input line
-    term.eraseLine();
-    term.column(0);
-    return [...result.values()];
-}
+export const itemFilter = {
+    id: "object",
+    name: "item filter",
+    options: {},
+    subType: [
+        ["min", false, { id: "aspects", name: "min aspects", options: {} }],
+        ["any", false, { id: "aspects", name: "any aspects", options: {} }],
+        ["max", false, { id: "aspects", name: "max aspects", options: {} }],
+        ["nameValid", false, { id: "string", name: "matches RegEx", options: { autocomplete: [], strict: false } }],
+        ["nameInvalid", false, { id: "string", name: "NOT matches RegEx", options: { autocomplete: [], strict: false } }],
+    ],
+};
+export const aspectTarget = {
+    id: "stringArray",
+    name: "item filter",
+    options: {
+        autocomplete: getAllAspects(),
+        autocompleteDelimiter: "\\.",
+        strict: true,
+    },
+};
 function generateCommandNames(options, delimiter) {
     const result = [];
     const regexSplit = new RegExp(`(?=${delimiter})`);
@@ -264,6 +82,20 @@ function generateAutocomplete(options, inputRaw) {
 ;
 ;
 ;
+export async function validateOrGetInput(term, input, target) {
+    try {
+        const json = JSON.parse(input);
+        const validationResult = validateInput(json, target);
+        if (validationResult === "") {
+            return json;
+        }
+        term.red(`option validation failed: ${validationResult}\n`);
+    }
+    catch (_) {
+        term.red("option validation failed: Not valid JSON\n");
+    }
+    return getInput(term, target);
+}
 export function validateInput(input, target) {
     if (input === undefined) {
         return target.required ?? true ? "" : "is undefined";
@@ -423,11 +255,22 @@ export async function getInput(term, target) {
                 }
                 const subTypeResult = await getInput(term, subType);
                 tempResult[name] = subTypeResult;
+                if (target.options.keepEntryVisual) {
+                    term.previousLine(0);
+                    term.eraseLine();
+                    term.previousLine(0);
+                    term.eraseLine();
+                    term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
+                }
             }
-            for (let i = 0; i <= target.subType.length; i++) {
-                term.previousLine(0);
-                term.eraseLine();
+            if (!target.options.keepEntryVisual) {
+                for (const _ of target.subType) {
+                    term.previousLine(0);
+                    term.eraseLine();
+                }
             }
+            term.previousLine(0);
+            term.eraseLine();
             result = tempResult;
             break;
         }
@@ -436,11 +279,11 @@ export async function getInput(term, target) {
             while (true) {
                 term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
                 const options = ["add"];
-                if (options.length > 0) {
+                if (tempResult.length > 0) {
                     options.push("remove");
                 }
-                if ((!target.options.minLength || tempResult.length >= target.options.minLength) &&
-                    (!target.options.maxLength || tempResult.length <= target.options.maxLength)) {
+                if ((target.options.minLength === undefined || tempResult.length >= target.options.minLength) &&
+                    (target.options.maxLength === undefined || tempResult.length <= target.options.maxLength)) {
                     options.push("done", "");
                 }
                 term(`${target.name}> `);
@@ -478,6 +321,8 @@ export async function getInput(term, target) {
                 term.previousLine(0);
                 term.eraseLine();
             }
+            term.previousLine(0);
+            term.eraseLine();
             result = tempResult;
             break;
         }
@@ -505,9 +350,10 @@ export async function getInput(term, target) {
                 }
                 term.previousLine(0);
                 term.eraseLine();
-                if (target.options.strict &&
-                    target.options.autocomplete.length !== 0 &&
-                    !target.options.autocomplete.includes(input)) {
+                if (input === "" ||
+                    target.options.strict &&
+                        target.options.autocomplete.length !== 0 &&
+                        !target.options.autocomplete.includes(input)) {
                     continue;
                 }
                 if (selected.has(input)) {
@@ -525,9 +371,8 @@ export async function getInput(term, target) {
             break;
         }
         case "aspects": {
-            // FIXME: minTypes and maxTypes are not inforced
             const aspectNames = getAllAspects();
-            const tempResult = {};
+            const tempResult = new Map();
             let aspect = "";
             let count = "";
             term("\n");
@@ -538,7 +383,7 @@ export async function getInput(term, target) {
                 // print current result
                 term.previousLine(0);
                 term.eraseLine();
-                term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
+                term(`${target.name}: ${JSON.stringify(Object.fromEntries(tempResult.entries()))}\n`);
                 // input
                 term.eraseLine();
                 term("aspect> ");
@@ -548,7 +393,9 @@ export async function getInput(term, target) {
                     autoCompleteHint: true,
                     cancelable: true,
                 }).promise ?? "";
-                if (aspect === "") {
+                if (aspect === "" &&
+                    (target.options.minTypes === undefined || target.options.minTypes <= tempResult.size) &&
+                    (target.options.maxTypes === undefined || target.options.maxTypes >= tempResult.size)) {
                     break;
                 }
                 if (!aspectNames.includes(aspect)) {
@@ -569,10 +416,9 @@ export async function getInput(term, target) {
                         continue;
                     }
                     // add to result
-                    tempResult[aspect] = countNumber;
-                    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                    if (tempResult[aspect] <= 0) {
-                        delete tempResult[aspect];
+                    tempResult.set(aspect, countNumber);
+                    if ((tempResult.get(aspect) ?? 0) <= 0) {
+                        tempResult.delete(aspect);
                     }
                     break;
                 }
@@ -581,7 +427,7 @@ export async function getInput(term, target) {
             term.eraseLine();
             term.previousLine(0);
             term.eraseLine();
-            result = tempResult;
+            result = Object.fromEntries(tempResult.entries());
             break;
         }
         case "integer": {

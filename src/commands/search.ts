@@ -1,8 +1,8 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {getItemSearchOptions, getAspects, getStrArray, getNum, getArray} from "../commandHelpers.js";
-import {findVerbs, findItems, findRecipes, getAllAspects} from "../dataProcessing.js";
+import {aspectTarget, itemFilter, validateOrGetInput} from "../commandHelpers.js";
+import {findVerbs, findItems, findRecipes} from "../dataProcessing.js";
 import {jsonSpacing} from "../config.js";
 
 const search: types.inputNode = [["search"], [
@@ -13,68 +13,62 @@ const search: types.inputNode = [["search"], [
 	[["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
 ], "finds unlocked things in your save file. load your save file 1st."];
 
-type slot = Record<"required"|"essential"|"forbidden"|"missingRequired"|"missingEssential"|"missingForbidden", string[]>;
-
 export async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> {
-	const strArrayOptions = {min: 0, autocomplete: getAllAspects(), autocompleteDelimiter: "\\."};
-	// TODO: move "parts" into a custom input handler
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const args: {
-		slotMeta?: {
-			minCount?: number;
-			maxCount?: number;
-		};
-		slots?: {
-			required?: string[];
-			essential?: string[];
-			forbidden?: string[];
-			missingRequired?: string[];
-			missingEssential?: string[];
-			missingForbidden?: string[];
-		}[];
-	} = parts.length !== 0 ?
-		JSON.parse(parts.join(" ")) :
-		{
-			slotMeta: {
-				minCount: await getNum(term, "min slot count", {min: 0, default: 1}),
-				maxCount: await getNum(term, "max slot count", {min: 0, default: 256}),
-			},
-			slots: await getArray(term, "slots", async(): Promise<slot>=>({
-				required: await getStrArray(term, jsonSpacing+"in required", strArrayOptions),
-				essential: await getStrArray(term, jsonSpacing+"in essential", strArrayOptions),
-				forbidden: await getStrArray(term, jsonSpacing+"in forbidden", strArrayOptions),
-				missingRequired: await getStrArray(term, jsonSpacing+"not in required", strArrayOptions),
-				missingEssential: await getStrArray(term, jsonSpacing+"not in essential", strArrayOptions),
-				missingForbidden: await getStrArray(term, jsonSpacing+"not in forbidden", strArrayOptions),
-			})),
-		}
-	;
+	const args = await validateOrGetInput(term, parts.join(" "), {
+		id: "object",
+		name: "options",
+		options: {},
+		subType: [
+			["slotMin", false, {
+				id: "integer",
+				name: "min slots",
+				options: {
+					min: 0,
+				},
+			}],
+			["slotMax", false, {
+				id: "integer",
+				name: "max slots",
+				options: {
+					min: 0,
+				},
+			}],
+			["slots", false, {
+				id: "array",
+				name: "slots",
+				options: {},
+				subType: {
+					id: "object",
+					name: "slot",
+					options: {},
+					subType: [
+						["required", false, aspectTarget],
+						["essential", false, aspectTarget],
+						["forbidden", false, aspectTarget],
+						["missingRequired", false, aspectTarget],
+						["missingEssential", false, aspectTarget],
+						["missingForbidden", false, aspectTarget],
+					],
+				},
+			}],
+		],
+	});
 	const result = findVerbs(args);
-	term(`res: ${result.length}\n`);
+	term(JSON.stringify(result));
 }
 export async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
-	// TODO: move "parts" into a custom input handler
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const arg = parts.length !== 0 ?
-		JSON.parse(parts.join(" ")) :
-		await getItemSearchOptions(term)
-	;
-	const result = findItems(arg);
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
+	const result = findItems(args);
+	term(JSON.stringify(result, null, jsonSpacing));
 	if (parts.length === 0) {
-		return JSON.stringify(arg);
+		return JSON.stringify(args);
 	}
 	return;
 }
 export async function searchItemCounts(term: Terminal, parts: string[]): Promise<string|undefined> {
-	// TODO: move "parts" into a custom input handler
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const arg = parts.length !== 0 ?
-		JSON.parse(parts.join(" ")) :
-		await getItemSearchOptions(term)
-	;
+	const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
 	const counts = new Map<string, number>();
-	findItems(arg).forEach(item=>{
+	findItems(args).forEach(item=>{
 		counts.set(item.entityid, (counts.get(item.entityid)??0)+1);
 	});
 	term([...counts.entries()]
@@ -82,30 +76,40 @@ export async function searchItemCounts(term: Terminal, parts: string[]): Promise
 		.map(([name, count]): string=>`${name}: ${count}\n`)
 		.join(""));
 	if (parts.length === 0) {
-		return JSON.stringify(arg);
+		return JSON.stringify(args);
 	}
 	return;
 }
 export async function searchRecipes(term: Terminal, parts: string[]): Promise<string|undefined> {
-	// TODO: move "parts" into a custom input handler
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const arg = parts.length !== 0 ?
-		JSON.parse(parts.join(" ")) :
-		{
-			reqs: {
-				min: await getAspects(term, "Min input"),
-				max: await getAspects(term, "Max input"),
-			},
-			output: {
-				min: await getAspects(term, "Min output"),
-				max: await getAspects(term, "Max output"),
-			},
-		}
-	;
-	const result = findRecipes(arg).map(recipe=>[recipe[0].reqs, recipe[1]]);
+	const args = await validateOrGetInput(term, parts.join(" "), {
+		id: "object",
+		name: "options",
+		options: {},
+		subType: [
+			["reqs", false, {
+				id: "object",
+				name: "input requirements",
+				options: {},
+				subType: [
+					["min", false, {id: "aspects", name: "min", options: {}}],
+					["max", false, {id: "aspects", name: "max", options: {}}],
+				],
+			}],
+			["out", false, {
+				id: "object",
+				name: "output requirements",
+				options: {},
+				subType: [
+					["min", false, {id: "aspects", name: "min", options: {}}],
+					["max", false, {id: "aspects", name: "max", options: {}}],
+				],
+			}],
+		],
+	});
+	const result = findRecipes(args).map(recipe=>[recipe[0].reqs, recipe[1]]);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
 	if (parts.length === 0) {
-		return JSON.stringify(arg);
+		return JSON.stringify(args);
 	}
 	return;
 }

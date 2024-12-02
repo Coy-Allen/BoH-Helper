@@ -4,7 +4,7 @@ import * as fileLoader from "./fileLoader.js";
 void fileLoader.loadFiles(() => { return; }).then(_ => {
     const term = terminalKit.terminal;
     term("before & empty\na\n");
-    void getInput(term, {
+    return getInput(term, {
         id: "object",
         name: "testObject",
         options: {},
@@ -53,7 +53,8 @@ void fileLoader.loadFiles(() => { return; }).then(_ => {
                     },
                 }],
         ],
-    }).then(_2 => {
+    }).then(res => {
+        void res;
         term("a\nempty & after\n");
         term.processExit(0);
     });

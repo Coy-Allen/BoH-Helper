@@ -5,10 +5,11 @@ import * as fileLoader from "./fileLoader.js";
 void fileLoader.loadFiles((): void=>{return;}).then(_=>{
 	const term = terminalKit.terminal;
 	term("before & empty\na\n");
-	void getInput(term, {
+	return getInput(term, {
 		id: "object",
 		name: "testObject",
-		options: {},
+		options: {
+		},
 		subType: [
 			["string", true, {
 				id: "string",
@@ -54,7 +55,8 @@ void fileLoader.loadFiles((): void=>{return;}).then(_=>{
 				},
 			}],
 		],
-	}).then(_2=>{
+	}).then(res=>{
+		void res;
 		term("a\nempty & after\n");
 		term.processExit(0);
 	});

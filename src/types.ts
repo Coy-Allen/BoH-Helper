@@ -23,7 +23,6 @@ export interface itemSearchOptions {
 	nameInvalid?: string;
 }
 
-
 // FIXME: not correct
 export interface dataItem {
 		id: string;

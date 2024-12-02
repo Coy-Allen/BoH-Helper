@@ -1,5 +1,4 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "./types.js";
 
 import {getAllAspects, doesAspectExist} from "./dataProcessing.js";
 import {markupReplaceList} from "./config.js";
@@ -19,212 +18,31 @@ export function markupReplace<t extends string[]|string>(text: t): t {
 	}
 	return res[0] as t;
 }
-export async function getItemSearchOptions(term: Terminal, name?: string): Promise<types.itemSearchOptions> {
-	return {
-		min: await getAspects(term, "Min"+(name?" "+name:"")),
-		any: await getAspects(term, "Any"+(name?" "+name:"")),
-		max: await getAspects(term, "Max"+(name?" "+name:"")),
-		nameValid: (await getStrArray(term, "Name Matches"+(name?" "+name:""), {min: 0, max: 1}))[0],
-		nameInvalid: (await getStrArray(term, "Name NOT Matches"+(name?" "+name:""), {min: 0, max: 1}))[0],
-	};
-}
-/**/
-export async function getAspects(term: Terminal, name: string): Promise<types.aspects> {
-	// TODO: add strict to options
-	const aspectNames = getAllAspects();
-	const result: types.aspects = {};
-	let aspect = "";
-	let count = "";
-	term("\n");
-	const autocompleteList = (input: string): string|string[]=>{
-		return generateAutocomplete(
-			generateCommandNames(aspectNames, "\\."),
-			input,
-		);
-	};
-	while (true) {
-		// print current result
-		term.previousLine(0);
-		term.eraseLine();
-		term(`${name} = ${Object.entries(result).map(entry=>`${entry[0]}:${entry[1]}`).join(", ")}\n`);
-		// input
-		term.eraseLine();
-		term("aspect> ");
-		aspect = await term.inputField({
-			autoComplete: autocompleteList,
-			autoCompleteMenu: true,
-			autoCompleteHint: true,
-			cancelable: true,
-		}).promise ?? "";
-		if (aspect==="") {break;}
-		while (true) {
-			term.eraseLine();
-			term.column(0);
-			term("count> ");
-			count = await term.inputField({
-				cancelable: true,
-			}).promise ?? "";
-			if (count === "") {break;}
-			const countNumber = Number(count);
-			if (!Number.isSafeInteger(countNumber)) {continue;}
-			// add to result
-			result[aspect]=countNumber;
-			// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-			if (result[aspect] <= 0) {delete result[aspect];}
-			break;
-		}
-	}
-	// clear the user input line
-	term.eraseLine();
-	term.column(0);
-	return result;
-}
-export async function getNum(term: Terminal, name: string, options?: {
-	min?: number;
-	default?: number;
-	max?: number;
-}): Promise<number> {
-	const optionsFull = {
-		min: options?.min ?? Number.MIN_SAFE_INTEGER,
-		default: options?.default,
-		max: options?.max ?? Number.MAX_SAFE_INTEGER,
-	};
-	let result: number|undefined = undefined;
-	term("");
-	while (true) {
-		term(name+"> ");
-		const input = await term.inputField({
-			cancelable: true,
-		}).promise ?? "";
-		term.eraseLine();
-		term.column(0);
-		if (input === "") {
-			if (optionsFull.default !== undefined) {
-				result = optionsFull.default;
-				break;
-			}
-			continue;
-		}
-		const num = Number(input);
-		if (isNaN(num)) {continue;}
-		if (!Number.isSafeInteger(num)) {continue;}
-		if (optionsFull.min > num || optionsFull.max < num) {continue;}
-		result = num;
-		break;
-	}
-	term(`${name} = ${result}\n`);
-	return result;
-}
-/**/
 
-export async function getArray<t>(term: Terminal, name: string, generator:((edit?: t) => Promise<t>|t), options?: {
-	sameline?: boolean;
-	min?: number;
-	max?: number;
-}): Promise<t[]> {
-	// FIXME: does not work
-	/*
-	return [await generator()];
-	*/
-	const result: t[] = [];
-	const optionsFull = {
-		sameLine: options?.sameline ?? false,
-		min: options?.min ?? 0,
-		max: options?.max ?? Number.MAX_SAFE_INTEGER,
-	};
-	while (true) {
-		term(`${name}(${result.length})> `);
-		const userInput = await term.inputField({
-			autoComplete: ["add", "delete", "edit", "submit"],
-			autoCompleteMenu: true,
-			autoCompleteHint: true,
-			cancelable: true,
-		}).promise;
-		term.eraseLine();
-		term.column(0);
-		if (userInput === "add") {
-			if (optionsFull.max <= result.length) {
-				// TODO: can't add new entry.
-				continue;
-			}
-			result.push(await generator());
-		}
-		if (userInput === "delete") {
-			if (result.length === 0) {
-				// TODO: can't remove entry.
-			}
-			// TODO: remove entry.
-		}
-		if (userInput === "edit") {
-			if (result.length === 0) {
-				// TODO: can't edit entry.
-			}
-			// TODO: edit entry.
-		}
-		if (userInput === "submit") {
-			if (result.length < optionsFull.min || result.length > optionsFull.max) {
-				// TODO: can't return.
-				continue;
-			}
-			break;
-		}
-	}
-	return result;
-}
-/**/
-export async function getStrArray(term: Terminal, name: string, options?: {
-	autocomplete?: string[];
-	autocompleteDelimiter?: string;
-	min?: number;
-	max?: number;
-	strict?: boolean;
-}): Promise<string[]> {
-	const result = new Set<string>();
-	const optionsFull = {
-		autocomplete: options?.autocomplete ?? [],
-		min: options?.min ?? 1,
-		max: options?.max,
-		strict: options?.strict ?? true,
-	};
-	const autocompleteDelimiter = options?.autocompleteDelimiter;
-	const autocompleteList: string|string[]|((input: string)=>(string|string[])) = autocompleteDelimiter===undefined ?
-		optionsFull.autocomplete :
-		input=>{return generateAutocomplete(generateCommandNames(optionsFull.autocomplete, autocompleteDelimiter), input);};
-	let input = "";
-	term("\n");
-	while (true) {
-		// print current result
-		term.previousLine(0);
-		term.eraseLine();
-		term(`${name} = ${[...result.values()].join(", ")}\n`);
-		// input
-		term(`${name}> `);
-		input = await term.inputField({
-			autoComplete: autocompleteList,
-			autoCompleteMenu: true,
-			autoCompleteHint: true,
-			cancelable: true,
-		}).promise ?? "";
-		if (input==="" && optionsFull.min<=result.size) {break;}
-		if (
-			optionsFull.strict &&
-			optionsFull.autocomplete.length !== 0 &&
-			!optionsFull.autocomplete.includes(input)
-		) {continue;}
-		if (result.has(input)) {
-			result.delete(input);
-			continue;
-		}
-		if (optionsFull.max===undefined||result.size<optionsFull.max) {
-			result.add(input);
-		}
-	}
-	// clear the user input line
-	term.eraseLine();
-	term.column(0);
-	return [...result.values()];
-}
-/**/
+export const itemFilter = {
+	id: "object",
+	name: "item filter",
+	options: {},
+	subType: [
+		["min", false, {id: "aspects", name: "min aspects", options: {}}],
+		["any", false, {id: "aspects", name: "any aspects", options: {}}],
+		["max", false, {id: "aspects", name: "max aspects", options: {}}],
+		["nameValid", false, {id: "string", name: "matches RegEx", options: {autocomplete: [], strict: false}}],
+		["nameInvalid", false, {id: "string", name: "NOT matches RegEx", options: {autocomplete: [], strict: false}}],
+	],
+} as const satisfies targetTypes;
+export const aspectTarget = {
+	id: "stringArray",
+	name: "item filter",
+	options: {
+		autocomplete: getAllAspects(),
+		autocompleteDelimiter: "\\.",
+		strict: true,
+	},
+} as const satisfies targetTypes;
+
+// REWORK
+
 type commandNames = [string, commandNames[]];
 
 function generateCommandNames(options: string[], delimiter: string): commandNames[] {
@@ -268,9 +86,9 @@ function generateAutocomplete(options: commandNames[], inputRaw: string): string
 	}
 }
 
-// REWORK
+// TODO: move this into a types file
 
-type targetTypes = targetArray|targetObject|targetString|targetStringArray|targetAspects|targetInteger;
+export type targetTypes = targetArray|targetObject|targetString|targetStringArray|targetAspects|targetInteger;
 
 export type processedType<t extends targetTypes> =  (t["required"] extends false ? undefined : never)|(
 	t extends targetArray ? processedType<t["subType"]>[] : // TODO: figure out how subtypes work
@@ -302,7 +120,9 @@ export interface targetArray<t extends targetTypes=targetTypes> extends targetBa
 export interface targetObject extends targetBase {
 	id: "object";
 	subType: [string, boolean, targetTypes][];
-	options: object;
+	options: {
+		keepEntryVisual?: true;
+	};
 };
 export interface targetString extends targetBase {
 	id: "string";
@@ -337,6 +157,20 @@ export interface targetInteger extends targetBase {
 		max?: number;
 	};
 };
+
+export async function validateOrGetInput<const t extends targetTypes>(term: Terminal, input: string, target: t): Promise<processedType<t>> {
+	try {
+		const json = JSON.parse(input) as processedType<t>;
+		const validationResult = validateInput(json, target);
+		if (validationResult === "") {
+			return json;
+		}
+		term.red(`option validation failed: ${validationResult}\n`);
+	} catch (_) {
+		term.red("option validation failed: Not valid JSON\n");
+	}
+	return getInput(term, target);
+}
 
 export function validateInput(input: unknown, target: targetTypes): string {
 	if (input === undefined) {
@@ -433,7 +267,7 @@ export function validateInput(input: unknown, target: targetTypes): string {
 	}
 }
 
-export async function getInput<t extends targetTypes>(term: Terminal, target: t): Promise<processedType<t>> {
+export async function getInput<const t extends targetTypes>(term: Terminal, target: t): Promise<processedType<t>> {
 	term(target.name+": \n");
 	let result: processedType<t>;
 	if (!(target.required??true)) {
@@ -483,11 +317,22 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 				}
 				const subTypeResult = await getInput(term, subType);
 				tempResult[name] = subTypeResult;
+				if (target.options.keepEntryVisual) {
+					term.previousLine(0);
+					term.eraseLine();
+					term.previousLine(0);
+					term.eraseLine();
+					term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
+				}
 			}
-			for (let i=0; i<= target.subType.length; i++) {
-				term.previousLine(0);
-				term.eraseLine();
+			if (!target.options.keepEntryVisual) {
+				for (const _ of target.subType) {
+					term.previousLine(0);
+					term.eraseLine();
+				}
 			}
+			term.previousLine(0);
+			term.eraseLine();
 			result = tempResult as processedType<t>;
 			break;
 		}
@@ -496,10 +341,10 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 			while (true) {
 				term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
 				const options = ["add"];
-				if (options.length>0) {options.push("remove");}
+				if (tempResult.length>0) {options.push("remove");}
 				if (
-					(!target.options.minLength || tempResult.length>=target.options.minLength) &&
-					(!target.options.maxLength || tempResult.length<=target.options.maxLength)
+					(target.options.minLength===undefined || tempResult.length>=target.options.minLength) &&
+					(target.options.maxLength===undefined || tempResult.length<=target.options.maxLength)
 				) {options.push("done", "");}
 				term(`${target.name}> `);
 				const input = await term.inputField({
@@ -534,6 +379,8 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 				term.previousLine(0);
 				term.eraseLine();
 			}
+			term.previousLine(0);
+			term.eraseLine();
 			result = tempResult as processedType<t>;
 			break;
 		}
@@ -559,7 +406,7 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 				if (input==="" && (target.options.minLength === undefined || target.options.minLength<=selected.size)) {break;}
 				term.previousLine(0);
 				term.eraseLine();
-				if (
+				if (input==="" ||
 					target.options.strict &&
 					target.options.autocomplete.length !== 0 &&
 					!target.options.autocomplete.includes(input)
@@ -579,9 +426,8 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 			break;
 		}
 		case "aspects":{
-			// FIXME: minTypes and maxTypes are not inforced
 			const aspectNames = getAllAspects();
-			const tempResult: types.aspects = {};
+			const tempResult = new Map<string, number>();
 			let aspect = "";
 			let count = "";
 			term("\n");
@@ -595,7 +441,7 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 				// print current result
 				term.previousLine(0);
 				term.eraseLine();
-				term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
+				term(`${target.name}: ${JSON.stringify(Object.fromEntries(tempResult.entries()))}\n`);
 				// input
 				term.eraseLine();
 				term("aspect> ");
@@ -605,7 +451,11 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 					autoCompleteHint: true,
 					cancelable: true,
 				}).promise ?? "";
-				if (aspect==="") {break;}
+				if (
+					aspect==="" &&
+					(target.options.minTypes===undefined || target.options.minTypes<=tempResult.size) &&
+					(target.options.maxTypes===undefined || target.options.maxTypes>=tempResult.size)
+				) {break;}
 				if (!aspectNames.includes(aspect)) {continue;}
 				while (true) {
 					term.eraseLine();
@@ -618,9 +468,8 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 					const countNumber = Number(count);
 					if (!Number.isSafeInteger(countNumber)) {continue;}
 					// add to result
-					tempResult[aspect]=countNumber;
-					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-					if (tempResult[aspect] <= 0) {delete tempResult[aspect];}
+					tempResult.set(aspect, countNumber);
+					if ((tempResult.get(aspect)??0) <= 0) {tempResult.delete(aspect);}
 					break;
 				}
 			}
@@ -628,7 +477,7 @@ export async function getInput<t extends targetTypes>(term: Terminal, target: t)
 			term.eraseLine();
 			term.previousLine(0);
 			term.eraseLine();
-			result = tempResult as processedType<t>;
+			result = Object.fromEntries(tempResult.entries()) as processedType<t>;
 			break;
 		}
 		case "integer":{
