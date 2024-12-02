@@ -37,6 +37,7 @@ async function maxAspects(term, parts) {
 }
 async function maxAspectsPreset(term, parts) {
     // TODO: grab all possible stations
+    // TODO: allow prototypes (_assistance.*)
     const verbs = getAllVerbs();
     // get input
     const [verbId, aspects] = parts.length !== 0 ?

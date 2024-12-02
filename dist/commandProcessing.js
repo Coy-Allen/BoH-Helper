@@ -33,6 +33,10 @@ export async function load(term) {
     if (!await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
         return;
     }
+    // FIXME: game saves in multiple passes! it WILL fail ~3 times,
+    //   then save unfinished copies 2 times before saving 1 final time.
+    // FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
+    //   then runs the code just before the main input loop asks for user input?
     saveFileWatcher = watch(filename, (_event) => {
         void loadFile(filename).then(res => {
             if (res) {

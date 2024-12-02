@@ -41,6 +41,7 @@ async function maxAspects(term: Terminal, parts: string[]): Promise<string|undef
 
 async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string|undefined> {
 	// TODO: grab all possible stations
+	// TODO: allow prototypes (_assistance.*)
 	const verbs = getAllVerbs();
 	// get input
 	const [verbId, aspects]: [string, string[]] = parts.length !== 0 ?
