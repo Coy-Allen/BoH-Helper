@@ -3,19 +3,13 @@ import type * as types from "../types.js";
 
 import {jsonSpacing} from "../config.js";
 import * as dataProcessing from "../dataProcessing.js";
+import {validateOrGetInput, itemFilter} from "../commandHelpers.js";
 
 
 type availableMemoriesResult = Partial<Record<
 	"recipes"|`items${"Reusable"|"Consumable"}${"Inspect"|"Talk"}`, // obtain group
 	[string, string[]][] // memory id, specific item needed
 >>;
-interface availableMemoriesInput {
-	inputs: ("recipes"|"itemsReusable"|"itemsConsumable"|"books")[];
-	memFilter?: {
-		any?: types.aspects;
-		ignoreObtained?: boolean;
-	};
-}
 
 const misc: types.inputNode = [["misc"], [
 	[["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
@@ -23,26 +17,40 @@ const misc: types.inputNode = [["misc"], [
 ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 
 export async function missingCraftable(term: Terminal, parts: string[]): Promise<undefined> {
-	// input
-	// TODO: move "parts" into a custom input handler
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-	const options: {
-		detailed?: boolean;
-		maxOwned?: number;
-	} = JSON.parse(parts.join(" "));
-	// TODO: input requesting if parts don't exist
+	const args = await validateOrGetInput(term, parts.join(" "), {
+		id: "object",
+		name: "options",
+		options: {},
+		subType: [
+			["detailed", true, {
+				id: "boolean",
+				name: "list item names",
+				options: {default: false},
+			}],
+			["maxOwned", false, {
+				id: "integer",
+				name: "max items owned",
+				options: {
+					min: 0,
+					default: 0,
+				},
+			}],
+		],
+	});
 	// processing
 	const result: [string, string[]][] = [];
+	/* eslint-disable @typescript-eslint/naming-convention */
 	const SAVE_ITEMS = dataProcessing.getSaveItems();
 	const DATA_ITEMS = dataProcessing.getDataItems();
 	const SAVE_RECIPES = dataProcessing.getSaveRecipes();
 	const DATA_RECIPES = dataProcessing.getDataRecipes();
 	const DATA_DECKS = dataProcessing.getDataDecks();
 	const SAVE_RAW = dataProcessing.getSaveRaw();
+	/* eslint-enable @typescript-eslint/naming-convention */
 
 	const saveItems = new Map<string, number>();
 	for (const saveItem of SAVE_ITEMS) {
-		saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid)??0)+(saveItem.count??1));
+		saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid)??0)+saveItem.quantity);
 	}
 	for (const recipe of SAVE_RECIPES) {
 		const recipeData = DATA_RECIPES.find(recipeInfo=>recipeInfo.id===recipe);
@@ -85,7 +93,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		}
 		// if item exists in library
 		const countOwned = saveItems.get(item);
-		if ((countOwned??0) > (options.maxOwned??0)) {return false;}
+		if ((countOwned??0) > (args.maxOwned??0)) {return false;}
 		// if it's unique value already exists
 		if (uniqueItemsSave.includes(item)) {return false;}
 		return true;
@@ -102,12 +110,12 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 
 	// output
 	for (const [name, items] of found) {
-		const detail = options.detailed?items.join(", "):items.length.toString();
-		term.cyan(`${name}`);
+		const detail = args.detailed?items.join(", "):items.length.toString();
+		term.cyan(name);
 		term(`: ${detail}\n`);
 	}
 }
-export function availableMemories(term: Terminal, parts: string[]): undefined {
+export async function availableMemories(term: Terminal, parts: string[]): Promise<undefined> {
 	const maxTargLen = 15;
 	const genListOutput = (memories: [string, string[]][]): void=>{
 		for (const [memId, targs] of memories) {
@@ -123,13 +131,36 @@ export function availableMemories(term: Terminal, parts: string[]): undefined {
 		}
 	};
 	// input
-	const options: availableMemoriesInput = JSON.parse(parts.join(" "));
-	// TODO: input requesting if parts don't exist
+	const args = await validateOrGetInput(term, parts.join(" "), {
+		id: "object",
+		name: "options",
+		options: {},
+		subType: [
+			["inputs", true, {
+				id: "stringArray",
+				name: "memory sources",
+				options: {
+					autocomplete: ["recipes", "itemsReusable", "itemsConsumable", "books"],
+					strict: true,
+				},
+			}],
+			["filter", false, itemFilter],
+			["owned", true, {
+				id: "boolean",
+				name: "include already obtained",
+				options: {
+					default: false,
+				},
+			}],
+		],
+	});
 	// processing
+	/* eslint-disable @typescript-eslint/naming-convention */
 	const SAVE_ITEMS = dataProcessing.getSaveItems();
 	const DATA_ITEMS = dataProcessing.getDataItems();
 	const SAVE_RECIPES = dataProcessing.getSaveRecipes();
 	const DATA_RECIPES = dataProcessing.getDataRecipes();
+	/* eslint-enable @typescript-eslint/naming-convention */
 	const appendToMap = (map: Map<string, string[]>, key: string, value: string): void=>{
 		if (!map.has(key)) {map.set(key, []);}
 		const array = map.get(key);
@@ -139,20 +170,21 @@ export function availableMemories(term: Terminal, parts: string[]): undefined {
 	const isValid = (itemId: string): boolean=>{
 		const aspects = dataProcessing.mergeAspects(dataProcessing.grabAllAspects(itemId));
 		if (!aspects["memory"]) {return false;}
-		if (options.memFilter?.any !== undefined) {
-			const filterEntries = Object.entries(options.memFilter.any);
+		// FIXME: use all filter options
+		if (args.filter?.any !== undefined) {
+			const filterEntries = Object.entries(args.filter.any);
 			for (const [aspect, count] of filterEntries) {
 				if ((aspects[aspect]??0) < count) {return false;}
 			}
 		}
-		if ((options.memFilter?.ignoreObtained ?? false) === true) {
+		if (!args.owned) {
 			const alreadyObtained = SAVE_ITEMS.find(item=>item.entityid===itemId);
 			if (alreadyObtained) {return false;}
 		}
 		return true;
 	};
 	const result: availableMemoriesResult = {};
-	if (options.inputs?.includes("recipes")) {
+	if (args.inputs.includes("recipes")) {
 		const foundRecipes = new Map<string, string[]>();
 		const recipes = DATA_RECIPES.filter(recipe=>SAVE_RECIPES.includes(recipe.id));
 		for (const recipe of recipes) {
@@ -168,9 +200,9 @@ export function availableMemories(term: Terminal, parts: string[]): undefined {
 	}
 	// FIXME: items are broken
 	if (
-		options.inputs?.includes("itemsReusable") ||
-		options.inputs?.includes("itemsConsumable") ||
-		options.inputs?.includes("books")
+		args.inputs.includes("itemsReusable") ||
+		args.inputs.includes("itemsConsumable") ||
+		args.inputs.includes("books")
 	) {
 		const foundReusableInspect = new Map<string, string[]>();
 		const foundReusableTalk = new Map<string, string[]>();
@@ -189,7 +221,7 @@ export function availableMemories(term: Terminal, parts: string[]): undefined {
 					if (!isValid(info.id)) {continue;}
 					// ignore books if asked
 					if (type.startsWith("reading.")) {
-						if (options.inputs?.includes("books")) {
+						if (args.inputs.includes("books")) {
 							// FIXME: filter out non-mastered books
 							appendToMap(foundReusableInspect, info.id, item.id);
 						}
@@ -198,8 +230,8 @@ export function availableMemories(term: Terminal, parts: string[]): undefined {
 					// FIXME: can't figure out what determines if something gets "used up"
 					// TEMP: just treat them as the same for now.
 					if (
-						!options.inputs?.includes("itemsReusable") &&
-						!options.inputs?.includes("itemsConsumable")
+						!args.inputs.includes("itemsReusable") &&
+						!args.inputs.includes("itemsConsumable")
 					) {
 						continue;
 					}

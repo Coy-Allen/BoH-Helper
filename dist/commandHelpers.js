@@ -82,6 +82,7 @@ function generateAutocomplete(options, inputRaw) {
 ;
 ;
 ;
+;
 export async function validateOrGetInput(term, input, target) {
     try {
         const json = JSON.parse(input);
@@ -197,6 +198,12 @@ export function validateInput(input, target) {
             }
             if (target.options.max !== undefined && integer > target.options.max) {
                 return "is above the max value allowed";
+            }
+            return "";
+        }
+        case "boolean": {
+            if (typeof input !== "boolean") {
+                return "is not a boolean";
             }
             return "";
         }
@@ -460,6 +467,33 @@ export async function getInput(term, target) {
                 }
                 tempResult = num;
                 break;
+            }
+            result = tempResult;
+            break;
+        }
+        case "boolean": {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            let tempResult = undefined;
+            const [yes, no] = [["y"], ["n"]];
+            const visualOptions = ["y", "n"];
+            switch (target.options.default) {
+                case true: {
+                    yes.push("ENTER");
+                    visualOptions[0] = "Y";
+                    break;
+                }
+                case false: {
+                    no.push("ENTER");
+                    visualOptions[1] = "N";
+                    break;
+                }
+                case undefined: {
+                    break;
+                }
+            }
+            term(`${target.name}? [${visualOptions.join("|")}]\n`);
+            while (tempResult === undefined) {
+                tempResult = await term.yesOrNo({ yes: yes, no: no }).promise;
             }
             result = tempResult;
             break;

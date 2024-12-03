@@ -41,7 +41,10 @@ export async function loadSave(saveFile: string): Promise<string> {
 }
 
 function pushData(): void {
-	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements.map((element: types.dataItem): types.dataItem=>({
+	dataProcessing.addAspects(fileOutputs.items.flatMap(item=>item.elements.filter(
+		element=>element.isaspect??false,
+	)).map(element=>element.id));
+	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements.map(element=>({
 		id: element.id,
 		uniquenessgroup: element.uniquenessgroup,
 		label: element.label,

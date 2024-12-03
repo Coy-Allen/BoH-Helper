@@ -36,7 +36,8 @@ export async function loadSave(saveFile) {
     return await fs.readFile(saveFile).then(file => iconv.decode(file, "utf8").toLowerCase());
 }
 function pushData() {
-    dataProcessing.setDataItems(fileOutputs.items.flatMap(files => files.elements.map((element) => ({
+    dataProcessing.addAspects(fileOutputs.items.flatMap(item => item.elements.filter(element => element.isaspect ?? false)).map(element => element.id));
+    dataProcessing.setDataItems(fileOutputs.items.flatMap(files => files.elements.map(element => ({
         id: element.id,
         uniquenessgroup: element.uniquenessgroup,
         label: element.label,

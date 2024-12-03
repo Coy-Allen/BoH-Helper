@@ -1,258 +1,256 @@
-/* eslint-disable @typescript-eslint/naming-convention */
-
-type DictionaryStringInt =
-	{"$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.Int32, mscorlib]], mscorlib"} &
+type dictionaryStringInt =
+	{"$type": "system.collections.generic.dictionary`2[[system.string, mscorlib],[system.int32, mscorlib]], mscorlib"} &
 	Record<string, number>;
-interface DictionaryStringString {
-	"$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[System.String, mscorlib]], mscorlib";
+interface dictionaryStringString {
+	"$type": "system.collections.generic.dictionary`2[[system.string, mscorlib],[system.string, mscorlib]], mscorlib";
 	[key: string]: string;
 }
-type AspectsDictionary =
-	{"$type": "SecretHistories.Core.AspectsDictionary, SecretHistories.Main"} &
+type aspectsDictionary =
+	{"$type": "secrethistories.core.aspectsdictionary, secrethistories.main"} &
 	Record<string, number>;
 
-export interface PersistedGameState {
-	"$type": "PersistedGameState";
-	CharacterCreationCommands: CharacterCreationCommand[];
-	RootPopulationCommand: RootPopulationCommand;
-	PopulateXamanekCommand: PopulateXamanekCommand;
-	NotificationCommands: []; // TODO: save file does not have an example
-	Version: VersionNumber;
-	IsFresh: boolean;
+export interface persistedGameState {
+	"$type": "persistedgamestate";
+	charactercreationcommands: characterCreationCommand[];
+	rootpopulationcommand: rootPopulationCommand;
+	populatexamanekcommand: populateXamanekCommand;
+	notificationcommands: []; // TODO: save file does not have an example
+	version: versionNumber;
+	isfresh: boolean;
 }
-interface VersionNumber {
-	"$type": "SecretHistories.Entities.VersionNumber, SecretHistories.Main";
-	Version: string;
+interface versionNumber {
+	"$type": "secrethistories.entities.versionnumber, secrethistories.main";
+	version: string;
 }
-interface EnviroFxCommand {
-	"$type": "SecretHistories.Commands.EnviroFxCommand, SecretHistories.Main";
-	Concern: string;
-	Effect: string;
-	Parameter: string;
-	GetFullFx: string;
+interface enviroFxCommand {
+	"$type": "secrethistories.commands.envirofxcommand, secrethistories.main";
+	concern: string;
+	effect: string;
+	parameter: string;
+	getfullfx: string;
 }
-interface PopulateXamanekCommand {
-	"$type": "PopulateXamanekCommand";
-	CurrentItineraries:
-		{"$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[SecretHistories.Assets.Scripts.Application.Tokens.TravelItineraries.TokenItinerary, SecretHistories.Main]], mscorlib"} &
-		Record<string, TokenItinerary>;
-	CurrentEnviroFxCommands:
-		{"$type": "System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[SecretHistories.Commands.EnviroFxCommand, SecretHistories.Main]], mscorlib"} &
-		Record<string, EnviroFxCommand>;
-	CurrentSphereBlocks: []; // TODO: save file does not have an example
+interface populateXamanekCommand {
+	"$type": "populatexamanekcommand";
+	currentitineraries:
+		{"$type": "system.collections.generic.dictionary`2[[system.string, mscorlib],[secrethistories.assets.scripts.application.tokens.travelitineraries.tokenitinerary, secrethistories.main]], mscorlib"} &
+		Record<string, tokenItinerary>;
+	currentenvirofxcommands:
+		{"$type": "system.collections.generic.dictionary`2[[system.string, mscorlib],[secrethistories.commands.envirofxcommand, secrethistories.main]], mscorlib"} &
+		Record<string, enviroFxCommand>;
+	currentsphereblocks: []; // TODO: save file does not have an example
 }
-interface CharacterCreationCommand {
-	"$type": "CharacterCreationCommand";
-	Name: string;
-	Profession: string;
-	ActiveLegacyId: string;
-	EndingTriggeredId: null; // TODO: save file does not have an example
-	DateTimeCreated: string;
-	InProgressHistoryRecords: DictionaryStringString;
-	PreviousCharacterHistoryRecords: DictionaryStringString;
-	UniqueElementsManifested: string[];
-	AmbittableRecipesUnlocked: string[];
-	CreatedInVersion: VersionNumber;
-	CurrentFocus: Focus;
-	CurrentHouses: []; // TODO: save file does not have an example
+interface characterCreationCommand {
+	"$type": "charactercreationcommand";
+	name: string;
+	profession: string;
+	activelegacyid: string;
+	endingtriggeredid: null; // TODO: save file does not have an example
+	datetimecreated: string;
+	inprogresshistoryrecords: dictionaryStringString;
+	previouscharacterhistoryrecords: dictionaryStringString;
+	uniqueelementsmanifested: string[];
+	ambittablerecipesunlocked: string[];
+	createdinversion: versionNumber;
+	currentfocus: focus;
+	currenthouses: []; // TODO: save file does not have an example
 }
-interface Focus {
-	"$type": "SecretHistories.Entities.Focus, SecretHistories.Main";
-	X: number;
-	Y: number;
-	Z: number;
-}
-interface RootPopulationCommand {
-	"$type": "RootPopulationCommand";
-	Mutations: DictionaryStringInt;
-	Spheres: SphereCreationCommand[];
-	DealersTable: PopulateDominionCommand;
-	TokensAtArbitraryPaths: []; // TODO: save file does not have an example
-}
-interface PopulateDominionCommand {
-	"$type": "PopulateDominionCommand";
-	Identifier: "0";
-	Spheres: SphereCreationCommand[];
-}
-interface SphereCreationCommand {
-	"$type": "SphereCreationCommand";
-	OwnerSphereIdentifier: null; // TODO: save file does not have an example
-	GoverningSphereSpec: SphereSpec;
-	Tokens: TokenCreationCommand[];
-	Shrouded: boolean;
-	PersistentSphereData: null|UIHandSphereData;
-	Illuminations: DictionaryStringString;
-}
-interface SphereSpec {
-	"$type": "SecretHistories.Entities.SphereSpec, SecretHistories.Main";
-	Label: string;
-	ActionId: string;
-	Description: string;
-	AvailableFromHouse: string;
-	Essential: AspectsDictionary;
-	Required: AspectsDictionary;
-	Forbidden: AspectsDictionary;
-	IfAspectsPresent: DictionaryStringString;
-	Greedy: boolean;
-	Angels: []; // TODO: save file does not have an example
-	FromPath: FucinePath;
-	EnRouteSpherePath: FucinePath;
-	WindowsSpherePath: FucinePath;
-	SphereType: string;
-	AllowAnyToken: boolean;
-	Id: string;
-	Lever: string;
-}
-// TODO: stub. save file does not have an example
-type TokenItinerary = Record<string, unknown>;
-interface TokenCreationCommand {
-	"$type": "TokenCreationCommand";
-	Location: TokenLocation;
-	HomeLocation: null|TokenLocation;
-	Payload: ElementStackCreationCommand|SituationCreationCommand|PopulateNxCommand|PopulateTerrainFeatureCommand;
-	PlacementAlreadyChronicled: boolean;
-	Defunct: boolean;
-	CurrentState: DroppedInSphereState|TravelledToSphere;
-}
-interface FucinePath {
-	"$type": "SecretHistories.Fucine.FucinePath, SecretHistories.Main";
-	Filter: null; // TODO: save file does not have an example
-	Path: string;
-}
-interface Vector3 {
-	"$type": "UnityEngine.Vector3, UnityEngine.CoreModule";
+interface focus {
+	"$type": "secrethistories.entities.focus, secrethistories.main";
 	x: number;
 	y: number;
 	z: number;
-	normalized?: Vector3;
+}
+interface rootPopulationCommand {
+	"$type": "rootpopulationcommand";
+	mutations: dictionaryStringInt;
+	spheres: sphereCreationCommand[];
+	dealerstable: populateDominionCommand;
+	tokensatarbitrarypaths: []; // TODO: save file does not have an example
+}
+interface populateDominionCommand {
+	"$type": "populatedominioncommand";
+	identifier: string;
+	spheres: sphereCreationCommand[];
+}
+interface sphereCreationCommand {
+	"$type": "spherecreationcommand";
+	ownersphereidentifier: null; // TODO: save file does not have an example
+	governingspherespec: sphereSpec;
+	tokens: tokenCreationCommand[];
+	shrouded: boolean;
+	persistentspheredata: null|uIHandSphereData;
+	illuminations: dictionaryStringString;
+}
+interface sphereSpec {
+	"$type": "secrethistories.entities.spherespec, secrethistories.main";
+	label: string;
+	actionid: string;
+	description: string;
+	availablefromhouse: string;
+	essential: aspectsDictionary;
+	required: aspectsDictionary;
+	forbidden: aspectsDictionary;
+	ifaspectspresent: dictionaryStringString;
+	greedy: boolean;
+	angels: []; // TODO: save file does not have an example
+	frompath: fucinePath;
+	enroutespherepath: fucinePath;
+	windowsspherepath: fucinePath;
+	spheretype: string;
+	allowanytoken: boolean;
+	id: string;
+	lever: string;
+}
+// TODO: stub. save file does not have an example
+type tokenItinerary = Record<string, unknown>;
+export interface tokenCreationCommand {
+	"$type": "tokencreationcommand";
+	location: tokenLocation;
+	homelocation: null|tokenLocation;
+	payload: elementStackCreationCommand|situationCreationCommand|populateNxCommand|populateTerrainFeatureCommand;
+	placementalreadychronicled: boolean;
+	defunct: boolean;
+	currentstate: droppedInSphereState|travelledToSphere;
+}
+interface fucinePath {
+	"$type": "secrethistories.fucine.fucinepath, secrethistories.main";
+	filter: null; // TODO: save file does not have an example
+	path: string;
+}
+interface vector3 {
+	"$type": "unityengine.vector3, unityengine.coremodule";
+	x: number;
+	y: number;
+	z: number;
+	normalized?: vector3;
 	magnitude: number;
 	sqrMagnitude: number;
 }
-interface TokenLocation {
-	"$type": "SecretHistories.UI.TokenLocation, SecretHistories.Main";
-	LocalPosition: Vector3;
-	AtSpherePath: FucinePath;
+interface tokenLocation {
+	"$type": "secrethistories.ui.tokenlocation, secrethistories.main";
+	localposition: vector3;
+	atspherepath: fucinePath;
 }
-interface TravelledToSphere {
-	"$type": "SecretHistories.States.TokenStates.TravelledToSphere, SecretHistories.Main";
+interface travelledToSphere {
+	"$type": "secrethistories.states.tokenstates.travelledtosphere, secrethistories.main";
 	// TODO: stub. save file does not have an example
 }
-interface DroppedInSphereState {
-	"$type": "SecretHistories.States.TokenStates.DroppedInSphereState, SecretHistories.Main";
+interface droppedInSphereState {
+	"$type": "secrethistories.states.tokenstates.droppedinspherestate, secrethistories.main";
 	// TODO: stub. save file does not have an example
 }
-interface UIHandSphereData {
-	"$type": "SecretHistories.Spheres.UIHandSphereData, SecretHistories.Main";
-	DefaultPosition: number;
-	CurrentPosition: number;
+interface uIHandSphereData {
+	"$type": "secrethistories.spheres.uihandspheredata, secrethistories.main";
+	defaultposition: number;
+	currentposition: number;
 }
-interface ElementStackCreationCommand extends payloadTemplate {
-	"$type": "ElementStackCreationCommand";
-	EntityId: string;
-	Illuminations: DictionaryStringString;
-	Defunct: boolean;
-	IsShrouded: boolean;
-	LifetimeRemaining: number;
+export interface elementStackCreationCommand extends payloadTemplate {
+	"$type": "elementstackcreationcommand";
+	entityid: string;
+	illuminations: dictionaryStringString;
+	defunct: boolean;
+	isshrouded: boolean;
+	lifetimeremaining: number;
 }
-interface SituationCreationCommand extends payloadTemplate {
-	"$type": "SituationCreationCommand";
-	LastSituationCreated: null; // TODO: save file does not have an example
-	VerbId: string;
-	OutputPath: null; // TODO: save file does not have an example
-	CurrentRecipeId: string;
-	FallbackRecipeId: string;
-	StateIdentifier: number;
-	TimeRemaining: number;
-	IsOpen: boolean;
-	HasGhostNote: boolean;
-	CommandQueue: unknown[]; // TODO: save file does not have an example
+export interface situationCreationCommand extends payloadTemplate {
+	"$type": "situationcreationcommand";
+	lastsituationcreated: null; // TODO: save file does not have an example
+	verbid: string;
+	outputpath: null; // TODO: save file does not have an example
+	currentrecipeid: string;
+	fallbackrecipeid: string;
+	stateidentifier: number;
+	timeremaining: number;
+	isopen: boolean;
+	hasghostnote: boolean;
+	commandqueue: unknown[]; // TODO: save file does not have an example
 }
-interface PopulateNxCommand extends payloadTemplate {
-	"$type": "PopulateNxCommand";
-	OutcomeMessage: string;
-	IsShrouded: boolean;
-	IsSealed: boolean;
-	IsOpen: boolean;
-	LockedInRecipe: NullRecipe;
-	LastRunRecipe: NullRecipe;
+export interface populateNxCommand extends payloadTemplate {
+	"$type": "populatenxcommand";
+	outcomemessage: string;
+	isshrouded: boolean;
+	issealed: boolean;
+	isopen: boolean;
+	lockedinrecipe: nullRecipe;
+	lastrunrecipe: nullRecipe;
 }
-interface PopulateTerrainFeatureCommand extends payloadTemplate {
-	"$type": "PopulateTerrainFeatureCommand";
-	EdensEnacted: string[];
-	IsSealed: boolean;
-	IsShrouded: boolean;
-	HasPreviouslyUnshrouded: boolean;
+export interface populateTerrainFeatureCommand extends payloadTemplate {
+	"$type": "populateterrainfeaturecommand";
+	edensenacted: string[];
+	issealed: boolean;
+	isshrouded: boolean;
+	haspreviouslyunshrouded: boolean;
 }
 interface payloadTemplate {
 	"$type": string;
-	Id: string;
-	Dominions: PopulateDominionCommand[];
-	Quantity: number;
-	Mutations: DictionaryStringInt;
+	id: string;
+	dominions: populateDominionCommand[];
+	quantity: number;
+	mutations: dictionaryStringInt;
 }
-interface NullRecipe {
-	"$type": "SecretHistories.Entities.NullRecipe, SecretHistories.Main";
-	Priority: number;
-	ActionId: string;
-	Blocks: boolean;
-	Reqs: DictionaryStringString;
-	ExtantReqs: DictionaryStringString;
-	Greq: DictionaryStringString;
-	Ngreq: DictionaryStringString;
-	FXReqs: DictionaryStringString;
-	Seeking: DictionaryStringString;
-	Effects: DictionaryStringString;
-	XPans: DictionaryStringInt;
-	FX: DictionaryStringString;
-	Aspects: AspectsDictionary;
-	Mutations: DictionaryStringInt;
-	Purge: DictionaryStringInt;
-	HaltVerb: DictionaryStringInt;
-	DeleteVerb: DictionaryStringInt;
-	Achievements: unknown[]; // TODO: save file does not have an example
-	SignalImportantLoop: boolean;
-	AudioOneShot: null; // TODO: save file does not have an example
-	SignalEndingFlavour: number;
-	Craftable: boolean;
-	Notable: boolean;
-	HintOnly: boolean;
-	Ambittable: boolean;
-	Warmup: number;
-	Inherits: string;
-	Preface: string;
-	StartLabel: string;
-	Label: string;
-	StartDescription: string;
-	Desc: string;
-	Comments: string;
-	DeckEffects: DictionaryStringString;
-	Alt: unknown[]; // TODO: save file does not have an example
-	Lalt: unknown[]; // TODO: save file does not have an example
-	Inductions: unknown[]; // TODO: save file does not have an example
-	Linked: unknown[]; // TODO: save file does not have an example
-	Ending: string;
-	Icon: string;
-	BurnImage: null; // TODO: save file does not have an example
-	Run: string;
-	PreSlots: unknown[]; // TODO: save file does not have an example
-	Slots: unknown[]; // TODO: save file does not have an example
-	InternalDeck: DeckSpec;
-	Id: string;
-	Lever: string;
+interface nullRecipe {
+	"$type": "secrethistories.entities.nullrecipe, secrethistories.main";
+	priority: number;
+	actionid: string;
+	blocks: boolean;
+	reqs: dictionaryStringString;
+	extantreqs: dictionaryStringString;
+	greq: dictionaryStringString;
+	ngreq: dictionaryStringString;
+	fxreqs: dictionaryStringString;
+	seeking: dictionaryStringString;
+	effects: dictionaryStringString;
+	xpans: dictionaryStringInt;
+	fx: dictionaryStringString;
+	aspects: aspectsDictionary;
+	mutations: dictionaryStringInt;
+	purge: dictionaryStringInt;
+	haltverb: dictionaryStringInt;
+	deleteverb: dictionaryStringInt;
+	achievements: unknown[]; // TODO: save file does not have an example
+	signalimportantloop: boolean;
+	audiooneshot: null; // TODO: save file does not have an example
+	signalendingflavour: number;
+	craftable: boolean;
+	notable: boolean;
+	hintonly: boolean;
+	ambittable: boolean;
+	warmup: number;
+	inherits: string;
+	preface: string;
+	startlabel: string;
+	label: string;
+	startdescription: string;
+	desc: string;
+	comments: string;
+	deckeffects: dictionaryStringString;
+	alt: unknown[]; // TODO: save file does not have an example
+	lalt: unknown[]; // TODO: save file does not have an example
+	inductions: unknown[]; // TODO: save file does not have an example
+	linked: unknown[]; // TODO: save file does not have an example
+	ending: string;
+	icon: string;
+	burnimage: null; // TODO: save file does not have an example
+	run: string;
+	preslots: unknown[]; // TODO: save file does not have an example
+	slots: unknown[]; // TODO: save file does not have an example
+	internaldeck: deckSpec;
+	id: string;
+	lever: string;
 }
-interface DeckSpec {
-	"$type": "SecretHistories.Entities.DeckSpec, SecretHistories.Main";
-	DefaultCard: string;
-	ResetOnExhaustion: boolean;
-	Label: string;
-	Desc: string;
-	Cover: string;
-	Comments: string;
-	IsHidden: boolean;
-	Draws: number;
-	Spec: []; // TODO: save file does not have an example
-	DrawMessages: DictionaryStringString;
-	DefaultDrawMessages: DictionaryStringString;
-	Id: string;
-	Lever: string;
+interface deckSpec {
+	"$type": "secrethistories.entities.deckspec, secrethistories.main";
+	defaultcard: string;
+	resetonexhaustion: boolean;
+	label: string;
+	desc: string;
+	cover: string;
+	comments: string;
+	ishidden: boolean;
+	draws: number;
+	spec: []; // TODO: save file does not have an example
+	drawmessages: dictionaryStringString;
+	defaultdrawmessages: dictionaryStringString;
+	id: string;
+	lever: string;
 }

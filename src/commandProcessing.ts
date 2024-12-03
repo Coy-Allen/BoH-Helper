@@ -1,5 +1,6 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "./types.js";
+import type * as saveTypes from "./saveTypes.js";
 
 import {loadSave, saveHistory} from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
@@ -60,7 +61,7 @@ function closeWatcher(): boolean {
 
 async function loadFile(filename: string): Promise<boolean> {
 	try {
-		dataProcessing.loadSave(JSON.parse(await loadSave(filename)) as types.saveData);
+		dataProcessing.loadSave(JSON.parse(await loadSave(filename)) as saveTypes.persistedGameState);
 		return true;
 	} catch (_) {
 		return false;

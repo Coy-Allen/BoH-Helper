@@ -38,6 +38,13 @@ export interface dataItem {
 			level?: undefined | number;
 		}[]>;
 		xexts?: undefined | object;
+		isaspect?: boolean;
+}
+
+
+export interface stackExtraInfo {
+	aspects: Map<string, number>;
+	room: string;
 }
 
 export interface foundItems {
@@ -91,99 +98,3 @@ export interface dataVerb {
 	spontaneous?: boolean; // default false
 	multiple?: boolean; // default false
 }
-
-export interface saveRoom {
-	location: {
-		$type: string;
-		localposition: {
-			$type: string;
-			x: number;
-			y: number;
-			z: number;
-			normalized?: unknown;
-			magnitude: number;
-			sqrmagnitude: number;
-		};
-		atspherepath: {
-			$type: string;
-			filter: null;
-			path: string;
-		};
-	};
-	payload: {
-		id: string;
-		entityid: string;
-		quantity: number;
-		mutations: aspects;
-		issealed: boolean;
-		isshrouded: boolean;
-		dominions: {
-			$type: string;
-			identifier: string;
-			spheres: {
-				governingspherespec: {
-					$type: string;
-					label: string;
-				};
-				tokens: {
-					location: {
-						$type: string;
-						localposition: {
-							$type: string;
-							x: number;
-							y: number;
-							z: number;
-							normalized?: unknown;
-							magnitude: number;
-							sqrmagnitude: number;
-						};
-						atspherepath: {
-							$type: string;
-							filter: null;
-							path: string;
-						};
-					};
-					payload: {
-						$type: string;
-						mutations: aspects;
-						entityid: string;
-						verbid: string;
-					};
-				}[];
-			}[];
-		}[];
-	};
-}
-
-export interface saveData {
-	$type: string;
-	charactercreationcommands: {
-		$type: string;
-		name: string;
-		profession: string;
-		activelegacyid: string;
-		endingtriggeredid: unknown;
-		datetimecreated: string;
-		inprogresshistoryrecords: unknown;
-		previouscharacterhistoryrecords: unknown;
-		uniqueelementsmanifested: string[];
-		ambittablerecipesunlocked: string[];
-		createdinversion: unknown;
-		currentfocus: unknown;
-		currenthouses: unknown[];
-	}[];
-	rootpopulationcommand: {
-		spheres: {
-			governingspherespec: {
-				$type: string;
-				id: string;
-				label: string;
-			};
-			tokens: saveRoom[];
-		}[];
-	};
-	populatexamanekcommand: unknown;
-	notificationcommands: unknown[];
-	version: unknown;
-	isfresh: boolean;
-};

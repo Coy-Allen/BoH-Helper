@@ -11,7 +11,7 @@ const SAVE_ROOMS = [];
 const SAVE_ITEMS = [];
 const SAVE_RECIPES = new Set();
 const SAVE_VERBS = new Set();
-// const SAVE_INVENTORY: types.foundItems[] = []; // TODO: stub
+// const SAVE_INVENTORY: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = []; // TODO: stub
 /* eslint-enable @typescript-eslint/naming-convention */
 function setUnlockedRooms(rooms) {
     SAVE_ROOMS.length = 0;
@@ -51,17 +51,18 @@ function getHand(json) {
         getSphere("hand.skills"),
         getSphere("hand.memories"),
         getSphere("hand.misc"),
-    ].flatMap(tokens => tokens.map((token) => {
-        const aspects = [token.payload.mutations, ...grabAllAspects(token.payload.entityid)];
+    ].flatMap(tokens => tokens
+        .map(token => token.payload)
+        .filter((payload) => payload.$type === "elementstackcreationcommand")
+        .map(payload => {
+        const aspects = [payload.mutations, ...grabAllAspects(payload.entityid)];
         const mergedAspects = mergeAspects(aspects);
         // remove typing
         delete mergedAspects["$type"];
-        return {
-            entityid: token.payload.entityid,
-            aspects: mergedAspects,
-            count: token.payload.quantity,
+        return Object.assign({}, payload, {
+            aspects: new Map(Object.entries(mergedAspects)),
             room: "hand",
-        };
+        });
     }));
     return cards;
 }
@@ -74,7 +75,14 @@ function getUnlockedRoomsFromSave(json) {
     // library.Tokens === _Rooms_
     // library.Tokens[number].Payload.IsSealed === _is not unlocked_
     // library.Tokens[number].Payload.IsShrouded === _can't be unlocked_
-    return library.tokens.filter((room) => !room.payload.issealed);
+    return library.tokens.filter((room) => {
+        const payload = room.payload;
+        if (payload.$type === "elementstackcreationcommand" ||
+            payload.$type === "situationcreationcommand") {
+            return false;
+        }
+        return !payload.issealed;
+    });
 }
 function getVerbsFromSave() {
     return SAVE_ROOMS.flatMap((room) => {
@@ -85,14 +93,15 @@ function getVerbsFromSave() {
         if (!itemDomain) {
             return [];
         }
-        const verbs = itemDomain.spheres.flatMap(
-        // TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
-        sphere => sphere.tokens.filter(token => token.payload.$type === "situationcreationcommand"));
-        return verbs.map(token => token.payload.verbid);
+        const verbs = itemDomain.spheres.flatMap(sphere => sphere.tokens
+            .map(token => token.payload)
+            .filter(payload => payload.$type === "situationcreationcommand"));
+        return verbs.map(payload => payload.verbid);
     });
 }
 function getItemsFromSave() {
-    return SAVE_ROOMS.flatMap((room) => {
+    return SAVE_ROOMS
+        .flatMap(room => {
         // const roomX = room.location.localposition.x;
         // const roomY = room.location.localposition.y;
         const roomName = room.payload.id;
@@ -106,21 +115,20 @@ function getItemsFromSave() {
             // the others are strange
             return ["bookshelf", "wallart", "things", "comfort"].includes(container.governingspherespec.label);
         });
-        const allItems = containers.flatMap((container) => {
-            const items = container.tokens;
-            const itemIds = items.map((item) => {
-                const aspects = [item.payload.mutations, ...grabAllAspects(item.payload.entityid)];
+        // FIXME: filter out non stack items
+        const allItems = containers.flatMap(container => {
+            const items = container.tokens
+                .map(token => token.payload)
+                .filter((item) => item.$type === "elementstackcreationcommand");
+            const itemIds = items.map(item => {
+                const aspects = [item.mutations, ...grabAllAspects(item.entityid)];
                 const mergedAspects = mergeAspects(aspects);
                 // remove typing
                 delete mergedAspects["$type"];
-                return {
-                    entityid: item.payload.entityid,
-                    aspects: mergedAspects,
-                    count: 1,
-                    // x: roomX + item.location.localposition.x,
-                    // y: roomY + item.location.localposition.y,
+                return Object.assign({}, item, {
+                    aspects: new Map(Object.entries(mergedAspects)),
                     room: roomName,
-                };
+                });
             });
             return itemIds;
         });
@@ -144,6 +152,9 @@ export function loadSave(save) {
     setSaveRecipes(save.charactercreationcommands.flatMap(character => character.ambittablerecipesunlocked));
 }
 // getters
+export function addAspects(aspects) {
+    aspects.forEach(aspect => DATA_ASPECTS.add(aspect));
+}
 export function getAllAspects() {
     return [...DATA_ASPECTS.values()];
 }
@@ -308,13 +319,13 @@ export function findItems(options) {
     const regexInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
     return SAVE_ITEMS.filter(item => {
         for (const [aspect, amount] of Object.entries(options.min ?? {})) {
-            const aspectCount = item.aspects[aspect];
+            const aspectCount = item.aspects.get(aspect);
             if (aspectCount === undefined || aspectCount < amount) {
                 return false;
             }
         }
         for (const [aspect, amount] of Object.entries(options.max ?? {})) {
-            const aspectCount = item.aspects[aspect];
+            const aspectCount = item.aspects.get(aspect);
             if (aspectCount !== undefined && aspectCount > amount) {
                 return false;
             }
@@ -322,7 +333,7 @@ export function findItems(options) {
         if (options.any &&
             Object.entries(options.any).length > 0 &&
             !Object.entries(options.any).some(([aspect, amount]) => {
-                const aspectCount = item.aspects[aspect];
+                const aspectCount = item.aspects.get(aspect);
                 return !(aspectCount === undefined || aspectCount < amount);
             })) {
             return false;

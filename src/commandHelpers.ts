@@ -88,7 +88,7 @@ function generateAutocomplete(options: commandNames[], inputRaw: string): string
 
 // TODO: move this into a types file
 
-export type targetTypes = targetArray|targetObject|targetString|targetStringArray|targetAspects|targetInteger;
+export type targetTypes = targetArray|targetObject|targetString|targetStringArray|targetAspects|targetInteger|targetBoolean;
 
 export type processedType<t extends targetTypes> =  (t["required"] extends false ? undefined : never)|(
 	t extends targetArray ? processedType<t["subType"]>[] : // TODO: figure out how subtypes work
@@ -100,6 +100,7 @@ export type processedType<t extends targetTypes> =  (t["required"] extends false
 	t extends targetStringArray ? string[] :
 	t extends targetAspects ? Record<string, number> :
 	t extends targetInteger ? number :
+	t extends targetBoolean ? boolean :
 	unknown
 );
 
@@ -155,6 +156,12 @@ export interface targetInteger extends targetBase {
 		default?: number;
 		min?: number;
 		max?: number;
+	};
+};
+export interface targetBoolean extends targetBase {
+	id: "boolean";
+	options: {
+		default?: boolean;
 	};
 };
 
@@ -259,6 +266,10 @@ export function validateInput(input: unknown, target: targetTypes): string {
 			if (target.options.max !== undefined && integer > target.options.max) {
 				return "is above the max value allowed";
 			}
+			return "";
+		}
+		case "boolean":{
+			if (typeof input !== "boolean") {return "is not a boolean";}
 			return "";
 		}
 		default:{
@@ -506,6 +517,33 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 				) {continue;}
 				tempResult = num;
 				break;
+			}
+			result = tempResult as processedType<t>;
+			break;
+		}
+		case "boolean":{
+			// eslint-disable-next-line @typescript-eslint/naming-convention
+			let tempResult: boolean|undefined = undefined;
+			const [yes, no] = [["y"], ["n"]];
+			const visualOptions = ["y", "n"];
+			switch (target.options.default) {
+				case true:{
+					yes.push("ENTER");
+					visualOptions[0] = "Y";
+					break;
+				}
+				case false:{
+					no.push("ENTER");
+					visualOptions[1] = "N";
+					break;
+				}
+				case undefined:{
+					break;
+				}
+			}
+			term(`${target.name}? [${visualOptions.join("|")}]\n`);
+			while (tempResult===undefined) {
+				tempResult = await term.yesOrNo({yes: yes, no: no}).promise;
 			}
 			result = tempResult as processedType<t>;
 			break;

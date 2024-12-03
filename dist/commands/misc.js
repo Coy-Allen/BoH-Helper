@@ -1,26 +1,44 @@
 import { jsonSpacing } from "../config.js";
 import * as dataProcessing from "../dataProcessing.js";
+import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],
     ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 export async function missingCraftable(term, parts) {
-    // input
-    // TODO: move "parts" into a custom input handler
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const options = JSON.parse(parts.join(" "));
-    // TODO: input requesting if parts don't exist
+    const args = await validateOrGetInput(term, parts.join(" "), {
+        id: "object",
+        name: "options",
+        options: {},
+        subType: [
+            ["detailed", true, {
+                    id: "boolean",
+                    name: "list item names",
+                    options: { default: false },
+                }],
+            ["maxOwned", false, {
+                    id: "integer",
+                    name: "max items owned",
+                    options: {
+                        min: 0,
+                        default: 0,
+                    },
+                }],
+        ],
+    });
     // processing
     const result = [];
+    /* eslint-disable @typescript-eslint/naming-convention */
     const SAVE_ITEMS = dataProcessing.getSaveItems();
     const DATA_ITEMS = dataProcessing.getDataItems();
     const SAVE_RECIPES = dataProcessing.getSaveRecipes();
     const DATA_RECIPES = dataProcessing.getDataRecipes();
     const DATA_DECKS = dataProcessing.getDataDecks();
     const SAVE_RAW = dataProcessing.getSaveRaw();
+    /* eslint-enable @typescript-eslint/naming-convention */
     const saveItems = new Map();
     for (const saveItem of SAVE_ITEMS) {
-        saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + (saveItem.count ?? 1));
+        saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
     for (const recipe of SAVE_RECIPES) {
         const recipeData = DATA_RECIPES.find(recipeInfo => recipeInfo.id === recipe);
@@ -69,7 +87,7 @@ export async function missingCraftable(term, parts) {
         }
         // if item exists in library
         const countOwned = saveItems.get(item);
-        if ((countOwned ?? 0) > (options.maxOwned ?? 0)) {
+        if ((countOwned ?? 0) > (args.maxOwned ?? 0)) {
             return false;
         }
         // if it's unique value already exists
@@ -91,12 +109,12 @@ export async function missingCraftable(term, parts) {
     });
     // output
     for (const [name, items] of found) {
-        const detail = options.detailed ? items.join(", ") : items.length.toString();
-        term.cyan(`${name}`);
+        const detail = args.detailed ? items.join(", ") : items.length.toString();
+        term.cyan(name);
         term(`: ${detail}\n`);
     }
 }
-export function availableMemories(term, parts) {
+export async function availableMemories(term, parts) {
     const maxTargLen = 15;
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
@@ -113,13 +131,36 @@ export function availableMemories(term, parts) {
         }
     };
     // input
-    const options = JSON.parse(parts.join(" "));
-    // TODO: input requesting if parts don't exist
+    const args = await validateOrGetInput(term, parts.join(" "), {
+        id: "object",
+        name: "options",
+        options: {},
+        subType: [
+            ["inputs", true, {
+                    id: "stringArray",
+                    name: "memory sources",
+                    options: {
+                        autocomplete: ["recipes", "itemsReusable", "itemsConsumable", "books"],
+                        strict: true,
+                    },
+                }],
+            ["filter", false, itemFilter],
+            ["owned", true, {
+                    id: "boolean",
+                    name: "include already obtained",
+                    options: {
+                        default: false,
+                    },
+                }],
+        ],
+    });
     // processing
+    /* eslint-disable @typescript-eslint/naming-convention */
     const SAVE_ITEMS = dataProcessing.getSaveItems();
     const DATA_ITEMS = dataProcessing.getDataItems();
     const SAVE_RECIPES = dataProcessing.getSaveRecipes();
     const DATA_RECIPES = dataProcessing.getDataRecipes();
+    /* eslint-enable @typescript-eslint/naming-convention */
     const appendToMap = (map, key, value) => {
         if (!map.has(key)) {
             map.set(key, []);
@@ -135,15 +176,16 @@ export function availableMemories(term, parts) {
         if (!aspects["memory"]) {
             return false;
         }
-        if (options.memFilter?.any !== undefined) {
-            const filterEntries = Object.entries(options.memFilter.any);
+        // FIXME: use all filter options
+        if (args.filter?.any !== undefined) {
+            const filterEntries = Object.entries(args.filter.any);
             for (const [aspect, count] of filterEntries) {
                 if ((aspects[aspect] ?? 0) < count) {
                     return false;
                 }
             }
         }
-        if ((options.memFilter?.ignoreObtained ?? false) === true) {
+        if (!args.owned) {
             const alreadyObtained = SAVE_ITEMS.find(item => item.entityid === itemId);
             if (alreadyObtained) {
                 return false;
@@ -152,7 +194,7 @@ export function availableMemories(term, parts) {
         return true;
     };
     const result = {};
-    if (options.inputs?.includes("recipes")) {
+    if (args.inputs.includes("recipes")) {
         const foundRecipes = new Map();
         const recipes = DATA_RECIPES.filter(recipe => SAVE_RECIPES.includes(recipe.id));
         for (const recipe of recipes) {
@@ -167,9 +209,9 @@ export function availableMemories(term, parts) {
         }
     }
     // FIXME: items are broken
-    if (options.inputs?.includes("itemsReusable") ||
-        options.inputs?.includes("itemsConsumable") ||
-        options.inputs?.includes("books")) {
+    if (args.inputs.includes("itemsReusable") ||
+        args.inputs.includes("itemsConsumable") ||
+        args.inputs.includes("books")) {
         const foundReusableInspect = new Map();
         const foundReusableTalk = new Map();
         const foundConsumableInspect = new Map();
@@ -191,7 +233,7 @@ export function availableMemories(term, parts) {
                     }
                     // ignore books if asked
                     if (type.startsWith("reading.")) {
-                        if (options.inputs?.includes("books")) {
+                        if (args.inputs.includes("books")) {
                             // FIXME: filter out non-mastered books
                             appendToMap(foundReusableInspect, info.id, item.id);
                         }
@@ -199,8 +241,8 @@ export function availableMemories(term, parts) {
                     }
                     // FIXME: can't figure out what determines if something gets "used up"
                     // TEMP: just treat them as the same for now.
-                    if (!options.inputs?.includes("itemsReusable") &&
-                        !options.inputs?.includes("itemsConsumable")) {
+                    if (!args.inputs.includes("itemsReusable") &&
+                        !args.inputs.includes("itemsConsumable")) {
                         continue;
                     }
                     if (type === "dist") {

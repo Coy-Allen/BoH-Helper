@@ -1,4 +1,5 @@
 import type * as types from "./types.js";
+import type * as saveTypes from "./saveTypes.js";
 
 import {isDebug} from "./config.js";
 
@@ -10,16 +11,15 @@ const DATA_VERBS: types.dataVerb[] = [];
 const DATA_DECKS: types.dataDeck[] = [];
 const DATA_ASPECTS = new Set<string>();
 
-let SAVE_RAW: types.saveData|undefined;
-const SAVE_ROOMS: types.saveRoom[] = [];
-const SAVE_ITEMS: types.foundItems[] = [];
+let SAVE_RAW: saveTypes.persistedGameState|undefined;
+const SAVE_ROOMS: saveTypes.tokenCreationCommand[] = [];
+const SAVE_ITEMS: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = [];
 const SAVE_RECIPES = new Set<string>();
 const SAVE_VERBS = new Set<string>();
-// const SAVE_INVENTORY: types.foundItems[] = []; // TODO: stub
+// const SAVE_INVENTORY: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = []; // TODO: stub
 /* eslint-enable @typescript-eslint/naming-convention */
 
-
-function setUnlockedRooms(rooms: types.saveRoom[]): void {
+function setUnlockedRooms(rooms: saveTypes.tokenCreationCommand[]): void {
 	SAVE_ROOMS.length = 0;
 	rooms.forEach(room=>{
 		SAVE_ROOMS.push(room);
@@ -43,15 +43,15 @@ function setSaveVerbs(verbs: string[]): void {
 		SAVE_VERBS.add(verb);
 	});
 }
-function setSaveItems(items: types.foundItems[]): void {
+function setSaveItems(items: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[]): void {
 	SAVE_ITEMS.length = 0;
 	for (const item of items) {
 		Object.entries(item.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
 		SAVE_ITEMS.push(item);
 	}
 }
-function getHand(json: types.saveData): types.foundItems[] {
-	const getSphere = (id: string): types.saveRoom[]=>json.rootpopulationcommand.spheres.find(
+function getHand(json: saveTypes.persistedGameState): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
+	const getSphere = (id: string): saveTypes.tokenCreationCommand[]=>json.rootpopulationcommand.spheres.find(
 		(sphere): boolean=>sphere.governingspherespec.id===id,
 	)?.tokens ?? [];
 	const cards = [
@@ -59,28 +59,36 @@ function getHand(json: types.saveData): types.foundItems[] {
 		getSphere("hand.skills"),
 		getSphere("hand.memories"),
 		getSphere("hand.misc"),
-	].flatMap(tokens=>tokens.map((token): types.foundItems=>{
-		const aspects = [token.payload.mutations, ...grabAllAspects(token.payload.entityid)];
-		const mergedAspects = mergeAspects(aspects);
-		// remove typing
-		delete mergedAspects["$type"];
-		return {
-			entityid: token.payload.entityid,
-			aspects: mergedAspects,
-			count: token.payload.quantity,
-			room: "hand",
-		};
-	}));
+	].flatMap(tokens=>tokens
+		.map(token=>token.payload)
+		.filter((payload): payload is saveTypes.elementStackCreationCommand=>payload.$type === "elementstackcreationcommand")
+		.map(payload=>{
+			const aspects = [payload.mutations, ...grabAllAspects(payload.entityid)];
+			const mergedAspects = mergeAspects(aspects);
+			// remove typing
+			delete mergedAspects["$type"];
+			return Object.assign({}, payload, {
+				aspects: new Map(Object.entries(mergedAspects)),
+				room: "hand",
+			});
+		}));
 	return cards;
 }
-function getUnlockedRoomsFromSave(json: types.saveData): types.saveRoom[] {
+function getUnlockedRoomsFromSave(json: saveTypes.persistedGameState): saveTypes.tokenCreationCommand[] {
 	// FIXME: can't keep track of parent relationships due to filtering arrays
 	const library = json.rootpopulationcommand.spheres.find((sphere): boolean=>sphere.governingspherespec.id==="library");
 	if (!library) {return [];}
 	// library.Tokens === _Rooms_
 	// library.Tokens[number].Payload.IsSealed === _is not unlocked_
 	// library.Tokens[number].Payload.IsShrouded === _can't be unlocked_
-	return library.tokens.filter((room): boolean=>!room.payload.issealed);
+	return library.tokens.filter((room): boolean=>{
+		const payload = room.payload;
+		if (
+			payload.$type === "elementstackcreationcommand" ||
+			payload.$type === "situationcreationcommand"
+		) {return false;}
+		return !payload.issealed;
+	});
 }
 function getVerbsFromSave(): string[] {
 	return SAVE_ROOMS.flatMap((room): string[]=>{
@@ -90,45 +98,46 @@ function getVerbsFromSave(): string[] {
 		const itemDomain = room.payload.dominions.find((dominion): boolean=>dominion.identifier==="roomcontentsdominion");
 		if (!itemDomain) {return [];}
 		const verbs = itemDomain.spheres.flatMap(
-			// TODO: check if $type === "SituationCreationCommand" could be an easier way to find this
-			sphere=>sphere.tokens.filter(token=>token.payload.$type==="situationcreationcommand"),
+			sphere=>sphere.tokens
+				.map(token=>token.payload)
+				.filter(payload=>payload.$type==="situationcreationcommand"),
 		);
-		return verbs.map(token=>token.payload.verbid);
+		return verbs.map(payload=>payload.verbid);
 	});
 }
-function getItemsFromSave(): types.foundItems[] {
-	return SAVE_ROOMS.flatMap((room): types.foundItems[]=>{
-		// const roomX = room.location.localposition.x;
-		// const roomY = room.location.localposition.y;
-		const roomName = room.payload.id;
-		const itemDomain = room.payload.dominions.find((dominion): boolean=>dominion.identifier==="roomcontentsdominion");
-		if (!itemDomain) {return [];}
-		// TODO: check if $type === "ElementStackCreationCommand" could be an easier way to find this
-		const containers = itemDomain.spheres.filter((container): boolean=>{
-			// FIXME: false negatives
-			// the others are strange
-			return ["bookshelf", "wallart", "things", "comfort"].includes(container.governingspherespec.label);
-		});
-		const allItems = containers.flatMap((container): types.foundItems[]=>{
-			const items = container.tokens;
-			const itemIds = items.map((item): types.foundItems=>{
-				const aspects = [item.payload.mutations, ...grabAllAspects(item.payload.entityid)];
-				const mergedAspects = mergeAspects(aspects);
-				// remove typing
-				delete mergedAspects["$type"];
-				return {
-					entityid: item.payload.entityid,
-					aspects: mergedAspects,
-					count: 1,
-					// x: roomX + item.location.localposition.x,
-					// y: roomY + item.location.localposition.y,
-					room: roomName,
-				};
+function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
+	return SAVE_ROOMS
+		.flatMap(room=>{
+			// const roomX = room.location.localposition.x;
+			// const roomY = room.location.localposition.y;
+			const roomName = room.payload.id;
+			const itemDomain = room.payload.dominions.find((dominion): boolean=>dominion.identifier==="roomcontentsdominion");
+			if (!itemDomain) {return [];}
+			// TODO: check if $type === "ElementStackCreationCommand" could be an easier way to find this
+			const containers = itemDomain.spheres.filter((container): boolean=>{
+				// FIXME: false negatives
+				// the others are strange
+				return ["bookshelf", "wallart", "things", "comfort"].includes(container.governingspherespec.label);
 			});
-			return itemIds;
+			// FIXME: filter out non stack items
+			const allItems = containers.flatMap(container=>{
+				const items = container.tokens
+					.map(token=>token.payload)
+					.filter((item): item is saveTypes.elementStackCreationCommand=>item.$type === "elementstackcreationcommand");
+				const itemIds = items.map(item=>{
+					const aspects = [item.mutations, ...grabAllAspects(item.entityid)];
+					const mergedAspects = mergeAspects(aspects);
+					// remove typing
+					delete mergedAspects["$type"];
+					return Object.assign({}, item, {
+						aspects: new Map(Object.entries(mergedAspects)),
+						room: roomName,
+					});
+				});
+				return itemIds;
+			});
+			return allItems;
 		});
-		return allItems;
-	});
 }
 // exports
 export function lookupItem(id: string): [types.dataItem, types.aspects]|undefined {
@@ -137,7 +146,7 @@ export function lookupItem(id: string): [types.dataItem, types.aspects]|undefine
 	const aspects = mergeAspects(grabAllAspects(id));
 	return [item, aspects];
 }
-export function loadSave(save: types.saveData): void {
+export function loadSave(save: saveTypes.persistedGameState): void {
 	SAVE_RAW = save;
 	setUnlockedRooms(getUnlockedRoomsFromSave(save));
 	setSaveItems([getItemsFromSave(), getHand(save)].flat());
@@ -147,6 +156,9 @@ export function loadSave(save: types.saveData): void {
 	));
 }
 // getters
+export function addAspects(aspects: string[]): void {
+	aspects.forEach(aspect=>DATA_ASPECTS.add(aspect));
+}
 export function getAllAspects(): string[] {
 	return [...DATA_ASPECTS.values()];
 }
@@ -156,7 +168,7 @@ export function doesAspectExist(aspectName: string): boolean {
 export function getAllVerbs(): types.dataVerb[] {
 	return [...DATA_VERBS];
 }
-export function getSaveItems(): types.foundItems[] {
+export function getSaveItems(): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
 	return [...SAVE_ITEMS];
 }
 export function getSaveRecipes(): string[] {
@@ -168,7 +180,7 @@ export function getDataRecipes(): types.dataRecipe[] {
 export function getDataDecks(): types.dataDeck[] {
 	return [...DATA_DECKS];
 }
-export function getSaveRaw(): types.saveData|undefined {
+export function getSaveRaw(): saveTypes.persistedGameState|undefined {
 	return SAVE_RAW;
 }
 export function getDataItems(): types.dataItem[] {
@@ -301,23 +313,23 @@ export function findVerbs(options: {
 		return true;
 	});
 }
-export function findItems(options: types.itemSearchOptions): types.foundItems[] {
+export function findItems(options: types.itemSearchOptions): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
 	const regexValid = options.nameValid? new RegExp(options.nameValid) : undefined;
 	const regexInvalid = options.nameInvalid? new RegExp(options.nameInvalid) : undefined;
 	return SAVE_ITEMS.filter(item=>{
 		for (const [aspect, amount] of Object.entries(options.min??{})) {
-			const aspectCount = item.aspects[aspect];
+			const aspectCount = item.aspects.get(aspect);
 			if (aspectCount===undefined || aspectCount < amount) {return false;}
 		}
 		for (const [aspect, amount] of Object.entries(options.max??{})) {
-			const aspectCount = item.aspects[aspect];
+			const aspectCount = item.aspects.get(aspect);
 			if (aspectCount!==undefined && aspectCount > amount) {return false;}
 		}
 		if (
 			options.any &&
 			Object.entries(options.any).length>0 &&
 			!Object.entries(options.any).some(([aspect, amount]): boolean=>{
-				const aspectCount = item.aspects[aspect];
+				const aspectCount = item.aspects.get(aspect);
 				return !(aspectCount===undefined || aspectCount < amount);
 			})
 		) {return false;}
@@ -344,13 +356,13 @@ export function findRecipes(options: {
 			if (options.reqs) {
 				if (options.reqs.min) {
 					for (const [aspect, amount] of Object.entries(options.reqs.min)) {
-						const aspectCount = recipe.reqs[aspect];
+						const aspectCount = recipe.reqs[aspect] as undefined|number;
 						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
 					}
 				}
 				if (options.reqs.max) {
 					for (const [aspect, amount] of Object.entries(options.reqs.max)) {
-						const aspectCount = recipe.reqs[aspect];
+						const aspectCount = recipe.reqs[aspect] as undefined|number;
 						if (aspectCount!==undefined && aspectCount > amount) {return undefined;}
 					}
 				}
@@ -362,13 +374,13 @@ export function findRecipes(options: {
 			if (options.output) {
 				if (options.output.min) {
 					for (const [aspect, amount] of Object.entries(options.output.min)) {
-						const aspectCount = outputLookup[aspect];
+						const aspectCount = outputLookup[aspect] as undefined|number;
 						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
 					}
 				}
 				if (options.output.max) {
 					for (const [aspect, amount] of Object.entries(options.output.max)) {
-						const aspectCount = outputLookup[aspect];
+						const aspectCount = outputLookup[aspect] as undefined|number;
 						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
 					}
 				}

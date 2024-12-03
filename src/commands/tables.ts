@@ -112,9 +112,10 @@ function calcMaxAspects(rowFilters: types.itemSearchOptions[], aspects: string[]
 			let name = "-";
 			let max = 0;
 			for (const item of foundItems) {
-				if (item.aspects[aspect]>max) {
+				const itemAspect = item.aspects.get(aspect) ?? 0;
+				if (itemAspect>max) {
 					name = item.entityid;
-					max = item.aspects[aspect];
+					max = itemAspect;
 				}
 			}
 			rowContent.push([name, max]);

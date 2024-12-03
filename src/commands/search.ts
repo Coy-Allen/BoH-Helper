@@ -9,11 +9,12 @@ const search: types.inputNode = [["search"], [
 	[["verbs"], searchVerbs, "search found popups and their card inputs."],
 	// locked rooms
 	[["items"], searchItems, "search owned items and their aspects."],
+	[["itemPresets"], searchItemPresets, "search owned items using preset filters."],
 	[["itemCounts"], searchItemCounts, "list owned item counts."], // counts of items in house
 	[["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
 ], "finds unlocked things in your save file. load your save file 1st."];
 
-export async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> {
+async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -56,7 +57,7 @@ export async function searchVerbs(term: Terminal, parts: string[]): Promise<unde
 	const result = findVerbs(args);
 	term(JSON.stringify(result));
 }
-export async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
 	const result = findItems(args);
 	term(JSON.stringify(result, null, jsonSpacing));
@@ -65,7 +66,75 @@ export async function searchItems(term: Terminal, parts: string[]): Promise<stri
 	}
 	return;
 }
-export async function searchItemCounts(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchItemPresets(term: Terminal, parts: string[]): Promise<string|undefined> {
+	/* eslint-disable @typescript-eslint/naming-convention */
+	const presets = new Map<string, types.itemSearchOptions>([
+		["unreadBooks", {
+			any: {
+				"mystery.lantern": 1,
+				"mystery.forge": 1,
+				"mystery.edge": 1,
+				"mystery.winter": 1,
+				"mystery.heart": 1,
+				"mystery.grail": 1,
+				"mystery.moth": 1,
+				"mystery.knock": 1,
+				"mystery.sky": 1,
+				"mystery.moon": 1,
+				"mystery.nectar": 1,
+				"mystery.scale": 1,
+				"mystery.rose": 1,
+			},
+			max: {
+				"mastering.lantern": 0,
+				"mastering.forge": 0,
+				"mastering.edge": 0,
+				"mastering.winter": 0,
+				"mastering.heart": 0,
+				"mastering.grail": 0,
+				"mastering.moth": 0,
+				"mastering.knock": 0,
+				"mastering.sky": 0,
+				"mastering.moon": 0,
+				"mastering.nectar": 0,
+				"mastering.scale": 0,
+				"mastering.rose": 0,
+			},
+		}],
+		["cursedBooks", {
+			any: {
+				"contamination.actinic": 1,
+				"contamination.bloodlines": 1,
+				"contamination.chionic": 1,
+				"contamination.curse.fifth.eye": 1,
+				"contamination.keeperskin": 1,
+				"contamination.sthenic.taint": 1,
+				"contamination.winkwell": 1,
+				"contamination.witchworms": 1,
+			},
+		}],
+	]);
+	/* eslint-enable @typescript-eslint/naming-convention */
+	const args = await validateOrGetInput(term, parts.join(" "), {
+		id: "string",
+		name: "preset",
+		options: {
+			autocomplete: [...presets.keys()],
+			strict: true,
+		},
+	});
+	const targetPreset = presets.get(args);
+	if (targetPreset===undefined) {
+		throw Error("preset not found");
+	}
+	const result = findItems(targetPreset);
+	term(JSON.stringify(result, null, jsonSpacing));
+	if (parts.length === 0) {
+		return JSON.stringify(args);
+	}
+	return;
+}
+async function searchItemCounts(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
 	const counts = new Map<string, number>();
 	findItems(args).forEach(item=>{
@@ -80,7 +149,7 @@ export async function searchItemCounts(term: Terminal, parts: string[]): Promise
 	}
 	return;
 }
-export async function searchRecipes(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchRecipes(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
