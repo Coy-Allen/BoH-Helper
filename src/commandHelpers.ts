@@ -166,6 +166,7 @@ export interface targetBoolean extends targetBase {
 };
 
 export async function validateOrGetInput<const t extends targetTypes>(term: Terminal, input: string, target: t): Promise<processedType<t>> {
+	if (input==="") {return getInput(term, target);}
 	try {
 		const json = JSON.parse(input) as processedType<t>;
 		const validationResult = validateInput(json, target);

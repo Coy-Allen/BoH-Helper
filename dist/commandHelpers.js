@@ -84,6 +84,9 @@ function generateAutocomplete(options, inputRaw) {
 ;
 ;
 export async function validateOrGetInput(term, input, target) {
+    if (input === "") {
+        return getInput(term, target);
+    }
     try {
         const json = JSON.parse(input);
         const validationResult = validateInput(json, target);

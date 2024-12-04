@@ -53,6 +53,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid)??0)+saveItem.quantity);
 	}
 	for (const recipe of SAVE_RECIPES) {
+		// FIXME: make sure we actually own the skill
 		const recipeData = DATA_RECIPES.find(recipeInfo=>recipeInfo.id===recipe);
 		if (!recipeData) {
 			console.warn(`recipe ${recipe} could not be found.`);

@@ -3,7 +3,7 @@ import json5 from "json5";
 import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
 import * as dataProcessing from "./dataProcessing.js";
-import { dataFolder } from "./config.js";
+import { dataFolder, maxHistory } from "./config.js";
 const fileOutputs = {
     decks: [],
     items: [],
@@ -81,8 +81,7 @@ export async function saveHistory() {
         return;
     }
     try {
-        // max history is 50 lines
-        const trunkHistory = history.slice(history.length - 50);
+        const trunkHistory = history.slice(Math.min(history.length - maxHistory, 0));
         await fs.writeFile(import.meta.dirname + "/../history.txt", trunkHistory.join("\n"));
     }
     catch (_) {

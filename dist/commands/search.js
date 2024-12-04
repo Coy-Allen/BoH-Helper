@@ -54,14 +54,28 @@ async function searchVerbs(term, parts) {
 }
 async function searchItems(term, parts) {
     const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
-    const result = findItems(args);
-    term(JSON.stringify(result, null, jsonSpacing));
+    const result = new Map();
+    findItems(args).forEach(entry => {
+        const key = entry.entityid;
+        if (!result.has(key)) {
+            result.set(key, []);
+        }
+        const values = result.get(key);
+        if (values === undefined) {
+            return;
+        }
+        if (!values.includes(entry.room)) {
+            values.push(entry.room);
+        }
+    });
+    term(JSON.stringify([...result.entries()], null, jsonSpacing));
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
     return;
 }
 async function searchItemPresets(term, parts) {
+    const result = new Map();
     /* eslint-disable @typescript-eslint/naming-convention */
     const presets = new Map([
         ["unreadBooks", {
@@ -81,19 +95,19 @@ async function searchItemPresets(term, parts) {
                     "mystery.rose": 1,
                 },
                 max: {
-                    "mastering.lantern": 0,
-                    "mastering.forge": 0,
-                    "mastering.edge": 0,
-                    "mastering.winter": 0,
-                    "mastering.heart": 0,
-                    "mastering.grail": 0,
-                    "mastering.moth": 0,
-                    "mastering.knock": 0,
-                    "mastering.sky": 0,
-                    "mastering.moon": 0,
-                    "mastering.nectar": 0,
-                    "mastering.scale": 0,
-                    "mastering.rose": 0,
+                    "mastery.lantern": 0,
+                    "mastery.forge": 0,
+                    "mastery.edge": 0,
+                    "mastery.winter": 0,
+                    "mastery.heart": 0,
+                    "mastery.grail": 0,
+                    "mastery.moth": 0,
+                    "mastery.knock": 0,
+                    "mastery.sky": 0,
+                    "mastery.moon": 0,
+                    "mastery.nectar": 0,
+                    "mastery.scale": 0,
+                    "mastery.rose": 0,
                 },
             }],
         ["cursedBooks", {
@@ -122,8 +136,20 @@ async function searchItemPresets(term, parts) {
     if (targetPreset === undefined) {
         throw Error("preset not found");
     }
-    const result = findItems(targetPreset);
-    term(JSON.stringify(result, null, jsonSpacing));
+    findItems(targetPreset).forEach(entry => {
+        const key = entry.entityid;
+        if (!result.has(key)) {
+            result.set(key, []);
+        }
+        const values = result.get(key);
+        if (values === undefined) {
+            return;
+        }
+        if (!values.includes(entry.room)) {
+            values.push(entry.room);
+        }
+    });
+    term(JSON.stringify([...result.entries()], null, jsonSpacing));
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
