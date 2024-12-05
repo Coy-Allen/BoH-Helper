@@ -55,7 +55,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> 
 		],
 	});
 	const result = findVerbs(args);
-	term(JSON.stringify(result));
+	term(JSON.stringify(result, null, jsonSpacing)+"\n");
 }
 async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
@@ -69,7 +69,7 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string|unde
 			values.push(entry.room);
 		}
 	});
-	term(JSON.stringify([...result.entries()], null, jsonSpacing));
+	term(JSON.stringify([...result.entries()], null, jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}

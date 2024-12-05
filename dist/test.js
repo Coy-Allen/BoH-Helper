@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import terminalKit from "terminal-kit";
 import { getInput } from "./commandHelpers.js";
 import * as fileLoader from "./fileLoader.js";
-void fileLoader.loadFiles(() => { return; }).then(_ => {
+async function main() {
+    await fileLoader.loadFiles(() => { return; });
     const term = terminalKit.terminal;
-    term("before & empty\na\n");
+    await testGetInput(term);
+    process.exit();
+}
+function testGetInput(term) {
     return getInput(term, {
         id: "object",
         name: "testObject",
@@ -24,6 +29,13 @@ void fileLoader.loadFiles(() => { return; }).then(_ => {
                         min: 1,
                         max: 99,
                         default: 10,
+                    },
+                }],
+            ["bool", true, {
+                    id: "boolean",
+                    name: "is evil",
+                    options: {
+                        default: true,
                     },
                 }],
             ["array", true, {
@@ -53,9 +65,6 @@ void fileLoader.loadFiles(() => { return; }).then(_ => {
                     },
                 }],
         ],
-    }).then(res => {
-        void res;
-        term("a\nempty & after\n");
-        term.processExit(0);
     });
-});
+}
+void main();

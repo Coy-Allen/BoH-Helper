@@ -315,6 +315,7 @@ export function findVerbs(options) {
     });
 }
 export function findItems(options) {
+    // FIXME: doesn't work?
     const regexValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
     const regexInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
     return SAVE_ITEMS.filter(item => {

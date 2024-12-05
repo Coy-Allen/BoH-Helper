@@ -546,6 +546,7 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 			while (tempResult===undefined) {
 				tempResult = await term.yesOrNo({yes: yes, no: no}).promise;
 			}
+			term.previousLine(0);
 			result = tempResult as processedType<t>;
 			break;
 		}

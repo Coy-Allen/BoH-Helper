@@ -498,6 +498,7 @@ export async function getInput(term, target) {
             while (tempResult === undefined) {
                 tempResult = await term.yesOrNo({ yes: yes, no: no }).promise;
             }
+            term.previousLine(0);
             result = tempResult;
             break;
         }

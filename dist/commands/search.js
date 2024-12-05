@@ -50,7 +50,7 @@ async function searchVerbs(term, parts) {
         ],
     });
     const result = findVerbs(args);
-    term(JSON.stringify(result));
+    term(JSON.stringify(result, null, jsonSpacing) + "\n");
 }
 async function searchItems(term, parts) {
     const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
@@ -68,7 +68,7 @@ async function searchItems(term, parts) {
             values.push(entry.room);
         }
     });
-    term(JSON.stringify([...result.entries()], null, jsonSpacing));
+    term(JSON.stringify([...result.entries()], null, jsonSpacing) + "\n");
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
