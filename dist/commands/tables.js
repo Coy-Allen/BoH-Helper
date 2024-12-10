@@ -1,5 +1,6 @@
-import { validateOrGetInput, itemFilter, aspectTarget, markupReplace } from "../commandHelpers.js";
+import { validateOrGetInput, itemFilter, aspectTarget } from "../commandHelpers.js";
 import { getAllVerbs, findItems } from "../dataProcessing.js";
+import { markupReplace } from "../dataVisualizationFormatting.js";
 const tables = [["tables"], [
         [["maxAspects"], maxAspects, "shows max aspects available."],
         [["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],

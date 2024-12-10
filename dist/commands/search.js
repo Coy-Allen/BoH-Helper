@@ -1,12 +1,12 @@
 import { aspectTarget, itemFilter, validateOrGetInput } from "../commandHelpers.js";
 import { findVerbs, findItems, findRecipes } from "../dataProcessing.js";
 import { jsonSpacing } from "../config.js";
+import * as dataVis from "../dataVisualizationFormatting.js";
 const search = [["search"], [
         [["verbs"], searchVerbs, "search found popups and their card inputs."],
         // locked rooms
         [["items"], searchItems, "search owned items and their aspects."],
         [["itemPresets"], searchItemPresets, "search owned items using preset filters."],
-        [["itemCounts"], searchItemCounts, "list owned item counts."], // counts of items in house
         [["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
     ], "finds unlocked things in your save file. load your save file 1st."];
 async function searchVerbs(term, parts) {
@@ -53,29 +53,31 @@ async function searchVerbs(term, parts) {
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
 }
 async function searchItems(term, parts) {
-    const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
-    const result = new Map();
-    findItems(args).forEach(entry => {
-        const key = entry.entityid;
-        if (!result.has(key)) {
-            result.set(key, []);
-        }
-        const values = result.get(key);
-        if (values === undefined) {
-            return;
-        }
-        if (!values.includes(entry.room)) {
-            values.push(entry.room);
-        }
+    const args = await validateOrGetInput(term, parts.join(" "), {
+        id: "object",
+        name: "options",
+        options: {},
+        subType: [
+            ["filter", true, itemFilter],
+            ["output", true, {
+                    id: "string",
+                    name: "output format",
+                    options: {
+                        autocomplete: [...dataVis.itemDisplaySelection],
+                        default: "full",
+                        strict: true,
+                    },
+                }],
+        ],
     });
-    term(JSON.stringify([...result.entries()], null, jsonSpacing) + "\n");
+    const items = findItems(args.filter);
+    dataVis.displayItemList(term, items, args.output);
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
     return;
 }
 async function searchItemPresets(term, parts) {
-    const result = new Map();
     /* eslint-disable @typescript-eslint/naming-convention */
     const presets = new Map([
         ["unreadBooks", {
@@ -125,46 +127,35 @@ async function searchItemPresets(term, parts) {
     ]);
     /* eslint-enable @typescript-eslint/naming-convention */
     const args = await validateOrGetInput(term, parts.join(" "), {
-        id: "string",
-        name: "preset",
-        options: {
-            autocomplete: [...presets.keys()],
-            strict: true,
-        },
+        id: "object",
+        name: "options",
+        options: {},
+        subType: [
+            ["preset", true, {
+                    id: "string",
+                    name: "preset",
+                    options: {
+                        autocomplete: [...presets.keys()],
+                        strict: true,
+                    },
+                }],
+            ["output", true, {
+                    id: "string",
+                    name: "output format",
+                    options: {
+                        autocomplete: [...dataVis.itemDisplaySelection],
+                        default: "rooms",
+                        strict: true,
+                    },
+                }],
+        ],
     });
-    const targetPreset = presets.get(args);
+    const targetPreset = presets.get(args.preset);
     if (targetPreset === undefined) {
         throw Error("preset not found");
     }
-    findItems(targetPreset).forEach(entry => {
-        const key = entry.entityid;
-        if (!result.has(key)) {
-            result.set(key, []);
-        }
-        const values = result.get(key);
-        if (values === undefined) {
-            return;
-        }
-        if (!values.includes(entry.room)) {
-            values.push(entry.room);
-        }
-    });
-    term(JSON.stringify([...result.entries()], null, jsonSpacing));
-    if (parts.length === 0) {
-        return JSON.stringify(args);
-    }
-    return;
-}
-async function searchItemCounts(term, parts) {
-    const args = await validateOrGetInput(term, parts.join(" "), itemFilter);
-    const counts = new Map();
-    findItems(args).forEach(item => {
-        counts.set(item.entityid, (counts.get(item.entityid) ?? 0) + 1);
-    });
-    term([...counts.entries()]
-        .sort(([_a, countA], [_b, countB]) => countA - countB)
-        .map(([name, count]) => `${name}: ${count}\n`)
-        .join(""));
+    const items = findItems(targetPreset);
+    dataVis.displayItemList(term, items, args.output);
     if (parts.length === 0) {
         return JSON.stringify(args);
     }

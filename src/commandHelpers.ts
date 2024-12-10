@@ -1,23 +1,5 @@
 import type {Terminal} from "terminal-kit";
-
 import {getAllAspects, doesAspectExist} from "./dataProcessing.js";
-import {markupReplaceList} from "./config.js";
-
-export function markupReplace<t extends string[]|string>(text: t): t {
-	const isArray = Array.isArray(text);
-	const input: string[] = isArray?text:[text];
-	const res: string[] = [];
-	for (const str of input) {
-		const replaced = markupReplaceList.reduce((prev: string, [regex, color]: [RegExp, string]): string=>{
-			return prev.replaceAll(regex, `^[${color}]$&^:`);
-		}, str);
-		res.push(replaced);
-	}
-	if (isArray) {
-		return res as t;
-	}
-	return res[0] as t;
-}
 
 export const itemFilter = {
 	id: "object",

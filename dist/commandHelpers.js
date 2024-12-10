@@ -1,20 +1,4 @@
 import { getAllAspects, doesAspectExist } from "./dataProcessing.js";
-import { markupReplaceList } from "./config.js";
-export function markupReplace(text) {
-    const isArray = Array.isArray(text);
-    const input = isArray ? text : [text];
-    const res = [];
-    for (const str of input) {
-        const replaced = markupReplaceList.reduce((prev, [regex, color]) => {
-            return prev.replaceAll(regex, `^[${color}]$&^:`);
-        }, str);
-        res.push(replaced);
-    }
-    if (isArray) {
-        return res;
-    }
-    return res[0];
-}
 export const itemFilter = {
     id: "object",
     name: "item filter",

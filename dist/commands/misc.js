@@ -1,4 +1,4 @@
-import { jsonSpacing } from "../config.js";
+import { jsonSpacing, markupItems } from "../config.js";
 import * as dataProcessing from "../dataProcessing.js";
 import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
 const misc = [["misc"], [
@@ -111,8 +111,7 @@ export async function missingCraftable(term, parts) {
     // output
     for (const [name, items] of found) {
         const detail = args.detailed ? items.join(", ") : items.length.toString();
-        term.cyan(name);
-        term(`: ${detail}\n`);
+        term(`${markupItems.item}${name}^:: ${detail}\n`);
     }
 }
 export async function availableMemories(term, parts) {
@@ -120,13 +119,13 @@ export async function availableMemories(term, parts) {
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
             term(jsonSpacing);
-            term.cyan(memId);
+            term(`${markupItems.item}${memId}^:: `);
             if (targs.length <= maxTargLen) {
-                term(": " + targs.join(", ") + "\n");
+                term(targs.join(", ") + "\n");
             }
             else {
                 targs.length = maxTargLen;
-                term(": " + targs.join(", ") + ", ");
+                term(targs.join(", ") + ", ");
                 term.gray("...\n");
             }
         }

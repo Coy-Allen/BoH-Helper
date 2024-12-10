@@ -3,6 +3,7 @@ import os from "os";
 export const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
 export const saveLocation = os.homedir() + "\\AppData\\LocalLow\\Weather Factory\\Book of Hours";
 export const maxHistory = 50;
+export const defaultItemDisplay = "aspects";
 // NOTICE: powershell WILL NOT use trueColors unless you run this command before running the program. (https://github.com/cronvel/terminal-kit/issues/253)
 //	$ENV:TERM = "xterm-truecolor"
 //	$ENV:COLORTERM = "truecolor"
@@ -26,3 +27,6 @@ export const markupReplaceList = [
     [/\bscale\b/gi, "#cb9f4e"],
     [/\brose\b/gi, "#f163ff"],
 ];
+export const markupItems = {
+    item: "^c", // cyan
+};

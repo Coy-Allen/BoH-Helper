@@ -1,7 +1,7 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {jsonSpacing} from "../config.js";
+import {jsonSpacing, markupItems} from "../config.js";
 import * as dataProcessing from "../dataProcessing.js";
 import {validateOrGetInput, itemFilter} from "../commandHelpers.js";
 
@@ -112,8 +112,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	// output
 	for (const [name, items] of found) {
 		const detail = args.detailed?items.join(", "):items.length.toString();
-		term.cyan(name);
-		term(`: ${detail}\n`);
+		term(`${markupItems.item}${name}^:: ${detail}\n`);
 	}
 }
 export async function availableMemories(term: Terminal, parts: string[]): Promise<undefined> {
@@ -121,12 +120,12 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 	const genListOutput = (memories: [string, string[]][]): void=>{
 		for (const [memId, targs] of memories) {
 			term(jsonSpacing);
-			term.cyan(memId);
+			term(`${markupItems.item}${memId}^:: `);
 			if (targs.length <= maxTargLen) {
-				term(": "+targs.join(", ")+"\n");
+				term(targs.join(", ")+"\n");
 			} else {
 				targs.length = maxTargLen;
-				term(": "+targs.join(", ")+", ");
+				term(targs.join(", ")+", ");
 				term.gray("...\n");
 			}
 		}

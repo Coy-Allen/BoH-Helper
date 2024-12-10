@@ -1,8 +1,9 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {validateOrGetInput, itemFilter, aspectTarget, markupReplace} from "../commandHelpers.js";
+import {validateOrGetInput, itemFilter, aspectTarget} from "../commandHelpers.js";
 import {getAllVerbs, findItems} from "../dataProcessing.js";
+import {markupReplace} from "../dataVisualizationFormatting.js";
 
 const tables: types.inputNode = [["tables"], [
 	[["maxAspects"], maxAspects, "shows max aspects available."],
