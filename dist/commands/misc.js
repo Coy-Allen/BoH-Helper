@@ -118,8 +118,7 @@ export async function availableMemories(term, parts) {
     const maxTargLen = 15;
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
-            term(jsonSpacing);
-            term(`${markupItems.item}${memId}^:: `);
+            term(`${jsonSpacing}${markupItems.item}${memId}^:: `);
             if (targs.length <= maxTargLen) {
                 term(targs.join(", ") + "\n");
             }
@@ -297,5 +296,9 @@ export async function availableMemories(term, parts) {
         term(":\n");
         genListOutput(result.itemsReusableTalk);
     }
+    if (parts.length === 0) {
+        return JSON.stringify(args);
+    }
+    return;
 }
 export default misc;

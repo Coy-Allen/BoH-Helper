@@ -115,12 +115,11 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		term(`${markupItems.item}${name}^:: ${detail}\n`);
 	}
 }
-export async function availableMemories(term: Terminal, parts: string[]): Promise<undefined> {
+export async function availableMemories(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const maxTargLen = 15;
 	const genListOutput = (memories: [string, string[]][]): void=>{
 		for (const [memId, targs] of memories) {
-			term(jsonSpacing);
-			term(`${markupItems.item}${memId}^:: `);
+			term(`${jsonSpacing}${markupItems.item}${memId}^:: `);
 			if (targs.length <= maxTargLen) {
 				term(targs.join(", ")+"\n");
 			} else {
@@ -288,7 +287,10 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 		term(":\n");
 		genListOutput(result.itemsReusableTalk);
 	}
-
+	if (parts.length === 0) {
+		return JSON.stringify(args);
+	}
+	return;
 }
 
 export default misc;

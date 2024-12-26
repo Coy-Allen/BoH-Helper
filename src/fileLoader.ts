@@ -9,7 +9,7 @@ import {dataFolder, maxHistory} from "./config.js";
 
 const fileOutputs = {
 	decks: [] as {decks: types.dataDeck[]}[],
-	items: [] as {elements: types.dataItem[]}[],
+	items: [] as {elements: types.dataElement[]}[],
 	recipes: [] as {recipes: types.dataRecipe[]}[],
 	verbs: [] as {verbs: types.dataVerb[]}[],
 };
@@ -44,17 +44,20 @@ function pushData(): void {
 	dataProcessing.addAspects(fileOutputs.items.flatMap(item=>item.elements.filter(
 		element=>element.isaspect??false,
 	)).map(element=>element.id));
-	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements.map(element=>({
-		id: element.id,
-		uniquenessgroup: element.uniquenessgroup,
-		label: element.label,
-		desc: element.desc,
-		inherits: element.inherits,
-		audio: element.audio,
-		aspects: element.aspects,
-		xtriggers: element.xtriggers,
-		xexts: element.xexts,
-	}))));
+	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements /* insert here */));
+	/*
+	.map(element=>({
+			id: element.id,
+			uniquenessgroup: element.uniquenessgroup,
+			label: element.label,
+			desc: element.desc,
+			inherits: element.inherits,
+			audio: element.audio,
+			aspects: element.aspects,
+			xtriggers: element.xtriggers,
+			xexts: element.xexts,
+		}))
+	*/
 	dataProcessing.setDataRecipes(fileOutputs.recipes.flatMap(recipes=>recipes.recipes));
 	dataProcessing.setDataVerbs(fileOutputs.verbs.flatMap(verbs=>verbs.verbs));
 	dataProcessing.setDataDecks(fileOutputs.decks.flatMap(decks=>decks.decks));
@@ -87,7 +90,7 @@ export async function saveHistory(): Promise<void> {
 		return;
 	}
 	try {
-		const trunkHistory = history.slice(Math.min(history.length-maxHistory, 0));
+		const trunkHistory = history.slice(Math.max(history.length-maxHistory, 0));
 		await fs.writeFile(import.meta.dirname+"/../history.txt", trunkHistory.join("\n"));
 	} catch (_) {
 		// TODO: alert user of save issue

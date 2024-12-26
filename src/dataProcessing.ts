@@ -5,7 +5,7 @@ import {isDebug} from "./config.js";
 
 // FIXME: replace all console.* calls with terminal calls
 /* eslint-disable @typescript-eslint/naming-convention */
-const DATA_ITEMS: types.dataItem[] = [];
+const DATA_ITEMS: types.dataElement[] = [];
 const DATA_RECIPES: types.dataRecipe[] = [];
 const DATA_VERBS: types.dataVerb[] = [];
 const DATA_DECKS: types.dataDeck[] = [];
@@ -140,7 +140,7 @@ function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stac
 		});
 }
 // exports
-export function lookupItem(id: string): [types.dataItem, types.aspects]|undefined {
+export function lookupItem(id: string): [types.dataElement, types.aspects]|undefined {
 	const item = DATA_ITEMS.find((check): boolean=>check.id===id);
 	if (!item) {return;}
 	const aspects = mergeAspects(grabAllAspects(id));
@@ -183,7 +183,7 @@ export function getDataDecks(): types.dataDeck[] {
 export function getSaveRaw(): saveTypes.persistedGameState|undefined {
 	return SAVE_RAW;
 }
-export function getDataItems(): types.dataItem[] {
+export function getDataItems(): types.dataElement[] {
 	return [...DATA_ITEMS];
 }
 export function mergeAspects(aspects: types.aspects[]): types.aspects {
@@ -252,7 +252,7 @@ export function setDataDecks(decks: types.dataDeck[]): void {
 		DATA_DECKS.push(deck);
 	}
 }
-export function setDataItems(items: types.dataItem[]): void {
+export function setDataItems(items: types.dataElement[]): void {
 	DATA_ITEMS.length = 0;
 	const names = new Set<string>;
 	for (const item of items) {

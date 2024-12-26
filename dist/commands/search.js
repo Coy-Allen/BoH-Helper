@@ -51,6 +51,10 @@ async function searchVerbs(term, parts) {
     });
     const result = findVerbs(args);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    if (parts.length === 0) {
+        return JSON.stringify(args);
+    }
+    return;
 }
 async function searchItems(term, parts) {
     const args = await validateOrGetInput(term, parts.join(" "), {

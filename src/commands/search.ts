@@ -14,7 +14,7 @@ const search: types.inputNode = [["search"], [
 	[["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
 ], "finds unlocked things in your save file. load your save file 1st."];
 
-async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> {
+async function searchVerbs(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -56,6 +56,10 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<undefined> 
 	});
 	const result = findVerbs(args);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	if (parts.length === 0) {
+		return JSON.stringify(args);
+	}
+	return;
 }
 async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
 	const args = await validateOrGetInput(term, parts.join(" "), {

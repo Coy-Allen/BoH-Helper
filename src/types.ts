@@ -23,22 +23,89 @@ export interface itemSearchOptions {
 	nameInvalid?: string;
 }
 
-// FIXME: not correct
-export interface dataItem {
+export interface dataSlot {
+	// TODO: stub
+}
+
+export interface dataElement {
+	id: string;
+	uniquenessgroup?: string;
+	label?: string;
+	desc?: string;
+	inherits?: string;
+	audio?: string;
+	aspects?: aspects;
+	isaspect?: boolean;
+	icon?: string;
+	ambits?: aspects;
+	ishidden?: boolean;
+	unique?: boolean;
+	slots?: dataSlot;
+	lifetime?: number;
+	noartneeded?: boolean;
+	metafictional?: boolean;
+	reverseambittablesdisplay?: boolean;
+	manifestationtype?: string;
+	comments?: string;
+	sort?: string;
+	imms?: {
+		reqs: aspects;
+		effects: {inspired: 1}|{rank: "tally"};
+	}[];
+	commute?: string[];
+	decayto?: string;
+	resaturate?: boolean;
+	verbicon?: string;
+	achievements?: string[];
+	alphalabeloverride?: string;
+	// if [key] exists as an aspect when item is used in a verb, then add [value] as an aspect to the item.
+	xtriggers?: Record<string, string|Record<"id"|"morpheffect"|"level", string>[]>;
+	// if [key] exists as an aspect on the item, then show text [value].
+	xexts?: Record<string, string>;
+}
+
+export interface dataRecipe {
+	id: string;
+	actionid?: string;
+	label?: string;
+	startdescription?: string;
+	desc?: string;
+	reqs?: aspects;
+	effects?: cards;
+	deckeffects?: cards;
+	aspects?: aspects;
+	linked?:	{
 		id: string;
-		uniquenessgroup?: undefined | string;
-		label: string;
-		desc?: undefined | string;
-		inherits?: undefined | string;
-		audio?: undefined | string;
-		aspects?: undefined | aspects;
-		xtriggers?: undefined | Record<string, {
-			id: string;
-			morpheffect: string;
-			level?: undefined | number;
-		}[]>;
-		xexts?: undefined | object;
-		isaspect?: boolean;
+	}[];
+	warmup?: number;
+	craftable?: boolean;
+
+	mutations?: unknown;
+	xpans?: unknown;
+	fx?: unknown;
+	hintonly?: unknown;
+	achievements?: unknown;
+	ending?: unknown;
+	extantreqs?: unknown;
+	comments?: unknown;
+	ambittable?: unknown;
+	purge?: unknown;
+	inherits?: unknown;
+	alt?: unknown;
+	slots?: unknown;
+	internaldeck?: unknown;
+	audiooneshot?: unknown;
+	notable?: unknown;
+	ngreq?: unknown;
+	greq?: unknown;
+	startlabel?: unknown;
+	icon?: unknown;
+	blocks?: unknown;
+	preface?: unknown;
+	preslots?: unknown;
+	lalt?: unknown;
+	run?: unknown;
+	fxreqs?: unknown;
 }
 
 
@@ -46,7 +113,7 @@ export interface stackExtraInfo {
 	aspects: Map<string, number>;
 	room: string;
 }
-
+/*
 export interface foundItems {
 	entityid: string;
 	aspects: aspects;
@@ -55,7 +122,6 @@ export interface foundItems {
 	// x: number;
 	// y: number;
 }
-
 export interface dataRecipe {
 	id: string;
 	actionid: string;
@@ -72,6 +138,7 @@ export interface dataRecipe {
 	warmup: number;
 	craftable: boolean;
 }
+*/
 
 export interface dataDeck {
 	id: string;
