@@ -3,13 +3,118 @@ import type * as saveTypes from "./saveTypes.js";
 
 import {isDebug} from "./config.js";
 
+// TODO: maybe put these into nested objects? like save.verbs.get()?
+
 // FIXME: replace all console.* calls with terminal calls
 /* eslint-disable @typescript-eslint/naming-convention */
+
+/* DATA */
+
 const DATA_ITEMS: types.dataElement[] = [];
 const DATA_RECIPES: types.dataRecipe[] = [];
 const DATA_VERBS: types.dataVerb[] = [];
 const DATA_DECKS: types.dataDeck[] = [];
 const DATA_ASPECTS = new Set<string>();
+
+// Data Aspects
+export function addAspects(aspects: string[]): void {
+	aspects.forEach(aspect=>DATA_ASPECTS.add(aspect));
+}
+export function getAllAspects(): string[] {
+	return [...DATA_ASPECTS.values()];
+}
+export function doesAspectExist(aspectName: string): boolean {
+	return DATA_ASPECTS.has(aspectName);
+}
+// Data Verbs
+export function setDataVerbs(verbs: types.dataVerb[]): void {
+	DATA_VERBS.length = 0;
+	const names = new Set<string>;
+	for (const verb of verbs) {
+		// skip spontaneous verbs as they don't fit the normal structure of verbs
+		if (verb.spontaneous) {continue;}
+		if (isDebug && names.has(verb.id)) {
+			console.warn("dupe verb found: "+verb.id);
+		}
+		names.add(verb.id);
+		DATA_VERBS.push(verb);
+	}
+}
+export function getAllVerbs(): types.dataVerb[] {
+	return [...DATA_VERBS];
+}
+// Data Recipes
+export function setDataRecipes(recipes: types.dataRecipe[]): void {
+	DATA_RECIPES.length = 0;
+	const names = new Set<string>;
+	for (const recipe of recipes) {
+		if (recipe.aspects) {
+			Object.entries(recipe.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
+		}
+		if (isDebug && names.has(recipe.id)) {
+			console.warn("dupe recipe found: "+recipe.id);
+		}
+		names.add(recipe.id);
+		DATA_RECIPES.push(recipe);
+	}
+}
+export function getDataRecipes(): types.dataRecipe[] {
+	return [...DATA_RECIPES];
+}
+// Data Decks
+export function setDataDecks(decks: types.dataDeck[]): void {
+	DATA_DECKS.length = 0;
+	const names = new Set<string>;
+	for (const deck of decks) {
+		if (isDebug && names.has(deck.id)) {
+			console.warn("dupe deck found: "+deck.id);
+		}
+		names.add(deck.id);
+		DATA_DECKS.push(deck);
+	}
+}
+export function getDataDecks(): types.dataDeck[] {
+	return [...DATA_DECKS];
+}
+// Data Items
+export function setDataItems(items: types.dataElement[]): void {
+	DATA_ITEMS.length = 0;
+	const names = new Set<string>;
+	for (const item of items) {
+		if (item.aspects) {
+			Object.entries(item.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
+		}
+		if (isDebug && names.has(item.id)) {
+			console.warn("dupe item found: "+item.id);
+		}
+		names.add(item.id);
+		DATA_ITEMS.push(item);
+	}
+}
+export function getDataItems(): types.dataElement[] {
+	return [...DATA_ITEMS];
+}
+export function lookupItem(id: string): [types.dataElement, types.aspects]|undefined {
+	const item = DATA_ITEMS.find((check): boolean=>check.id===id);
+	if (!item) {return;}
+	const aspects = mergeAspects(getDataItemAspects(id));
+	return [item, aspects];
+}
+export function getDataItemAspects(id: string): types.aspects[] {
+	const results: types.aspects[] = [];
+	const itemLookup = DATA_ITEMS.find((check): boolean=>check.id===id);
+	if (!itemLookup) {
+		console.warn(`item ${id} could not be found.`);
+		return results;
+	}
+	results.push(itemLookup.aspects??{});
+	if (itemLookup.inherits) {
+		results.push(...getDataItemAspects(itemLookup.inherits));
+	}
+	return results;
+}
+
+// SAVE interaction
 
 let SAVE_RAW: saveTypes.persistedGameState|undefined;
 const SAVE_ROOMS: saveTypes.tokenCreationCommand[] = [];
@@ -19,6 +124,15 @@ const SAVE_VERBS = new Set<string>();
 // const SAVE_INVENTORY: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = []; // TODO: stub
 /* eslint-enable @typescript-eslint/naming-convention */
 
+export function loadSave(save: saveTypes.persistedGameState): void {
+	SAVE_RAW = save;
+	setUnlockedRooms(getUnlockedRoomsFromSave(save));
+	setSaveItems([getItemsFromSave(), getHand(save)].flat());
+	setSaveVerbs(getVerbsFromSave());
+	setSaveRecipes(save.charactercreationcommands.flatMap(
+		character=>character.ambittablerecipesunlocked,
+	));
+}
 function setUnlockedRooms(rooms: saveTypes.tokenCreationCommand[]): void {
 	SAVE_ROOMS.length = 0;
 	rooms.forEach(room=>{
@@ -46,7 +160,13 @@ function setSaveVerbs(verbs: string[]): void {
 function setSaveItems(items: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[]): void {
 	SAVE_ITEMS.length = 0;
 	for (const item of items) {
-		Object.entries(item.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
+		if (isDebug) {
+			Object.entries(item.aspects).forEach(aspect=>{
+				if (!DATA_ASPECTS.has(aspect[0])) {
+					console.warn(`aspect ${aspect[0]} could not be found. aspect was listed in item ${item.entityid} - ${item.id}.`);
+				}
+			});
+		}
 		SAVE_ITEMS.push(item);
 	}
 }
@@ -63,7 +183,7 @@ function getHand(json: saveTypes.persistedGameState): (saveTypes.elementStackCre
 		.map(token=>token.payload)
 		.filter((payload): payload is saveTypes.elementStackCreationCommand=>payload.$type === "elementstackcreationcommand")
 		.map(payload=>{
-			const aspects = [payload.mutations, ...grabAllAspects(payload.entityid)];
+			const aspects = [payload.mutations, ...getDataItemAspects(payload.entityid)];
 			const mergedAspects = mergeAspects(aspects);
 			// remove typing
 			delete mergedAspects["$type"];
@@ -125,7 +245,7 @@ function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stac
 					.map(token=>token.payload)
 					.filter((item): item is saveTypes.elementStackCreationCommand=>item.$type === "elementstackcreationcommand");
 				const itemIds = items.map(item=>{
-					const aspects = [item.mutations, ...grabAllAspects(item.entityid)];
+					const aspects = [item.mutations, ...getDataItemAspects(item.entityid)];
 					const mergedAspects = mergeAspects(aspects);
 					// remove typing
 					delete mergedAspects["$type"];
@@ -139,53 +259,18 @@ function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stac
 			return allItems;
 		});
 }
-// exports
-export function lookupItem(id: string): [types.dataElement, types.aspects]|undefined {
-	const item = DATA_ITEMS.find((check): boolean=>check.id===id);
-	if (!item) {return;}
-	const aspects = mergeAspects(grabAllAspects(id));
-	return [item, aspects];
-}
-export function loadSave(save: saveTypes.persistedGameState): void {
-	SAVE_RAW = save;
-	setUnlockedRooms(getUnlockedRoomsFromSave(save));
-	setSaveItems([getItemsFromSave(), getHand(save)].flat());
-	setSaveVerbs(getVerbsFromSave());
-	setSaveRecipes(save.charactercreationcommands.flatMap(
-		character=>character.ambittablerecipesunlocked,
-	));
-}
-// getters
-export function addAspects(aspects: string[]): void {
-	aspects.forEach(aspect=>DATA_ASPECTS.add(aspect));
-}
-export function getAllAspects(): string[] {
-	return [...DATA_ASPECTS.values()];
-}
-export function doesAspectExist(aspectName: string): boolean {
-	return DATA_ASPECTS.has(aspectName);
-}
-export function getAllVerbs(): types.dataVerb[] {
-	return [...DATA_VERBS];
-}
 export function getSaveItems(): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
 	return [...SAVE_ITEMS];
 }
 export function getSaveRecipes(): string[] {
 	return [...SAVE_RECIPES];
 }
-export function getDataRecipes(): types.dataRecipe[] {
-	return [...DATA_RECIPES];
-}
-export function getDataDecks(): types.dataDeck[] {
-	return [...DATA_DECKS];
-}
 export function getSaveRaw(): saveTypes.persistedGameState|undefined {
 	return SAVE_RAW;
 }
-export function getDataItems(): types.dataElement[] {
-	return [...DATA_ITEMS];
-}
+
+// utility
+
 export function mergeAspects(aspects: types.aspects[]): types.aspects {
 	return aspects
 		.map(aspect=>Object.entries(aspect))
@@ -198,73 +283,6 @@ export function mergeAspects(aspects: types.aspects[]): types.aspects {
 			}
 			return res;
 		}, {});
-}
-
-export function grabAllAspects(id: string): types.aspects[] {
-	const results: types.aspects[] = [];
-	const itemLookup = DATA_ITEMS.find((check): boolean=>check.id===id);
-	if (!itemLookup) {
-		console.warn(`item ${id} could not be found.`);
-		return results;
-	}
-	results.push(itemLookup.aspects??{});
-	if (itemLookup.inherits) {
-		results.push(...grabAllAspects(itemLookup.inherits));
-	}
-	return results;
-}
-
-export function setDataRecipes(recipes: types.dataRecipe[]): void {
-	DATA_RECIPES.length = 0;
-	const names = new Set<string>;
-	for (const recipe of recipes) {
-		if (recipe.aspects) {
-			Object.entries(recipe.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
-		}
-		if (isDebug && names.has(recipe.id)) {
-			console.warn("dupe recipe found: "+recipe.id);
-		}
-		names.add(recipe.id);
-		DATA_RECIPES.push(recipe);
-	}
-}
-export function setDataVerbs(verbs: types.dataVerb[]): void {
-	DATA_VERBS.length = 0;
-	const names = new Set<string>;
-	for (const verb of verbs) {
-		// skip spontaneous verbs as they don't fit the normal structure of verbs
-		if (verb.spontaneous) {continue;}
-		if (isDebug && names.has(verb.id)) {
-			console.warn("dupe verb found: "+verb.id);
-		}
-		names.add(verb.id);
-		DATA_VERBS.push(verb);
-	}
-}
-export function setDataDecks(decks: types.dataDeck[]): void {
-	DATA_DECKS.length = 0;
-	const names = new Set<string>;
-	for (const deck of decks) {
-		if (isDebug && names.has(deck.id)) {
-			console.warn("dupe deck found: "+deck.id);
-		}
-		names.add(deck.id);
-		DATA_DECKS.push(deck);
-	}
-}
-export function setDataItems(items: types.dataElement[]): void {
-	DATA_ITEMS.length = 0;
-	const names = new Set<string>;
-	for (const item of items) {
-		if (item.aspects) {
-			Object.entries(item.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
-		}
-		if (isDebug && names.has(item.id)) {
-			console.warn("dupe item found: "+item.id);
-		}
-		names.add(item.id);
-		DATA_ITEMS.push(item);
-	}
 }
 
 // search/find
@@ -357,21 +375,21 @@ export function findRecipes(options: {
 			if (options.reqs) {
 				if (options.reqs.min) {
 					for (const [aspect, amount] of Object.entries(options.reqs.min)) {
-						const aspectCount = recipe.reqs[aspect] as undefined|number;
+						const aspectCount = recipe.reqs?.[aspect];
 						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
 					}
 				}
 				if (options.reqs.max) {
 					for (const [aspect, amount] of Object.entries(options.reqs.max)) {
-						const aspectCount = recipe.reqs[aspect] as undefined|number;
+						const aspectCount = recipe.reqs?.[aspect];
 						if (aspectCount!==undefined && aspectCount > amount) {return undefined;}
 					}
 				}
 			}
 			// FIXME: what do we do for deck effects?
-			const recipeOutputId = Object.entries(recipe.effects??{})?.[0]?.[0];
+			const recipeOutputId = Object.entries(recipe.effects??{})[0]?.[0];
 			if (options.output && !recipeOutputId) {return undefined;}
-			const outputLookup = mergeAspects(grabAllAspects(recipeOutputId));
+			const outputLookup = mergeAspects(getDataItemAspects(recipeOutputId));
 			if (options.output) {
 				if (options.output.min) {
 					for (const [aspect, amount] of Object.entries(options.output.min)) {

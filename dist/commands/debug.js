@@ -94,7 +94,6 @@ export async function devTestSave(_term) {
     return Promise.resolve(undefined);
 }
 export async function devTestData(_term) {
-    debugger;
     console.log("\nNEXT: getDataItems");
     console.log(util.inspect(countKeys(getDataItems()), { showHidden: false, depth: null, colors: true }));
     console.log("\nNEXT: getDataRecipes");
@@ -121,7 +120,16 @@ function countKeys(objs, keyCounts = new Map()) {
                 if (keyCount[1] === undefined) {
                     keyCount[1] = [[], new Map()];
                 }
-                keyCount[1][0].push(obj[key]);
+                if (Array.isArray(obj[key])) {
+                    const arr = obj[key];
+                    if (arr.length === 0 || typeof arr[0] !== "object" || arr[0] === null) {
+                        continue;
+                    }
+                    keyCount[1][0].push(...obj[key]);
+                }
+                else {
+                    keyCount[1][0].push(obj[key]);
+                }
             }
         }
     }

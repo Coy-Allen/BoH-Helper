@@ -44,20 +44,7 @@ function pushData(): void {
 	dataProcessing.addAspects(fileOutputs.items.flatMap(item=>item.elements.filter(
 		element=>element.isaspect??false,
 	)).map(element=>element.id));
-	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements /* insert here */));
-	/*
-	.map(element=>({
-			id: element.id,
-			uniquenessgroup: element.uniquenessgroup,
-			label: element.label,
-			desc: element.desc,
-			inherits: element.inherits,
-			audio: element.audio,
-			aspects: element.aspects,
-			xtriggers: element.xtriggers,
-			xexts: element.xexts,
-		}))
-	*/
+	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements));
 	dataProcessing.setDataRecipes(fileOutputs.recipes.flatMap(recipes=>recipes.recipes));
 	dataProcessing.setDataVerbs(fileOutputs.verbs.flatMap(verbs=>verbs.verbs));
 	dataProcessing.setDataDecks(fileOutputs.decks.flatMap(decks=>decks.decks));

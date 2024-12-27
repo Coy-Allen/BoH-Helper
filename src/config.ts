@@ -1,7 +1,7 @@
 import os from "os";
 
 // user config
-export const installFolder = "E:\\Steam\\steamapps\\common\\Book of Hours";
+export const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
 export const saveLocation = os.homedir()+"\\AppData\\LocalLow\\Weather Factory\\Book of Hours";
 export const maxHistory = 50;
 export const defaultItemDisplay = "aspects";
@@ -11,7 +11,7 @@ export const defaultItemDisplay = "aspects";
 export const isTrueColor = true as boolean;
 
 // internal config. do not edit unless you know what you are doing.
-export const isDebug = true as boolean;
+export const isDebug = false as boolean;
 export const dataFolder = installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
 export const jsonSpacing = "  ";
 export const markupReplaceList: [RegExp, string][] = [

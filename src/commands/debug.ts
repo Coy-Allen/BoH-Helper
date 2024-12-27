@@ -96,7 +96,6 @@ export async function devTestSave(_term: Terminal): Promise<undefined> {
 	return Promise.resolve(undefined);
 }
 export async function devTestData(_term: Terminal): Promise<undefined> {
-	debugger;
 	console.log("\nNEXT: getDataItems");
 	console.log(util.inspect(countKeys(getDataItems()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataRecipes");
@@ -111,7 +110,7 @@ export async function devTestData(_term: Terminal): Promise<undefined> {
 type keyCountMap = Map<string, [number, [unknown[], keyCountMap]|undefined]>;
 function countKeys(objs: unknown[], keyCounts: keyCountMap = new Map()): keyCountMap {
 	for (const obj of objs) {
-		if (typeof obj !== "object" || obj===null || Array.isArray(obj)) {continue;}
+		if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {continue;}
 		for (const key of Object.keys(obj)) {
 			if (!keyCounts.has(key)) {keyCounts.set(key, [0, undefined]);}
 			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -119,7 +118,13 @@ function countKeys(objs: unknown[], keyCounts: keyCountMap = new Map()): keyCoun
 			keyCount[0]++;
 			if (checkKeyForObject(obj, key)) {
 				if (keyCount[1] === undefined) {keyCount[1] = [[], new Map() as keyCountMap];}
-				keyCount[1][0].push(obj[key]);
+				if (Array.isArray(obj[key])) {
+					const arr = obj[key] as unknown[];
+					if (arr.length === 0 || typeof arr[0] !== "object" || arr[0] === null) {continue;}
+					keyCount[1][0].push(...(obj[key] as unknown[]));
+				} else {
+					keyCount[1][0].push(obj[key]);
+				}
 			}
 		}
 	}

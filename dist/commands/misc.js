@@ -82,7 +82,7 @@ export async function missingCraftable(term, parts) {
             // keep it by default
             return false;
         }
-        const aspects = dataProcessing.mergeAspects(dataProcessing.grabAllAspects(item));
+        const aspects = dataProcessing.mergeAspects(dataProcessing.getDataItemAspects(item));
         if (aspects["memory"] || aspects["correspondence"] || aspects["invitation"]) {
             return false;
         }
@@ -171,7 +171,7 @@ export async function availableMemories(term, parts) {
         array.push(value);
     };
     const isValid = (itemId) => {
-        const aspects = dataProcessing.mergeAspects(dataProcessing.grabAllAspects(itemId));
+        const aspects = dataProcessing.mergeAspects(dataProcessing.getDataItemAspects(itemId));
         if (!aspects["memory"]) {
             return false;
         }
@@ -224,7 +224,7 @@ export async function availableMemories(term, parts) {
             }
             for (const [type, infoArr] of Object.entries(item.xtriggers)) {
                 for (const info of infoArr) {
-                    if (info.morpheffect !== "spawn") {
+                    if (typeof info === "string" || info.morpheffect !== "spawn") {
                         continue;
                     }
                     if (!isValid(info.id)) {
