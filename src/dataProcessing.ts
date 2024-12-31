@@ -3,174 +3,99 @@ import type * as saveTypes from "./saveTypes.js";
 
 import {isDebug} from "./config.js";
 
+type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
+
 // TODO: maybe put these into nested objects? like save.verbs.get()?
 
 // FIXME: replace all console.* calls with terminal calls
-/* eslint-disable @typescript-eslint/naming-convention */
+
+class dataWrapper<t> {
+	private _data;
+	private _keyFunc;
+	constructor(keyFunc: (item: t) => string, data: t[] = []) {
+		this._keyFunc = keyFunc;
+		this._data = new Map<string, t>();
+		this.addAll(data);
+		// data.map(item=>[keyFunc(item), item]);
+	}
+	overwrite(items: t[]): void {
+		this.clear();
+		this.addAll(items);
+	}
+	clear(): void {this._data.clear();}
+	size(): number {return this._data.size;}
+	get(key: string): t|undefined {return this._data.get(key);}
+	has(item: t): boolean {return this.hasKey(this._keyFunc(item));}
+	hasKey(key: string): boolean {return this._data.has(key);}
+	hasValue(item: t): boolean {return this.values().includes(item);}
+	addAll(items: t[]): void {items.forEach(item=>this.add(item));}
+	add(item: t): boolean {
+		const key = this._keyFunc(item);
+		const isPresent = this.hasKey(key);
+		if (isDebug && isPresent) {
+			console.warn("dupe found: "+key);
+		}
+		this._data.set(key, item);
+		return isPresent;
+	}
+	some(filter: (item: t) => boolean): boolean {return this.find(filter)!==undefined;}
+	find(filter: (item: t) => boolean): t|undefined {return this.values().find(filter);}
+	findAll(filter: (item: t) => boolean): t[] {return this.filter(filter);}
+	filter(...filters: ((item: t) => boolean)[]): t[] {
+		return filters.reduce((values, filter): t[]=>values.filter(filter), this.values());
+	}
+	keys(): string[] {return [...this._data.keys()];}
+	values(): t[] {return [...this._data.values()];}
+}
+class dataWrapperInherits<t extends {inherits?: string}> extends dataWrapper<t> {
+	getInherited(key: string): t[] {
+		const result: t[] = [];
+		let target = key;
+		while (true) {
+			const lookup = this.get(target);
+			if (lookup===undefined) {break;}
+			result.push(lookup);
+			if (!lookup.inherits) {break;}
+			target = lookup.inherits;
+		}
+		return result;
+	}
+	getInheritedProperty<u extends keyof t>(key: string, property: u): NonNullable<t[u]>[] {
+		return this.getInherited(key)
+			.map(obj=>obj[property])
+			.filter((prop): prop is NonNullable<t[u]>=>prop!==undefined&&prop!==null);
+	}
+}
 
 /* DATA */
 
-const DATA_ITEMS: types.dataElement[] = [];
-const DATA_RECIPES: types.dataRecipe[] = [];
-const DATA_VERBS: types.dataVerb[] = [];
-const DATA_DECKS: types.dataDeck[] = [];
-const DATA_ASPECTS = new Set<string>();
+export const data = {
+	elements: new dataWrapperInherits<types.dataElement>(item=>item.id),
+	recipes: new dataWrapperInherits<types.dataRecipe>(item=>item.id),
+	verbs: new dataWrapper<types.dataVerb>(item=>item.id),
+	decks: new dataWrapper<types.dataDeck>(item=>item.id),
+	aspects: new dataWrapper<string>(item=>item),
+};
+export const save = {
+	raw: undefined as saveTypes.persistedGameState|undefined,
+	rooms: new dataWrapper<saveTypes.tokenCreationCommand>(item=>item.payload.id),
+	elements: new dataWrapper<(element)>(item=>item.id),
+	recipes: new dataWrapper<string>(item=>item),
+	verbs: new dataWrapper<string>(item=>item),
+};
 
-// Data Aspects
-export function addAspects(aspects: string[]): void {
-	aspects.forEach(aspect=>DATA_ASPECTS.add(aspect));
-}
-export function getAllAspects(): string[] {
-	return [...DATA_ASPECTS.values()];
-}
-export function doesAspectExist(aspectName: string): boolean {
-	return DATA_ASPECTS.has(aspectName);
-}
-// Data Verbs
-export function setDataVerbs(verbs: types.dataVerb[]): void {
-	DATA_VERBS.length = 0;
-	const names = new Set<string>;
-	for (const verb of verbs) {
-		// skip spontaneous verbs as they don't fit the normal structure of verbs
-		if (verb.spontaneous) {continue;}
-		if (isDebug && names.has(verb.id)) {
-			console.warn("dupe verb found: "+verb.id);
-		}
-		names.add(verb.id);
-		DATA_VERBS.push(verb);
-	}
-}
-export function getAllVerbs(): types.dataVerb[] {
-	return [...DATA_VERBS];
-}
-// Data Recipes
-export function setDataRecipes(recipes: types.dataRecipe[]): void {
-	DATA_RECIPES.length = 0;
-	const names = new Set<string>;
-	for (const recipe of recipes) {
-		if (recipe.aspects) {
-			Object.entries(recipe.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
-		}
-		if (isDebug && names.has(recipe.id)) {
-			console.warn("dupe recipe found: "+recipe.id);
-		}
-		names.add(recipe.id);
-		DATA_RECIPES.push(recipe);
-	}
-}
-export function getDataRecipes(): types.dataRecipe[] {
-	return [...DATA_RECIPES];
-}
-// Data Decks
-export function setDataDecks(decks: types.dataDeck[]): void {
-	DATA_DECKS.length = 0;
-	const names = new Set<string>;
-	for (const deck of decks) {
-		if (isDebug && names.has(deck.id)) {
-			console.warn("dupe deck found: "+deck.id);
-		}
-		names.add(deck.id);
-		DATA_DECKS.push(deck);
-	}
-}
-export function getDataDecks(): types.dataDeck[] {
-	return [...DATA_DECKS];
-}
-// Data Items
-export function setDataItems(items: types.dataElement[]): void {
-	DATA_ITEMS.length = 0;
-	const names = new Set<string>;
-	for (const item of items) {
-		if (item.aspects) {
-			Object.entries(item.aspects).forEach(aspect=>DATA_ASPECTS.add(aspect[0]));
-		}
-		if (isDebug && names.has(item.id)) {
-			console.warn("dupe item found: "+item.id);
-		}
-		names.add(item.id);
-		DATA_ITEMS.push(item);
-	}
-}
-export function getDataItems(): types.dataElement[] {
-	return [...DATA_ITEMS];
-}
-export function lookupItem(id: string): [types.dataElement, types.aspects]|undefined {
-	const item = DATA_ITEMS.find((check): boolean=>check.id===id);
-	if (!item) {return;}
-	const aspects = mergeAspects(getDataItemAspects(id));
-	return [item, aspects];
-}
-export function getDataItemAspects(id: string): types.aspects[] {
-	const results: types.aspects[] = [];
-	const itemLookup = DATA_ITEMS.find((check): boolean=>check.id===id);
-	if (!itemLookup) {
-		console.warn(`item ${id} could not be found.`);
-		return results;
-	}
-	results.push(itemLookup.aspects??{});
-	if (itemLookup.inherits) {
-		results.push(...getDataItemAspects(itemLookup.inherits));
-	}
-	return results;
-}
-
-// SAVE interaction
-
-let SAVE_RAW: saveTypes.persistedGameState|undefined;
-const SAVE_ROOMS: saveTypes.tokenCreationCommand[] = [];
-const SAVE_ITEMS: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = [];
-const SAVE_RECIPES = new Set<string>();
-const SAVE_VERBS = new Set<string>();
-// const SAVE_INVENTORY: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] = []; // TODO: stub
-/* eslint-enable @typescript-eslint/naming-convention */
-
-export function loadSave(save: saveTypes.persistedGameState): void {
-	SAVE_RAW = save;
-	setUnlockedRooms(getUnlockedRoomsFromSave(save));
-	setSaveItems([getItemsFromSave(), getHand(save)].flat());
-	setSaveVerbs(getVerbsFromSave());
-	setSaveRecipes(save.charactercreationcommands.flatMap(
+export function loadSave(saveFile: saveTypes.persistedGameState): void {
+	save.raw = saveFile;
+	save.rooms.overwrite(getUnlockedRoomsFromSave(saveFile));
+	save.elements.overwrite([getItemsFromSave(), getHand(saveFile)].flat());
+	save.verbs.overwrite(getVerbsFromSave());
+	save.recipes.overwrite(saveFile.charactercreationcommands.flatMap(
 		character=>character.ambittablerecipesunlocked,
 	));
 }
-function setUnlockedRooms(rooms: saveTypes.tokenCreationCommand[]): void {
-	SAVE_ROOMS.length = 0;
-	rooms.forEach(room=>{
-		SAVE_ROOMS.push(room);
-	});
-}
-function setSaveRecipes(recipes: string[]): void {
-	SAVE_RECIPES.clear();
-	recipes.forEach(recipe=>{
-		if (isDebug && !DATA_RECIPES.some(dataRecipe=>dataRecipe.id===recipe)) {
-			console.warn(`recipe ${recipe} could not be found.`);
-		}
-		SAVE_RECIPES.add(recipe);
-	});
-}
-function setSaveVerbs(verbs: string[]): void {
-	SAVE_VERBS.clear();
-	verbs.forEach(verb=>{
-		if (isDebug && !DATA_VERBS.some(dataVerb=>dataVerb.id===verb)) {
-			console.warn(`verb ${verb} could not be found.`);
-		}
-		SAVE_VERBS.add(verb);
-	});
-}
-function setSaveItems(items: (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[]): void {
-	SAVE_ITEMS.length = 0;
-	for (const item of items) {
-		if (isDebug) {
-			Object.entries(item.aspects).forEach(aspect=>{
-				if (!DATA_ASPECTS.has(aspect[0])) {
-					console.warn(`aspect ${aspect[0]} could not be found. aspect was listed in item ${item.entityid} - ${item.id}.`);
-				}
-			});
-		}
-		SAVE_ITEMS.push(item);
-	}
-}
-function getHand(json: saveTypes.persistedGameState): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
+
+function getHand(json: saveTypes.persistedGameState): (element)[] {
+	// TODO: rewrite this
 	const getSphere = (id: string): saveTypes.tokenCreationCommand[]=>json.rootpopulationcommand.spheres.find(
 		(sphere): boolean=>sphere.governingspherespec.id===id,
 	)?.tokens ?? [];
@@ -183,18 +108,20 @@ function getHand(json: saveTypes.persistedGameState): (saveTypes.elementStackCre
 		.map(token=>token.payload)
 		.filter((payload): payload is saveTypes.elementStackCreationCommand=>payload.$type === "elementstackcreationcommand")
 		.map(payload=>{
-			const aspects = [payload.mutations, ...getDataItemAspects(payload.entityid)];
+			// TODO: move this to saveElementExtentionMerging
+			const aspects = [payload.mutations, ...data.elements.getInheritedProperty(payload.entityid, "aspects")];
 			const mergedAspects = mergeAspects(aspects);
 			// remove typing
 			delete mergedAspects["$type"];
 			return Object.assign({}, payload, {
-				aspects: new Map(Object.entries(mergedAspects)),
+				aspects: mergedAspects,
 				room: "hand",
 			});
 		}));
 	return cards;
 }
 function getUnlockedRoomsFromSave(json: saveTypes.persistedGameState): saveTypes.tokenCreationCommand[] {
+	// TODO: rewrite this
 	// FIXME: can't keep track of parent relationships due to filtering arrays
 	const library = json.rootpopulationcommand.spheres.find((sphere): boolean=>sphere.governingspherespec.id==="library");
 	if (!library) {return [];}
@@ -211,7 +138,8 @@ function getUnlockedRoomsFromSave(json: saveTypes.persistedGameState): saveTypes
 	});
 }
 function getVerbsFromSave(): string[] {
-	return SAVE_ROOMS.flatMap((room): string[]=>{
+	// TODO: rewrite this
+	return save.rooms.values().flatMap((room): string[]=>{
 		// const roomX = room.location.localposition.x;
 		// const roomY = room.location.localposition.y;
 		// const roomName = room.payload.id;
@@ -225,8 +153,9 @@ function getVerbsFromSave(): string[] {
 		return verbs.map(payload=>payload.verbid);
 	});
 }
-function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
-	return SAVE_ROOMS
+function getItemsFromSave(): (element)[] {
+	// TODO: rewrite this
+	return save.rooms.values()
 		.flatMap(room=>{
 			// const roomX = room.location.localposition.x;
 			// const roomY = room.location.localposition.y;
@@ -241,16 +170,17 @@ function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stac
 			});
 			// FIXME: filter out non stack items
 			const allItems = containers.flatMap(container=>{
+				// TODO: move this to saveElementExtentionMerging
 				const items = container.tokens
 					.map(token=>token.payload)
 					.filter((item): item is saveTypes.elementStackCreationCommand=>item.$type === "elementstackcreationcommand");
 				const itemIds = items.map(item=>{
-					const aspects = [item.mutations, ...getDataItemAspects(item.entityid)];
+					const aspects = [item.mutations, ...data.elements.getInheritedProperty(item.entityid, "aspects")];
 					const mergedAspects = mergeAspects(aspects);
 					// remove typing
 					delete mergedAspects["$type"];
 					return Object.assign({}, item, {
-						aspects: new Map(Object.entries(mergedAspects)),
+						aspects: mergedAspects,
 						room: roomName,
 					});
 				});
@@ -259,16 +189,6 @@ function getItemsFromSave(): (saveTypes.elementStackCreationCommand & types.stac
 			return allItems;
 		});
 }
-export function getSaveItems(): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
-	return [...SAVE_ITEMS];
-}
-export function getSaveRecipes(): string[] {
-	return [...SAVE_RECIPES];
-}
-export function getSaveRaw(): saveTypes.persistedGameState|undefined {
-	return SAVE_RAW;
-}
-
 // utility
 
 export function mergeAspects(aspects: types.aspects[]): types.aspects {
@@ -284,10 +204,11 @@ export function mergeAspects(aspects: types.aspects[]): types.aspects {
 			return res;
 		}, {});
 }
+/*
 
 // search/find
 
-export function findVerbs(options: {
+function findVerbs(options: {
 	slotMeta?: {
 		minCount?: number;
 		maxCount?: number;
@@ -302,8 +223,8 @@ export function findVerbs(options: {
 	}[];
 }): types.dataVerb[] {
 	// code is unverified
-	return DATA_VERBS.filter(verb=>{
-		if (!SAVE_VERBS.has(verb.id)) {return false;}
+	return data.verbs.filter(verb=>{
+		if (!save.verbs.has(verb.id)) {return false;}
 		const slots = verb.slots ?? (verb.slot!==undefined?[verb.slot]:[]);
 		if (options.slotMeta) {
 			if (options.slotMeta.minCount && options.slotMeta.minCount > slots.length) {return false;}
@@ -331,33 +252,8 @@ export function findVerbs(options: {
 		return true;
 	});
 }
-export function findItems(options: types.itemSearchOptions): (saveTypes.elementStackCreationCommand & types.stackExtraInfo)[] {
-	// FIXME: doesn't work?
-	const regexValid = options.nameValid? new RegExp(options.nameValid) : undefined;
-	const regexInvalid = options.nameInvalid? new RegExp(options.nameInvalid) : undefined;
-	return SAVE_ITEMS.filter(item=>{
-		for (const [aspect, amount] of Object.entries(options.min??{})) {
-			const aspectCount = item.aspects.get(aspect);
-			if (aspectCount===undefined || aspectCount < amount) {return false;}
-		}
-		for (const [aspect, amount] of Object.entries(options.max??{})) {
-			const aspectCount = item.aspects.get(aspect);
-			if (aspectCount!==undefined && aspectCount > amount) {return false;}
-		}
-		if (
-			options.any &&
-			Object.entries(options.any).length>0 &&
-			!Object.entries(options.any).some(([aspect, amount]): boolean=>{
-				const aspectCount = item.aspects.get(aspect);
-				return !(aspectCount===undefined || aspectCount < amount);
-			})
-		) {return false;}
-		if (regexValid && !regexValid.test(item.entityid)) {return false;}
-		if (regexInvalid?.test(item.entityid)) {return false;}
-		return true;
-	});
-}
-export function findRecipes(options: {
+
+function findRecipes(options: {
 	reqs?: {
 		min?: types.aspects;
 		max?: types.aspects;
@@ -368,8 +264,8 @@ export function findRecipes(options: {
 	};
 }): [types.dataRecipe, types.aspects][] {
 	// code is unverified
-	return [...SAVE_RECIPES]
-		.map(recipeName=>DATA_RECIPES.find(dataRecipe=>dataRecipe.id===recipeName))
+	return save.recipes.values()
+		.map(recipeName=>data.recipes.find(dataRecipe=>dataRecipe.id===recipeName))
 		.map((recipe): [types.dataRecipe, types.aspects]|undefined=>{
 			if (!recipe) {return undefined;}
 			if (options.reqs) {
@@ -408,3 +304,54 @@ export function findRecipes(options: {
 		})
 		.filter(recipe=>recipe!==undefined);
 }
+*/
+// filters
+
+export const filterBuilders = {
+	aspectFilter: <t>(
+		options: {
+			min?: types.aspects;
+			any?: types.aspects;
+			max?: types.aspects;
+		},
+		aspectFunc: (item: t) => types.aspects,
+	): ((item: t) => boolean) => {
+		return (item: t): boolean=>{
+			const aspects = aspectFunc(item);
+			for (const [aspect, amount] of Object.entries(options.min??{})) {
+				const aspectCount = aspects[aspect] as number|undefined;
+				if (aspectCount===undefined || aspectCount < amount) {return false;}
+			}
+			for (const [aspect, amount] of Object.entries(options.max??{})) {
+				const aspectCount = aspects[aspect] as number|undefined;
+				if (aspectCount!==undefined && aspectCount > amount) {return false;}
+			}
+			if (
+				options.any &&
+				Object.entries(options.any).length>0 &&
+				!Object.entries(options.any).some(([aspect, amount]): boolean=>{
+					const aspectCount = aspects[aspect] as number|undefined;
+					return !(aspectCount===undefined || aspectCount < amount);
+				})
+			) {return false;}
+			return false;
+		};
+	},
+/*
+	basicItemFilter: (options: types.itemSearchOptions): ((item: element) => boolean) => {
+		return (item: element): boolean => {
+			if (options.nameInvalid?.test(item.entityid)) {return false;}
+			if (options.nameValid && !options.nameValid.test(item.entityid)) {return false;}
+			return aspectFilter(options, item.aspects);
+		};
+	},
+	basicRecipeFilter: (options: types.itemSearchOptions): ((item: types.dataRecipe) => boolean) => {
+		return (item: types.dataRecipe): boolean => {
+			if (options.nameInvalid?.test(item.id)) {return false;}
+			if (options.nameValid && !options.nameValid.test(item.id)) {return false;}
+			return aspectFilter(options, item.reqs??{});
+		};
+	},
+};
+*/
+};

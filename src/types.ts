@@ -22,7 +22,7 @@ export interface itemSearchOptions {
 }
 
 export interface stackExtraInfo {
-	aspects: Map<string, number>;
+	aspects: aspects; // Map<string, number>;
 	room: string;
 }
 

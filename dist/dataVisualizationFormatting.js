@@ -18,18 +18,12 @@ export function markupReplace(text) {
 export function displayItemList(term, items, type) {
     switch (type ?? defaultItemDisplay) {
         case "full": {
-            // FIXME: aspects is a map and can't be stringified. this is a temp fix
-            const itemsCopy = JSON.parse(JSON.stringify(items));
-            itemsCopy.forEach((entry, index) => {
-                /* @ts-expect-error this is a temp fix for the above FIXME */
-                entry.aspects = Object.fromEntries(items[index].aspects.entries());
-            });
             term(JSON.stringify(items, null, jsonSpacing) + "\n");
             return;
         }
         case "aspects": {
             term(items.map(item => {
-                return `${markupItems.item}${item.entityid}^:: ${[...item.aspects.entries()]
+                return `${markupItems.item}${item.entityid}^:: ${[...Object.entries(item.aspects)]
                     .map(([aspect, count]) => `${markupReplace(aspect)}: ${count}`).join(", ")}\n`;
             }).join(""));
             return;

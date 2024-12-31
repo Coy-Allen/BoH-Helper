@@ -66,12 +66,6 @@ async function loadFile(filename) {
         return false;
     }
 }
-export function infoItems(term, parts) {
-    // TODO: move "parts" into a custom input handler
-    const args = parts.join(" ");
-    const result = dataProcessing.lookupItem(args);
-    term(JSON.stringify(result, null, jsonSpacing) + "\n");
-}
 export function help(term, _parts, inputNode) {
     const getHelp = (node, depth) => {
         const [name, data, helpText] = node;

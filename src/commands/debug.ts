@@ -1,7 +1,8 @@
 import type {Terminal} from "terminal-kit";
 import {getInput} from "../commandHelpers.js";
 import type * as types from "../types.js";
-import {getSaveRaw, getDataItems, getDataRecipes, getAllVerbs, getDataDecks} from "../dataProcessing.js";
+import {save, data} from "../dataProcessing.js";
+/* getSaveRaw, getDataItems, getDataRecipes, getAllVerbs, getDataDecks*/
 import * as util from "util";
 
 const debug: types.inputNode = [["debug"], [
@@ -74,17 +75,17 @@ export async function devQuickCommand(term: Terminal): Promise<undefined> {
 }
 export async function devTestSave(_term: Terminal): Promise<undefined> {
 	/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
-	const save = getSaveRaw();
-	if (save===undefined) {
+	const saveRaw = save.raw;
+	if (saveRaw===undefined) {
 		console.log("no save loaded.");
 		return;
 	}
 	// save
 	console.log("checking save.");
-	if (checkKeys(save, [
+	if (checkKeys(saveRaw, [
 		"$type", "charactercreationcommands", "rootpopulationcommand", "populatexamanekcommand", "notificationcommands", "version", "isfresh",
 	])) {return;}
-	if (save?.$type !== "persistedgamestate") {console.error(`save.$type = ${save.$type}`);}
+	if (saveRaw?.$type !== "persistedgamestate") {console.error(`save.$type = ${saveRaw.$type}`);}
 	// save.charactercreationcommands
 	// save.rootpopulationcommand
 	// save.populatexamanekcommand
@@ -97,13 +98,13 @@ export async function devTestSave(_term: Terminal): Promise<undefined> {
 }
 export async function devTestData(_term: Terminal): Promise<undefined> {
 	console.log("\nNEXT: getDataItems");
-	console.log(util.inspect(countKeys(getDataItems()), {showHidden: false, depth: null, colors: true}));
+	console.log(util.inspect(countKeys(data.elements.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataRecipes");
-	console.log(util.inspect(countKeys(getDataRecipes()), {showHidden: false, depth: null, colors: true}));
+	console.log(util.inspect(countKeys(data.recipes.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getAllVerbs");
-	console.log(util.inspect(countKeys(getAllVerbs()), {showHidden: false, depth: null, colors: true}));
+	console.log(util.inspect(countKeys(data.verbs.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataDecks");
-	console.log(util.inspect(countKeys(getDataDecks()), {showHidden: false, depth: null, colors: true}));
+	console.log(util.inspect(countKeys(data.decks.values()), {showHidden: false, depth: null, colors: true}));
 	return Promise.resolve(undefined);
 }
 

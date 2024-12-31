@@ -1,7 +1,7 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {getAllAspects} from "../dataProcessing.js";
+import {data} from "../dataProcessing.js";
 
 const list: types.inputNode = [["list"], [
 	[["aspects"], listAspects, "displays all aspects in the game (even hidden ones)"],
@@ -13,7 +13,7 @@ const list: types.inputNode = [["list"], [
 
 export function listAspects(term: Terminal): undefined {
 	// TODO: output filtering
-	term(getAllAspects().sort().join(", ")+"\n");
+	term(data.aspects.values().sort().join(", ")+"\n");
 }
 
 export default list;

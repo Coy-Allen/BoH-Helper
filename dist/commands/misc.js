@@ -1,5 +1,5 @@
 import { jsonSpacing, markupItems } from "../config.js";
-import * as dataProcessing from "../dataProcessing.js";
+import { save, data, mergeAspects } from "../dataProcessing.js";
 import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
@@ -28,21 +28,13 @@ export async function missingCraftable(term, parts) {
     });
     // processing
     const result = [];
-    /* eslint-disable @typescript-eslint/naming-convention */
-    const SAVE_ITEMS = dataProcessing.getSaveItems();
-    const DATA_ITEMS = dataProcessing.getDataItems();
-    const SAVE_RECIPES = dataProcessing.getSaveRecipes();
-    const DATA_RECIPES = dataProcessing.getDataRecipes();
-    const DATA_DECKS = dataProcessing.getDataDecks();
-    const SAVE_RAW = dataProcessing.getSaveRaw();
-    /* eslint-enable @typescript-eslint/naming-convention */
     const saveItems = new Map();
-    for (const saveItem of SAVE_ITEMS) {
+    for (const saveItem of save.elements.values()) {
         saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
-    for (const recipe of SAVE_RECIPES) {
+    for (const recipe of save.recipes.values()) {
         // FIXME: make sure we actually own the skill
-        const recipeData = DATA_RECIPES.find(recipeInfo => recipeInfo.id === recipe);
+        const recipeData = data.recipes.find(recipeInfo => recipeInfo.id === recipe);
         if (!recipeData) {
             console.warn(`recipe ${recipe} could not be found.`);
             continue;
@@ -53,7 +45,7 @@ export async function missingCraftable(term, parts) {
         }
     }
     ;
-    for (const deck of DATA_DECKS) {
+    for (const deck of data.decks.values()) {
         // we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
         if ([
             "sweetbones.employables",
@@ -73,16 +65,16 @@ export async function missingCraftable(term, parts) {
         result.push([deck.id, deck.spec]);
     }
     ;
-    const uniqueItemsSave = SAVE_RAW?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
+    const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
     const validItems = new Set([...allItems.values()].filter(item => {
-        const foundItem = DATA_ITEMS.find(itemData => itemData.id === item);
+        const foundItem = data.elements.find(itemData => itemData.id === item);
         if (!foundItem) {
             console.warn(`item ${foundItem} could not be found.`);
             // keep it by default
             return false;
         }
-        const aspects = dataProcessing.mergeAspects(dataProcessing.getDataItemAspects(item));
+        const aspects = mergeAspects(data.elements.getInheritedProperty(item, "aspects"));
         if (aspects["memory"] || aspects["correspondence"] || aspects["invitation"]) {
             return false;
         }
@@ -154,12 +146,6 @@ export async function availableMemories(term, parts) {
         ],
     });
     // processing
-    /* eslint-disable @typescript-eslint/naming-convention */
-    const SAVE_ITEMS = dataProcessing.getSaveItems();
-    const DATA_ITEMS = dataProcessing.getDataItems();
-    const SAVE_RECIPES = dataProcessing.getSaveRecipes();
-    const DATA_RECIPES = dataProcessing.getDataRecipes();
-    /* eslint-enable @typescript-eslint/naming-convention */
     const appendToMap = (map, key, value) => {
         if (!map.has(key)) {
             map.set(key, []);
@@ -171,7 +157,7 @@ export async function availableMemories(term, parts) {
         array.push(value);
     };
     const isValid = (itemId) => {
-        const aspects = dataProcessing.mergeAspects(dataProcessing.getDataItemAspects(itemId));
+        const aspects = mergeAspects(data.elements.getInheritedProperty(itemId, "aspects"));
         if (!aspects["memory"]) {
             return false;
         }
@@ -185,7 +171,7 @@ export async function availableMemories(term, parts) {
             }
         }
         if (!args.owned) {
-            const alreadyObtained = SAVE_ITEMS.find(item => item.entityid === itemId);
+            const alreadyObtained = save.elements.find(item => item.entityid === itemId);
             if (alreadyObtained) {
                 return false;
             }
@@ -195,7 +181,7 @@ export async function availableMemories(term, parts) {
     const result = {};
     if (args.inputs.includes("recipes")) {
         const foundRecipes = new Map();
-        const recipes = DATA_RECIPES.filter(recipe => SAVE_RECIPES.includes(recipe.id));
+        const recipes = data.recipes.filter(recipe => save.recipes.has(recipe.id));
         for (const recipe of recipes) {
             for (const [cardId, _count] of Object.entries(recipe.effects ?? {})) {
                 if (isValid(cardId)) {
@@ -215,8 +201,8 @@ export async function availableMemories(term, parts) {
         const foundReusableTalk = new Map();
         const foundConsumableInspect = new Map();
         const foundConsumableTalk = new Map();
-        const items = [...new Set(SAVE_ITEMS.map(item => item.entityid))]
-            .map(itemId => DATA_ITEMS.find(itemData => itemData.id === itemId))
+        const items = [...new Set(save.elements.values().map(item => item.entityid))]
+            .map(itemId => data.elements.find(itemData => itemData.id === itemId))
             .filter(itemData => itemData !== undefined);
         for (const item of items) {
             if (!item.xtriggers) {

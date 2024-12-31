@@ -25,19 +25,13 @@ export function markupReplace<t extends string[]|string>(text: t): t {
 export function displayItemList(term: Terminal, items: (elementStackCreationCommand & stackExtraInfo)[], type?: typeof itemDisplaySelection[number]): void {
 	switch (type??defaultItemDisplay) {
 		case "full": {
-			// FIXME: aspects is a map and can't be stringified. this is a temp fix
-			const itemsCopy = JSON.parse(JSON.stringify(items)) as typeof items;
-			itemsCopy.forEach((entry, index)=>{
-				/* @ts-expect-error this is a temp fix for the above FIXME */
-				entry.aspects = Object.fromEntries(items[index].aspects.entries());
-			});
 			term(JSON.stringify(items, null, jsonSpacing)+"\n");
 			return;
 		}
 		case "aspects": {
 			term(items.map(item=>{
 				return `${markupItems.item}${item.entityid}^:: ${
-					[...item.aspects.entries()]
+					[...Object.entries(item.aspects)]
 						.map(([aspect, count])=>`${markupReplace(aspect)}: ${count}`).join(", ")
 				}\n`;
 			}).join(""));
@@ -52,7 +46,7 @@ export function displayItemList(term: Terminal, items: (elementStackCreationComm
 				}
 				return hopper;
 			}, new Map<string, string[]>()).entries()]
-				.map(([item, rooms])=>`${markupItems.item}${item}^:: [${rooms.join(", ")}]\n`).join(""));
+				.map(([item, rooms]): string=>`${markupItems.item}${item}^:: [${rooms.join(", ")}]\n`).join(""));
 			return;
 		}
 		case "counts": {
@@ -61,7 +55,7 @@ export function displayItemList(term: Terminal, items: (elementStackCreationComm
 				hopper.set(item.entityid, prev+item.quantity);
 				return hopper;
 			}, new Map<string, number>()).entries()]
-				.map(([item, count])=>`${markupItems.item}${item}^:: ${count}\n`).join(""));
+				.map(([item, count]): string=>`${markupItems.item}${item}^:: ${count}\n`).join(""));
 			return;
 		}
 		default: {

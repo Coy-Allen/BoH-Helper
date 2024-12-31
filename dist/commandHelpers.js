@@ -1,4 +1,4 @@
-import { getAllAspects, doesAspectExist } from "./dataProcessing.js";
+import { data } from "./dataProcessing.js";
 export const itemFilter = {
     id: "object",
     name: "item filter",
@@ -15,7 +15,7 @@ export const aspectTarget = {
     id: "stringArray",
     name: "item filter",
     options: {
-        autocomplete: getAllAspects(),
+        autocomplete: data.aspects.values(),
         autocompleteDelimiter: "\\.",
         strict: true,
     },
@@ -162,7 +162,7 @@ export function validateInput(input, target) {
                 return "is not an object";
             }
             for (const [name, count] of Object.entries(input)) {
-                if (!doesAspectExist(name)) {
+                if (!data.aspects.has(name)) {
                     return `${name} is not a valid aspect`;
                 }
                 if (!Number.isSafeInteger(count)) {
@@ -365,7 +365,7 @@ export async function getInput(term, target) {
             break;
         }
         case "aspects": {
-            const aspectNames = getAllAspects();
+            const aspectNames = data.aspects.values();
             const tempResult = new Map();
             let aspect = "";
             let count = "";
@@ -392,7 +392,7 @@ export async function getInput(term, target) {
                     (target.options.maxTypes === undefined || target.options.maxTypes >= tempResult.size)) {
                     break;
                 }
-                if (!aspectNames.includes(aspect)) {
+                if (!data.aspects.has(aspect)) {
                     continue;
                 }
                 while (true) {

@@ -2,7 +2,7 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
 import {validateOrGetInput, itemFilter, aspectTarget} from "../commandHelpers.js";
-import {getAllVerbs, findItems} from "../dataProcessing.js";
+import {data, filterBuilders, save} from "../dataProcessing.js";
 import {markupReplace} from "../dataVisualizationFormatting.js";
 
 const tables: types.inputNode = [["tables"], [
@@ -40,7 +40,7 @@ async function maxAspects(term: Terminal, parts: string[]): Promise<string|undef
 async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string|undefined> {
 	// TODO: grab all possible stations
 	// TODO: allow prototypes (_assistance.*)
-	const verbs = getAllVerbs();
+	const verbs = data.verbs.values();
 	// get input
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
@@ -108,12 +108,12 @@ function calcMaxAspects(rowFilters: types.itemSearchOptions[], aspects: string[]
 
 	for (const rowFilter of rowFilters) {
 		const rowContent: [string, number][] = [];
-		const foundItems = findItems(rowFilter);
+		const foundItems = save.elements.filter(filterBuilders.aspectFilter(rowFilter, item=>item.aspects));
 		for (const aspect of aspectsToUse) {
 			let name = "-";
 			let max = 0;
 			for (const item of foundItems) {
-				const itemAspect = item.aspects.get(aspect) ?? 0;
+				const itemAspect = item.aspects[aspect] ?? 0;
 				if (itemAspect>max) {
 					name = item.entityid;
 					max = itemAspect;

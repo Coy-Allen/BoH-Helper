@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import json5 from "json5";
 import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
-import * as dataProcessing from "./dataProcessing.js";
+import {data} from "./dataProcessing.js";
 import type * as types from "./types.js";
 import {dataFolder, maxHistory} from "./config.js";
 
@@ -41,13 +41,14 @@ export async function loadSave(saveFile: string): Promise<string> {
 }
 
 function pushData(): void {
-	dataProcessing.addAspects(fileOutputs.items.flatMap(item=>item.elements.filter(
+	data.aspects.overwrite(fileOutputs.items.flatMap(item=>item.elements.filter(
 		element=>element.isaspect??false,
 	)).map(element=>element.id));
-	dataProcessing.setDataItems(fileOutputs.items.flatMap(files=>files.elements));
-	dataProcessing.setDataRecipes(fileOutputs.recipes.flatMap(recipes=>recipes.recipes));
-	dataProcessing.setDataVerbs(fileOutputs.verbs.flatMap(verbs=>verbs.verbs));
-	dataProcessing.setDataDecks(fileOutputs.decks.flatMap(decks=>decks.decks));
+	// notice: the aspect search in the items and recipes are no longer added to aspects.
+	data.elements.overwrite(fileOutputs.items.flatMap(files=>files.elements));
+	data.recipes.overwrite(fileOutputs.recipes.flatMap(recipes=>recipes.recipes));
+	data.verbs.overwrite(fileOutputs.verbs.flatMap(verbs=>verbs.verbs).filter(verb=>!verb.spontaneous));
+	data.decks.overwrite(fileOutputs.decks.flatMap(decks=>decks.decks));
 }
 
 // history handler

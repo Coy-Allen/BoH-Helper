@@ -1,6 +1,5 @@
 // FIXME: determine if DLC is installed to not crash on missing files
 const fileMetaDataList = [
-    // TODO: decks
     { name: "decks\\catalogue_decks.json", encoding: "utf8", type: "decks" },
     { name: "decks\\challenges.json", encoding: "utf8", type: "decks" },
     { name: "decks\\chats.json", encoding: "utf8", type: "decks" },

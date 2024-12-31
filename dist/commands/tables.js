@@ -1,5 +1,5 @@
 import { validateOrGetInput, itemFilter, aspectTarget } from "../commandHelpers.js";
-import { getAllVerbs, findItems } from "../dataProcessing.js";
+import { data, filterBuilders, save } from "../dataProcessing.js";
 import { markupReplace } from "../dataVisualizationFormatting.js";
 const tables = [["tables"], [
         [["maxAspects"], maxAspects, "shows max aspects available."],
@@ -34,7 +34,7 @@ async function maxAspects(term, parts) {
 async function maxAspectsPreset(term, parts) {
     // TODO: grab all possible stations
     // TODO: allow prototypes (_assistance.*)
-    const verbs = getAllVerbs();
+    const verbs = data.verbs.values();
     // get input
     const args = await validateOrGetInput(term, parts.join(" "), {
         id: "object",
@@ -108,12 +108,12 @@ function calcMaxAspects(rowFilters, aspects = []) {
     const counts = new Array(aspectsToUse.length).fill(0);
     for (const rowFilter of rowFilters) {
         const rowContent = [];
-        const foundItems = findItems(rowFilter);
+        const foundItems = save.elements.filter(filterBuilders.aspectFilter(rowFilter, item => item.aspects));
         for (const aspect of aspectsToUse) {
             let name = "-";
             let max = 0;
             for (const item of foundItems) {
-                const itemAspect = item.aspects.get(aspect) ?? 0;
+                const itemAspect = item.aspects[aspect] ?? 0;
                 if (itemAspect > max) {
                     name = item.entityid;
                     max = itemAspect;

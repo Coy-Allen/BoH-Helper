@@ -6,7 +6,6 @@ const fileMetaDataList: {
 	type: "decks"|"items"|"recipes"|"verbs";
 	postProcessing?: (input: string) => string;
 }[] = [
-	// TODO: decks
 	{name: "decks\\catalogue_decks.json", encoding: "utf8", type: "decks"},
 	{name: "decks\\challenges.json", encoding: "utf8", type: "decks"},
 	{name: "decks\\chats.json", encoding: "utf8", type: "decks"},

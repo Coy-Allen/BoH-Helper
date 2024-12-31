@@ -1,5 +1,5 @@
 import type {Terminal} from "terminal-kit";
-import {getAllAspects, doesAspectExist} from "./dataProcessing.js";
+import {data} from "./dataProcessing.js";
 
 export const itemFilter = {
 	id: "object",
@@ -17,7 +17,7 @@ export const aspectTarget = {
 	id: "stringArray",
 	name: "item filter",
 	options: {
-		autocomplete: getAllAspects(),
+		autocomplete: data.aspects.values(),
 		autocompleteDelimiter: "\\.",
 		strict: true,
 	},
@@ -229,7 +229,7 @@ export function validateInput(input: unknown, target: targetTypes): string {
 				return "is not an object";
 			}
 			for (const [name, count] of Object.entries(input) as [string, unknown][]) {
-				if (!doesAspectExist(name)) {
+				if (!data.aspects.has(name)) {
 					return `${name} is not a valid aspect`;
 				}
 				if (!Number.isSafeInteger(count)) {return "is not a safe integer";}
@@ -420,7 +420,7 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 			break;
 		}
 		case "aspects":{
-			const aspectNames = getAllAspects();
+			const aspectNames = data.aspects.values();
 			const tempResult = new Map<string, number>();
 			let aspect = "";
 			let count = "";
@@ -450,7 +450,7 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 					(target.options.minTypes===undefined || target.options.minTypes<=tempResult.size) &&
 					(target.options.maxTypes===undefined || target.options.maxTypes>=tempResult.size)
 				) {break;}
-				if (!aspectNames.includes(aspect)) {continue;}
+				if (!data.aspects.has(aspect)) {continue;}
 				while (true) {
 					term.eraseLine();
 					term.column(0);

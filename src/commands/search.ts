@@ -2,7 +2,7 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
 import {aspectTarget, itemFilter, validateOrGetInput} from "../commandHelpers.js";
-import {findVerbs, findItems, findRecipes} from "../dataProcessing.js";
+import {data, save, filterBuilders} from "../dataProcessing.js";
 import {jsonSpacing} from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
 
@@ -54,7 +54,17 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string|unde
 			}],
 		],
 	});
-	const result = findVerbs(args);
+	// FIXME: need to figure out how to do this
+	const result = data.verbs.filter(
+		verb=>save.verbs.has(verb.id),
+		verb=>{
+			const slotCount = verb.slots ? verb.slots.length : verb.slot ? 1 : 0;
+			if (args.slotMax && args.slotMax < slotCount) {return false;}
+			if (args.slotMin && args.slotMin > slotCount) {return false;}
+			return true;
+		},
+		// TODO: filter via args.slots
+	);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);
@@ -79,7 +89,9 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string|unde
 			}],
 		],
 	});
-	const items = findItems(args.filter);
+	const items = save.elements.filter(
+		filterBuilders.aspectFilter(args.filter, item=>item.aspects),
+	);
 	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
@@ -163,7 +175,9 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 	if (targetPreset===undefined) {
 		throw Error("preset not found");
 	}
-	const items = findItems(targetPreset);
+	const items = save.elements.filter(
+		filterBuilders.aspectFilter(targetPreset, item=>item.aspects),
+	);
 	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
@@ -196,7 +210,10 @@ async function searchRecipes(term: Terminal, parts: string[]): Promise<string|un
 			}],
 		],
 	});
-	const result = findRecipes(args).map(recipe=>[recipe[0].reqs, recipe[1]]);
+	const result = data.recipes.filter(
+		recipe=>save.recipes.has(recipe.id),
+		filterBuilders.aspectFilter(args.reqs??{}, recipe=>recipe.reqs??{}),
+	).map(recipe=>[recipe, recipe.reqs]);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);

@@ -12,6 +12,7 @@ import list from "./commands/list.js";
 import misc from "./commands/misc.js";
 import search from "./commands/search.js";
 import debugCommands from "./commands/debug.js";
+import info from "./commands/info.js";
 
 const term = terminalKit.terminal;
 const inputTree: [string[], types.inputNode[], string] = [[""], [
@@ -20,9 +21,7 @@ const inputTree: [string[], types.inputNode[], string] = [[""], [
 	[["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
 	[["load"], commandProcessing.load, "load user save files"],
 	list,
-	[["info"], [
-		[["items"], commandProcessing.infoItems, "info on item aspects and results for inspect/talk."],
-	], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"],
+	info,
 	search,
 	// overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
 	// 	recipes. some recipes' discovery are not recorded in the save file.

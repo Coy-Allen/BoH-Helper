@@ -68,12 +68,6 @@ async function loadFile(filename: string): Promise<boolean> {
 	}
 }
 
-export function infoItems(term: Terminal, parts: string[]): undefined {
-	// TODO: move "parts" into a custom input handler
-	const args = parts.join(" ");
-	const result = dataProcessing.lookupItem(args);
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
-}
 export function help(term: Terminal, _parts: string[], inputNode: types.inputNode): void {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;

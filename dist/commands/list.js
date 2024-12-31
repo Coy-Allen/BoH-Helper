@@ -1,4 +1,4 @@
-import { getAllAspects } from "../dataProcessing.js";
+import { data } from "../dataProcessing.js";
 const list = [["list"], [
         [["aspects"], listAspects, "displays all aspects in the game (even hidden ones)"],
         // locked recipes? maybe. could cause spoiler issues
@@ -7,6 +7,6 @@ const list = [["list"], [
     ], "lists things in the game. CAN CONTAIN SPOILERS!"];
 export function listAspects(term) {
     // TODO: output filtering
-    term(getAllAspects().sort().join(", ") + "\n");
+    term(data.aspects.values().sort().join(", ") + "\n");
 }
 export default list;
