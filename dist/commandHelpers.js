@@ -229,6 +229,7 @@ export async function getInput(term, target) {
                 term(`${target.name}> `);
                 const input = await term.inputField({
                     autoComplete: autocompleteList,
+                    default: target.options.default,
                     autoCompleteMenu: true,
                     autoCompleteHint: true,
                     cancelable: true,

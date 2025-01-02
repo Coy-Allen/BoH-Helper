@@ -112,6 +112,7 @@ export interface targetString extends targetBase {
 	options: {
 		autocomplete: string[];
 		autocompleteDelimiter?: string;
+		default?: string;
 		strict: boolean;
 	};
 };
@@ -291,6 +292,7 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 				term(`${target.name}> `);
 				const input = await term.inputField({
 					autoComplete: autocompleteList,
+					default: target.options.default,
 					autoCompleteMenu: true,
 					autoCompleteHint: true,
 					cancelable: true,

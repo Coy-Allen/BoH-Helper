@@ -4,7 +4,6 @@ import { data } from "../dataProcessing.js";
 const info = [["info"], [
         [["items"], items, "info on item aspects and results for inspect/talk."],
     ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"];
-// WIP
 async function items(term, parts) {
     // TODO: move "parts" into a custom input handler
     const args = await validateOrGetInput(term, parts.join(" "), {

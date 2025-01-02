@@ -24,7 +24,7 @@ class dataWrapper<t> {
 	}
 	clear(): void {this._data.clear();}
 	size(): number {return this._data.size;}
-	get(key: string): t|undefined {return this._data.get(key);}
+	get(key: string): Readonly<t>|undefined {return this._data.get(key);}
 	has(item: t): boolean {return this.hasKey(this._keyFunc(item));}
 	hasKey(key: string): boolean {return this._data.has(key);}
 	hasValue(item: t): boolean {return this.values().includes(item);}
@@ -39,13 +39,13 @@ class dataWrapper<t> {
 		return isPresent;
 	}
 	some(filter: (item: t) => boolean): boolean {return this.find(filter)!==undefined;}
-	find(filter: (item: t) => boolean): t|undefined {return this.values().find(filter);}
-	findAll(filter: (item: t) => boolean): t[] {return this.filter(filter);}
-	filter(...filters: ((item: t) => boolean)[]): t[] {
+	find(filter: (item: t) => boolean): Readonly<t>|undefined {return this.values().find(filter);}
+	findAll(filter: (item: t) => boolean): Readonly<t>[] {return this.filter(filter);}
+	filter(...filters: ((item: Readonly<t>) => boolean)[]): Readonly<t>[] {
 		return filters.reduce((values, filter): t[]=>values.filter(filter), this.values());
 	}
 	keys(): string[] {return [...this._data.keys()];}
-	values(): t[] {return [...this._data.values()];}
+	values(): Readonly<t>[] {return [...this._data.values()];}
 }
 class dataWrapperInherits<t extends {inherits?: string}> extends dataWrapper<t> {
 	getInherited(key: string): t[] {
@@ -204,107 +204,7 @@ export function mergeAspects(aspects: types.aspects[]): types.aspects {
 			return res;
 		}, {});
 }
-/*
 
-// search/find
-
-function findVerbs(options: {
-	slotMeta?: {
-		minCount?: number;
-		maxCount?: number;
-	};
-	slots?: {
-		required?: string[];
-		essential?: string[];
-		forbidden?: string[];
-		missingRequired?: string[];
-		missingEssential?: string[];
-		missingForbidden?: string[];
-	}[];
-}): types.dataVerb[] {
-	// code is unverified
-	return data.verbs.filter(verb=>{
-		if (!save.verbs.has(verb.id)) {return false;}
-		const slots = verb.slots ?? (verb.slot!==undefined?[verb.slot]:[]);
-		if (options.slotMeta) {
-			if (options.slotMeta.minCount && options.slotMeta.minCount > slots.length) {return false;}
-			if (options.slotMeta.maxCount && options.slotMeta.maxCount < slots.length) {return false;}
-		}
-		if (options.slots) {
-			// FIXME: a slot can match multiple filters. it needs to be changed to do a 1:1 match.
-			const validSlot = options.slots.find((oSlot): boolean=>{
-				// are there any filters that don't match ANY verb slots
-				const validMatch = slots.find((vSlot): boolean=>{
-					// for each check, check if the check fails. if so then move onto the next vSlot
-					if (oSlot.required?.some(check=>vSlot.required?.[check]===undefined)??false) {return false;}
-					if (oSlot.essential?.some(check=>vSlot.essential?.[check]===undefined)??false) {return false;}
-					if (oSlot.forbidden?.some(check=>vSlot.forbidden?.[check]===undefined)??false) {return false;}
-					if (oSlot.missingRequired?.some(check=>vSlot.required?.[check]!==undefined)??false) {return false;}
-					if (oSlot.missingEssential?.some(check=>vSlot.essential?.[check]!==undefined)??false) {return false;}
-					if (oSlot.missingForbidden?.some(check=>vSlot.forbidden?.[check]!==undefined)??false) {return false;}
-					return true;
-				});
-				// return true if we couldn't find a valid match
-				return validMatch===undefined;
-			});
-			if (validSlot===undefined) {return false;}
-		}
-		return true;
-	});
-}
-
-function findRecipes(options: {
-	reqs?: {
-		min?: types.aspects;
-		max?: types.aspects;
-	};
-	output?: {
-		min?: types.aspects;
-		max?: types.aspects;
-	};
-}): [types.dataRecipe, types.aspects][] {
-	// code is unverified
-	return save.recipes.values()
-		.map(recipeName=>data.recipes.find(dataRecipe=>dataRecipe.id===recipeName))
-		.map((recipe): [types.dataRecipe, types.aspects]|undefined=>{
-			if (!recipe) {return undefined;}
-			if (options.reqs) {
-				if (options.reqs.min) {
-					for (const [aspect, amount] of Object.entries(options.reqs.min)) {
-						const aspectCount = recipe.reqs?.[aspect];
-						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
-					}
-				}
-				if (options.reqs.max) {
-					for (const [aspect, amount] of Object.entries(options.reqs.max)) {
-						const aspectCount = recipe.reqs?.[aspect];
-						if (aspectCount!==undefined && aspectCount > amount) {return undefined;}
-					}
-				}
-			}
-			// FIXME: what do we do for deck effects?
-			const recipeOutputId = Object.entries(recipe.effects??{})[0]?.[0];
-			if (options.output && !recipeOutputId) {return undefined;}
-			const outputLookup = mergeAspects(getDataItemAspects(recipeOutputId));
-			if (options.output) {
-				if (options.output.min) {
-					for (const [aspect, amount] of Object.entries(options.output.min)) {
-						const aspectCount = outputLookup[aspect] as undefined|number;
-						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
-					}
-				}
-				if (options.output.max) {
-					for (const [aspect, amount] of Object.entries(options.output.max)) {
-						const aspectCount = outputLookup[aspect] as undefined|number;
-						if (aspectCount===undefined || aspectCount < amount) {return undefined;}
-					}
-				}
-			}
-			return [recipe, outputLookup];
-		})
-		.filter(recipe=>recipe!==undefined);
-}
-*/
 // filters
 
 export const filterBuilders = {
@@ -334,7 +234,7 @@ export const filterBuilders = {
 					return !(aspectCount===undefined || aspectCount < amount);
 				})
 			) {return false;}
-			return false;
+			return true;
 		};
 	},
 /*

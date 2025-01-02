@@ -1,4 +1,4 @@
-import { aspectTarget, itemFilter, validateOrGetInput } from "../commandHelpers.js";
+import { itemFilter, validateOrGetInput } from "../commandHelpers.js";
 import { data, save, filterBuilders } from "../dataProcessing.js";
 import { jsonSpacing } from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
@@ -29,24 +29,26 @@ async function searchVerbs(term, parts) {
                         min: 0,
                     },
                 }],
+            /*
             ["slots", false, {
-                    id: "array",
-                    name: "slots",
+                id: "array",
+                name: "slots",
+                options: {},
+                subType: {
+                    id: "object",
+                    name: "slot",
                     options: {},
-                    subType: {
-                        id: "object",
-                        name: "slot",
-                        options: {},
-                        subType: [
-                            ["required", false, aspectTarget],
-                            ["essential", false, aspectTarget],
-                            ["forbidden", false, aspectTarget],
-                            ["missingRequired", false, aspectTarget],
-                            ["missingEssential", false, aspectTarget],
-                            ["missingForbidden", false, aspectTarget],
-                        ],
-                    },
-                }],
+                    subType: [
+                        ["required", false, aspectTarget],
+                        ["essential", false, aspectTarget],
+                        ["forbidden", false, aspectTarget],
+                        ["missingRequired", false, aspectTarget],
+                        ["missingEssential", false, aspectTarget],
+                        ["missingForbidden", false, aspectTarget],
+                    ],
+                },
+            }],
+            */
         ],
     });
     // FIXME: need to figure out how to do this

@@ -1,7 +1,7 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {aspectTarget, itemFilter, validateOrGetInput} from "../commandHelpers.js";
+import {itemFilter, validateOrGetInput} from "../commandHelpers.js";
 import {data, save, filterBuilders} from "../dataProcessing.js";
 import {jsonSpacing} from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
@@ -34,6 +34,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string|unde
 					min: 0,
 				},
 			}],
+			/*
 			["slots", false, {
 				id: "array",
 				name: "slots",
@@ -52,6 +53,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string|unde
 					],
 				},
 			}],
+			*/
 		],
 	});
 	// FIXME: need to figure out how to do this
