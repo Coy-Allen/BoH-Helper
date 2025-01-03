@@ -11,6 +11,14 @@ export async function missingCraftable(term, parts) {
         name: "options",
         options: {},
         subType: [
+            ["sources", true, {
+                    id: "stringArray",
+                    name: "craftable sources",
+                    options: {
+                        autocomplete: ["skillRecipes", "otherRecipes", "decks", "decksExtra"],
+                        strict: true,
+                    },
+                }],
             ["detailed", true, {
                     id: "boolean",
                     name: "list item names",
@@ -28,49 +36,55 @@ export async function missingCraftable(term, parts) {
     });
     // processing
     const result = [];
+    const extraDecks = [
+        "sweetbones.employables",
+        "incidents",
+        "incidents.numa",
+        "numa.possibility",
+        "d.books.dawn",
+        "d.books.solar",
+        "d.books.baronial",
+        "d.books.curia",
+        "d.books.nocturnal",
+        "d.books.divers",
+        "d.challenges.opportunities",
+    ];
+    // get combined count of items
     const saveItems = new Map();
     for (const saveItem of save.elements.values()) {
         saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
-    for (const recipe of save.recipes.values()) {
-        // FIXME: make sure we actually own the skill
-        const recipeData = data.recipes.find(recipeInfo => recipeInfo.id === recipe);
-        if (!recipeData) {
-            console.warn(`recipe ${recipe} could not be found.`);
-            continue;
+    if (args.sources.includes("skillRecipes") || args.sources.includes("otherRecipes")) {
+        for (const recipe of data.recipes.values()) {
+            // TODO: determine if it is a skill recipe, if we have that skill, etc.
+            //   maybe check for "s.*" as a required aspect? but that is inefficient.
+            // TODO: filter out all garbage recipes
+            const effects = recipe.effects;
+            if (effects) {
+                result.push([recipe.id, Object.keys(effects)]);
+            }
         }
-        const effects = recipeData.effects;
-        if (effects) {
-            result.push([recipeData.id, Object.keys(effects)]);
-        }
+        ;
     }
-    ;
-    for (const deck of data.decks.values()) {
-        // we don't want ALL decks... maybe? might make this an optional filter. filters out all non-gather decks
-        if ([
-            "sweetbones.employables",
-            "incidents",
-            "incidents.numa",
-            "numa.possibility",
-            "d.books.dawn",
-            "d.books.solar",
-            "d.books.baronial",
-            "d.books.curia",
-            "d.books.nocturnal",
-            "d.books.divers",
-            "d.challenges.opportunities",
-        ].includes(deck.id)) {
-            continue;
+    if (args.sources.includes("decksExtra") || args.sources.includes("decks")) {
+        for (const deck of data.decks.values()) {
+            const isExtra = extraDecks.includes(deck.id);
+            if (isExtra && !args.sources.includes("decksExtra")) {
+                continue;
+            }
+            if (!isExtra && !args.sources.includes("decks")) {
+                continue;
+            }
+            result.push([deck.id, deck.spec]);
         }
-        result.push([deck.id, deck.spec]);
+        ;
     }
-    ;
     const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
     const validItems = new Set([...allItems.values()].filter(item => {
         const foundItem = data.elements.find(itemData => itemData.id === item);
         if (!foundItem) {
-            console.warn(`item ${foundItem} could not be found.`);
+            term.yellow(`item ${foundItem} could not be found.\n`);
             // keep it by default
             return false;
         }

@@ -68,9 +68,19 @@ export interface dataElement {
 	verbicon?: string;
 	achievements?: string[];
 	alphalabeloverride?: string;
-	// if [key] exists as an aspect when item is used in a verb, then add [value] as an aspect to the item.
-	xtriggers?: Record<string, string|Record<"id"|"morpheffect"|"level", string>[]>;
-	// if [key] exists as an aspect on the item, then show text [value].
+	// xtriggers: if [key] is present in this item's aspects:
+		// if [value] is string: treat it like a basic transform.
+		// if [morpheffect] = "spawn": create item with entityId=[id].
+		// if [morpheffect] = "mutate": edit the aspects on this item.
+			// if [additive] = true: add the specified level instead of replacing the original level.
+		// if [morpheffect] = "transform": turn this into the item with entityId=[id].
+	xtriggers?: Record<string, string|{
+		id: string;
+		morpheffect: string;
+		level: string;
+		additive?: boolean;
+	}[]>;
+	// xexts: if [key] exists as an aspect on the item, then show text [value].
 	xexts?: Record<string, string>;
 }
 export interface dataRecipe {
@@ -87,7 +97,7 @@ export interface dataRecipe {
 		id: string;
 	}[];
 	warmup?: number;
-	craftable?: boolean;
+	craftable?: boolean; // set to false for "hint" recipes. these are not real recipes and are filtered out.
 	mutations?: {
 		filter: string;
 		mutate: string;

@@ -39,7 +39,7 @@ function pushData() {
     data.aspects.overwrite(fileOutputs.items.flatMap(item => item.elements.filter(element => element.isaspect ?? false)).map(element => element.id));
     // notice: the aspect search in the items and recipes are no longer added to aspects.
     data.elements.overwrite(fileOutputs.items.flatMap(files => files.elements));
-    data.recipes.overwrite(fileOutputs.recipes.flatMap(recipes => recipes.recipes));
+    data.recipes.overwrite(fileOutputs.recipes.flatMap(recipes => recipes.recipes).filter(recipe => recipe.craftable ?? true));
     data.verbs.overwrite(fileOutputs.verbs.flatMap(verbs => verbs.verbs).filter(verb => !verb.spontaneous));
     data.decks.overwrite(fileOutputs.decks.flatMap(decks => decks.decks));
 }
