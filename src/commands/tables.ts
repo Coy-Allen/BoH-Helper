@@ -11,7 +11,7 @@ const tables: types.inputNode = [["tables"], [
 	// list max aspects possible for given crafting bench.
 ], "display's tables of info"];
 
-async function maxAspects(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function maxAspects(term: Terminal, parts: string[]): Promise<string> {
 	// get input
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
@@ -31,13 +31,10 @@ async function maxAspects(term: Terminal, parts: string[]): Promise<string|undef
 	const result = calcMaxAspects(args.row, args.col);
 	// print result
 	term.table(result, {contentHasMarkup: true});
-	if (parts.length === 0) {
-		return JSON.stringify(args);
-	}
-	return;
+	return JSON.stringify(args);
 }
 
-async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string> {
 	// TODO: grab all possible stations
 	// TODO: allow prototypes (_assistance.*)
 	const verbs = data.verbs.values();
@@ -78,10 +75,7 @@ async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string
 	}), aspects);
 	// print result
 	term.table(result, {contentHasMarkup: true});
-	if (parts.length === 0) {
-		return JSON.stringify([verbId, aspects]);
-	}
-	return;
+	return JSON.stringify([verbId, aspects]);
 }
 
 // Shared code

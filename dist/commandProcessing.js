@@ -8,6 +8,7 @@ export async function exit(term) {
     closeWatcher();
     await saveHistory();
     term.processExit(0);
+    return "";
 }
 export async function load(term) {
     if (!closeWatcher()) {
@@ -23,15 +24,15 @@ export async function load(term) {
     term("\n");
     if (!filename) {
         term.yellow("File not found.\n");
-        return;
+        return "";
     }
     if (!await loadFile(filename)) {
         term.yellow("File failed to load.\n");
-        return;
+        return "";
     }
     term("watch file for changes? [y|N]\n");
     if (!await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
-        return;
+        return "";
     }
     // FIXME: game saves in multiple passes! it WILL fail ~3 times,
     //   then save unfinished copies 2 times before saving 1 final time.
@@ -48,6 +49,8 @@ export async function load(term) {
         });
     });
     term("file watcher created\n");
+    // TODO: make args pick which file to load.
+    return "";
 }
 function closeWatcher() {
     if (saveFileWatcher === undefined) {
@@ -81,4 +84,6 @@ export function help(term, _parts, inputNode) {
         }
     };
     getHelp(inputNode, -1);
+    // TODO: allow subhelps
+    return "";
 }

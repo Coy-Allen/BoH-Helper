@@ -6,6 +6,12 @@ const misc = [["misc"], [
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],
     ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 export async function missingCraftable(term, parts) {
+    const groupings = [
+        ["skillRecipes", "otherRecipes", "unknownRecipes"],
+        ["decks", "decksExtra"],
+        ["talk", "consider"],
+    ];
+    const isIntersecting = (a, b) => a.some(str => b.includes(str));
     const args = await validateOrGetInput(term, parts.join(" "), {
         id: "object",
         name: "options",
@@ -15,7 +21,7 @@ export async function missingCraftable(term, parts) {
                     id: "stringArray",
                     name: "craftable sources",
                     options: {
-                        autocomplete: ["skillRecipes", "otherRecipes", "decks", "decksExtra"],
+                        autocomplete: groupings.flat(),
                         strict: true,
                     },
                 }],
@@ -35,6 +41,7 @@ export async function missingCraftable(term, parts) {
         ],
     });
     // processing
+    const sources = args.sources;
     const result = [];
     const extraDecks = [
         "sweetbones.employables",
@@ -46,19 +53,81 @@ export async function missingCraftable(term, parts) {
         "d.books.baronial",
         "d.books.curia",
         "d.books.nocturnal",
+        "d.books.nocturnal.everyman",
         "d.books.divers",
         "d.challenges.opportunities",
     ];
+    const otherRecipes = [
+        "examine",
+        "open",
+        "chandlery",
+        "disassemble",
+        "pumps",
+        "draw",
+        "salon",
+        "cook",
+        "gather",
+        "well",
+        "fire",
+        "sea",
+    ];
+    /*
+    const metaRecipes = [
+        "setup",
+        "catalogue",
+        "legacy",
+        "remove",
+        "study",
+        "block",
+        "year",
+        "ch",
+        "trn",
+        "letter",
+        "unveil",
+        "evolve",
+        "lighthouse",
+        // DLC? i've not gotten to this stuff so IDK
+        "meddle", // maybe keep?
+        "wc",
+        "open",
+        // IDK what these are. but there's a lot of them
+        "nxs",
+        "nxh",
+        "nx",
+        "slnev",
+        "village",
+        "talk",
+        "u",
+        "acquaintance",
+        "postoffice",
+        "split",
+        "recruit",
+        "clean",
+        "rest",
+        "work",
+    ];
+    */
     // get combined count of items
     const saveItems = new Map();
     for (const saveItem of save.elements.values()) {
         saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
-    if (args.sources.includes("skillRecipes") || args.sources.includes("otherRecipes")) {
+    const beginsWith = (recipe, arr) => arr.includes(recipe.id.split(".", 1)[0]);
+    if (isIntersecting(sources, groupings[0])) {
         for (const recipe of data.recipes.values()) {
-            // TODO: determine if it is a skill recipe, if we have that skill, etc.
-            //   maybe check for "s.*" as a required aspect? but that is inefficient.
             // TODO: filter out all garbage recipes
+            const isSkillRecipe = beginsWith(recipe, ["craft"]) && Object.keys(recipe.reqs ?? {}).find(key => key.startsWith("s."));
+            const isOtherRecipe = beginsWith(recipe, otherRecipes);
+            const isUnknown = !(isSkillRecipe !== undefined || isOtherRecipe);
+            if (isSkillRecipe && (!sources.includes("skillRecipes") || !save.elements.find(item => item.entityid === isSkillRecipe))) {
+                continue;
+            }
+            if (isOtherRecipe && !sources.includes("otherRecipes")) {
+                continue;
+            }
+            if (isUnknown && !sources.includes("unknownRecipes")) {
+                continue;
+            }
             const effects = recipe.effects;
             if (effects) {
                 result.push([recipe.id, Object.keys(effects)]);
@@ -66,18 +135,34 @@ export async function missingCraftable(term, parts) {
         }
         ;
     }
-    if (args.sources.includes("decksExtra") || args.sources.includes("decks")) {
+    if (isIntersecting(sources, groupings[1])) {
         for (const deck of data.decks.values()) {
             const isExtra = extraDecks.includes(deck.id);
-            if (isExtra && !args.sources.includes("decksExtra")) {
+            if (isExtra && !sources.includes("decksExtra")) {
                 continue;
             }
-            if (!isExtra && !args.sources.includes("decks")) {
+            if (!isExtra && !sources.includes("decks")) {
                 continue;
             }
             result.push([deck.id, deck.spec]);
         }
         ;
+    }
+    if (isIntersecting(sources, groupings[2])) {
+        const saveItemUnique = new Set(save.elements.values().map(item => item.entityid));
+        for (const itemId of saveItemUnique) {
+            const item = data.elements.get(itemId);
+            if (!item) {
+                term.yellow(`save item ${itemId} could not be found.\n`);
+                continue;
+            }
+            if (sources.includes("talk")) {
+                // TODO: stub. check item's data.
+            }
+            if (sources.includes("consider")) {
+                // TODO: stub. check item's data.
+            }
+        }
     }
     const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
@@ -119,6 +204,7 @@ export async function missingCraftable(term, parts) {
         const detail = args.detailed ? items.join(", ") : items.length.toString();
         term(`${markupItems.item}${name}^:: ${detail}\n`);
     }
+    return JSON.stringify(args);
 }
 export async function availableMemories(term, parts) {
     const maxTargLen = 15;
@@ -296,9 +382,6 @@ export async function availableMemories(term, parts) {
         term(":\n");
         genListOutput(result.itemsReusableTalk);
     }
-    if (parts.length === 0) {
-        return JSON.stringify(args);
-    }
-    return;
+    return JSON.stringify(args);
 }
 export default misc;

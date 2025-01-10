@@ -11,9 +11,10 @@ const list: types.inputNode = [["list"], [
 ], "lists things in the game. CAN CONTAIN SPOILERS!"];
 
 
-export function listAspects(term: Terminal): undefined {
+export function listAspects(term: Terminal): string {
 	// TODO: output filtering
 	term(data.aspects.values().sort().join(", ")+"\n");
+	return "";
 }
 
 export default list;

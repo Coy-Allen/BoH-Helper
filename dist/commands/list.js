@@ -8,5 +8,6 @@ const list = [["list"], [
 export function listAspects(term) {
     // TODO: output filtering
     term(data.aspects.values().sort().join(", ") + "\n");
+    return "";
 }
 export default list;

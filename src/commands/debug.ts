@@ -12,7 +12,7 @@ const debug: types.inputNode = [["debug"], [
 ], "debug/dev commands. these can break or crash the program. don't run unless you are a dev."];
 
 
-export async function devQuickCommand(term: Terminal): Promise<undefined> {
+export async function devQuickCommand(term: Terminal): Promise<string> {
 	console.log(getInput(term, {
 		id: "object",
 		name: "testObject",
@@ -71,20 +71,20 @@ export async function devQuickCommand(term: Terminal): Promise<undefined> {
 			}],
 		],
 	}));
-	return Promise.resolve(undefined);
+	return Promise.resolve("");
 }
-export async function devTestSave(_term: Terminal): Promise<undefined> {
+export async function devTestSave(_term: Terminal): Promise<string> {
 	/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
 	const saveRaw = save.raw;
 	if (saveRaw===undefined) {
 		console.log("no save loaded.");
-		return;
+		return "";
 	}
 	// save
 	console.log("checking save.");
 	if (checkKeys(saveRaw, [
 		"$type", "charactercreationcommands", "rootpopulationcommand", "populatexamanekcommand", "notificationcommands", "version", "isfresh",
-	])) {return;}
+	])) {return "";}
 	if (saveRaw?.$type !== "persistedgamestate") {console.error(`save.$type = ${saveRaw.$type}`);}
 	// save.charactercreationcommands
 	// save.rootpopulationcommand
@@ -94,9 +94,9 @@ export async function devTestSave(_term: Terminal): Promise<undefined> {
 	// save.isfresh
 	/* eslint-enable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
 	console.log("done.");
-	return Promise.resolve(undefined);
+	return Promise.resolve("");
 }
-export async function devTestData(_term: Terminal): Promise<undefined> {
+export async function devTestData(_term: Terminal): Promise<string> {
 	console.log("\nNEXT: getDataItems");
 	console.log(util.inspect(countKeys(data.elements.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataRecipes");
@@ -105,7 +105,7 @@ export async function devTestData(_term: Terminal): Promise<undefined> {
 	console.log(util.inspect(countKeys(data.verbs.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataDecks");
 	console.log(util.inspect(countKeys(data.decks.values()), {showHidden: false, depth: null, colors: true}));
-	return Promise.resolve(undefined);
+	return Promise.resolve("");
 }
 
 type keyCountMap = Map<string, [number, [unknown[], keyCountMap]|undefined]>;

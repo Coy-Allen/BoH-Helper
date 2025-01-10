@@ -14,7 +14,7 @@ const search: types.inputNode = [["search"], [
 	[["recipes"], searchRecipes, "search discovered (non-???) recipes and their outputs."],
 ], "finds unlocked things in your save file. load your save file 1st."];
 
-async function searchVerbs(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -71,9 +71,9 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string|unde
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
-	return;
+	return parts.join(" ");
 }
-async function searchItems(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchItems(term: Terminal, parts: string[]): Promise<string> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -98,9 +98,9 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string|unde
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
-	return;
+	return parts.join(" ");
 }
-async function searchItemPresets(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchItemPresets(term: Terminal, parts: string[]): Promise<string> {
 	/* eslint-disable @typescript-eslint/naming-convention */
 	const presets = new Map<string, types.itemSearchOptions>([
 		["unreadBooks", {
@@ -184,9 +184,9 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
-	return;
+	return parts.join(" ");
 }
-async function searchRecipes(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function searchRecipes(term: Terminal, parts: string[]): Promise<string> {
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -217,10 +217,7 @@ async function searchRecipes(term: Terminal, parts: string[]): Promise<string|un
 		filterBuilders.aspectFilter(args.reqs??{}, recipe=>recipe.reqs??{}),
 	).map(recipe=>[recipe, recipe.reqs]);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
-	if (parts.length === 0) {
-		return JSON.stringify(args);
-	}
-	return;
+	return JSON.stringify(args);
 }
 
 export default search;

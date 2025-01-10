@@ -65,21 +65,21 @@ export async function devQuickCommand(term) {
                 }],
         ],
     }));
-    return Promise.resolve(undefined);
+    return Promise.resolve("");
 }
 export async function devTestSave(_term) {
     /* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
     const saveRaw = save.raw;
     if (saveRaw === undefined) {
         console.log("no save loaded.");
-        return;
+        return "";
     }
     // save
     console.log("checking save.");
     if (checkKeys(saveRaw, [
         "$type", "charactercreationcommands", "rootpopulationcommand", "populatexamanekcommand", "notificationcommands", "version", "isfresh",
     ])) {
-        return;
+        return "";
     }
     if (saveRaw?.$type !== "persistedgamestate") {
         console.error(`save.$type = ${saveRaw.$type}`);
@@ -92,7 +92,7 @@ export async function devTestSave(_term) {
     // save.isfresh
     /* eslint-enable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
     console.log("done.");
-    return Promise.resolve(undefined);
+    return Promise.resolve("");
 }
 export async function devTestData(_term) {
     console.log("\nNEXT: getDataItems");
@@ -103,7 +103,7 @@ export async function devTestData(_term) {
     console.log(util.inspect(countKeys(data.verbs.values()), { showHidden: false, depth: null, colors: true }));
     console.log("\nNEXT: getDataDecks");
     console.log(util.inspect(countKeys(data.decks.values()), { showHidden: false, depth: null, colors: true }));
-    return Promise.resolve(undefined);
+    return Promise.resolve("");
 }
 function countKeys(objs, keyCounts = new Map()) {
     for (const obj of objs) {

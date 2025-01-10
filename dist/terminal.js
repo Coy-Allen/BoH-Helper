@@ -11,8 +11,11 @@ import debugCommands from "./commands/debug.js";
 import info from "./commands/info.js";
 const term = terminalKit.terminal;
 const inputTree = [[""], [
-        [["help", "?"], (t, p) => { commandProcessing.help(t, p, inputTree); }, "shows all commands"],
-        [["clear"], () => { term.clear(); }, "clears the terminal"],
+        [["help", "?"], (t, p) => commandProcessing.help(t, p, inputTree), "shows all commands"],
+        [["clear"], () => {
+                term.clear();
+                return "";
+            }, "clears the terminal"],
         [["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
         [["load"], commandProcessing.load, "load user save files"],
         list,
@@ -91,8 +94,9 @@ async function inputLoop() {
             continue;
         }
         try {
-            const historyAppend = await commandLookup[0](term, commandLookup[1]);
-            await fileLoader.addHistory(input + (historyAppend ? " " + historyAppend : ""));
+            const changedArguments = await commandLookup[1](term, commandLookup[2]);
+            const finalArgs = changedArguments !== "" ? changedArguments : commandLookup[2].join(" ");
+            await fileLoader.addHistory((commandLookup[0].join(" ") + " " + finalArgs).trimEnd());
         }
         catch (error) {
             term.red("command threw an error.\n");
@@ -107,10 +111,11 @@ async function inputLoop() {
 }
 function findCommand(parts) {
     let targetNode = inputTree;
+    const tree = [];
     for (let i = 0; i <= parts.length; i++) {
         const [, data] = targetNode;
         if (!Array.isArray(data)) {
-            return [data, parts.splice(i)];
+            return [tree, data, parts.splice(i)];
         }
         if (parts.length === i) {
             return;
@@ -120,6 +125,7 @@ function findCommand(parts) {
             return;
         }
         targetNode = nextNode;
+        tree.push(nextNode[0][0]);
     }
     return;
 }

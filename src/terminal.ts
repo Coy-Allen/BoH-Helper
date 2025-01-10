@@ -16,8 +16,11 @@ import info from "./commands/info.js";
 
 const term = terminalKit.terminal;
 const inputTree: [string[], types.inputNode[], string] = [[""], [
-	[["help", "?"], (t, p): undefined=>{commandProcessing.help(t, p, inputTree);}, "shows all commands"],
-	[["clear"], (): undefined=>{term.clear();}, "clears the terminal"],
+	[["help", "?"], (t, p): string=>commandProcessing.help(t, p, inputTree), "shows all commands"],
+	[["clear"], (): string=>{
+		term.clear();
+		return "";
+	}, "clears the terminal"],
 	[["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
 	[["load"], commandProcessing.load, "load user save files"],
 	list,
@@ -100,8 +103,9 @@ async function inputLoop(): Promise<void> {
 			continue;
 		}
 		try {
-			const historyAppend = await commandLookup[0](term, commandLookup[1]);
-			await fileLoader.addHistory(input+(historyAppend?" "+historyAppend:""));
+			const changedArguments = await commandLookup[1](term, commandLookup[2]);
+			const finalArgs = changedArguments!==""?changedArguments:commandLookup[2].join(" ");
+			await fileLoader.addHistory((commandLookup[0].join(" ")+" "+finalArgs).trimEnd());
 		} catch (error) {
 			term.red("command threw an error.\n");
 			if (isDebug) {
@@ -113,11 +117,12 @@ async function inputLoop(): Promise<void> {
 		}
 	}
 }
-function findCommand(parts: string[]): [types.commandFunc, string[]]|undefined {
+function findCommand(parts: string[]): [string[], types.commandFunc, string[]]|undefined {
 	let targetNode: types.inputNode = inputTree;
+	const tree: string[] = [];
 	for (let i=0;i<=parts.length;i++) {
 		const [, data] = targetNode;
-		if (!Array.isArray(data)) {return [data, parts.splice(i)];}
+		if (!Array.isArray(data)) {return [tree, data, parts.splice(i)];}
 		if (parts.length===i) {return;}
 		const nextNode = data.find(
 			([names, _data]): boolean=>names.some(
@@ -126,6 +131,7 @@ function findCommand(parts: string[]): [types.commandFunc, string[]]|undefined {
 		);
 		if (nextNode===undefined) {return;}
 		targetNode = nextNode;
+		tree.push(nextNode[0][0]);
 	}
 	return;
 }

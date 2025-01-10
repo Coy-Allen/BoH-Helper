@@ -9,13 +9,14 @@ import {watch, type FSWatcher} from "fs";
 
 let saveFileWatcher: FSWatcher|undefined;
 
-export async function exit(term: Terminal): Promise<undefined> {
+export async function exit(term: Terminal): Promise<string> {
 	term("exiting...");
 	closeWatcher();
 	await saveHistory();
 	term.processExit(0);
+	return "";
 }
-export async function load(term: Terminal): Promise<undefined> {
+export async function load(term: Terminal): Promise<string> {
 	if (!closeWatcher()) {term("closing previous save file watcher.\n");}
 	term("save file> ");
 	const filename = await term.fileInput({
@@ -27,14 +28,14 @@ export async function load(term: Terminal): Promise<undefined> {
 	term("\n");
 	if (!filename) {
 		term.yellow("File not found.\n");
-		return;
+		return "";
 	}
 	if (!await loadFile(filename)) {
 		term.yellow("File failed to load.\n");
-		return;
+		return "";
 	}
 	term("watch file for changes? [y|N]\n");
-	if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return;}
+	if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return "";}
 	// FIXME: game saves in multiple passes! it WILL fail ~3 times,
 	//   then save unfinished copies 2 times before saving 1 final time.
 	// FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
@@ -50,6 +51,8 @@ export async function load(term: Terminal): Promise<undefined> {
 		});
 	});
 	term("file watcher created\n");
+	// TODO: make args pick which file to load.
+	return "";
 }
 
 function closeWatcher(): boolean {
@@ -68,7 +71,7 @@ async function loadFile(filename: string): Promise<boolean> {
 	}
 }
 
-export function help(term: Terminal, _parts: string[], inputNode: types.inputNode): void {
+export function help(term: Terminal, _parts: string[], inputNode: types.inputNode): string {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;
 		if (depth>=0) {
@@ -83,4 +86,6 @@ export function help(term: Terminal, _parts: string[], inputNode: types.inputNod
 		}
 	};
 	getHelp(inputNode, -1);
+	// TODO: allow subhelps
+	return "";
 }

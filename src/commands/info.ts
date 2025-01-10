@@ -8,7 +8,7 @@ import {data} from "../dataProcessing.js";
 const info: types.inputNode = [["info"], [
 	[["items"], items, "info on item aspects and results for inspect/talk."],
 ], "give detailed info on something. does not need save file. CAN CONTAIN SPOILERS!"];
-async function items(term: Terminal, parts: string[]): Promise<string|undefined> {
+async function items(term: Terminal, parts: string[]): Promise<string> {
 	// TODO: move "parts" into a custom input handler
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "string",
@@ -20,10 +20,7 @@ async function items(term: Terminal, parts: string[]): Promise<string|undefined>
 	});
 	const result = data.elements.getInherited(args);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
-	if (parts.length === 0) {
-		return JSON.stringify(args);
-	}
-	return;
+	return JSON.stringify(args);
 }
 
 export default info;

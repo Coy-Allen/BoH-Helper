@@ -66,7 +66,7 @@ async function searchVerbs(term, parts) {
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
-    return;
+    return parts.join(" ");
 }
 async function searchItems(term, parts) {
     const args = await validateOrGetInput(term, parts.join(" "), {
@@ -91,7 +91,7 @@ async function searchItems(term, parts) {
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
-    return;
+    return parts.join(" ");
 }
 async function searchItemPresets(term, parts) {
     /* eslint-disable @typescript-eslint/naming-convention */
@@ -175,7 +175,7 @@ async function searchItemPresets(term, parts) {
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
-    return;
+    return parts.join(" ");
 }
 async function searchRecipes(term, parts) {
     const args = await validateOrGetInput(term, parts.join(" "), {
@@ -205,9 +205,6 @@ async function searchRecipes(term, parts) {
     });
     const result = data.recipes.filter(recipe => save.recipes.has(recipe.id), filterBuilders.aspectFilter(args.reqs ?? {}, recipe => recipe.reqs ?? {})).map(recipe => [recipe, recipe.reqs]);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
-    if (parts.length === 0) {
-        return JSON.stringify(args);
-    }
-    return;
+    return JSON.stringify(args);
 }
 export default search;

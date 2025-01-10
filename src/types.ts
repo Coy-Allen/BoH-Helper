@@ -1,6 +1,6 @@
 import type terminalKit from "terminal-kit";
 
-export type commandFunc = ((term: terminalKit.Terminal, args: string[]) => Promise<undefined|string>|undefined|string);
+export type commandFunc = ((term: terminalKit.Terminal, args: string[]) => Promise<string>|string);
 export type inputNode = [string[], inputNode[]|commandFunc, string];
 
 export type aspects = Record<string, number>;

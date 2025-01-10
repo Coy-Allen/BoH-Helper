@@ -16,9 +16,6 @@ async function items(term, parts) {
     });
     const result = data.elements.getInherited(args);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
-    if (parts.length === 0) {
-        return JSON.stringify(args);
-    }
-    return;
+    return JSON.stringify(args);
 }
 export default info;

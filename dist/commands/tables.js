@@ -26,10 +26,7 @@ async function maxAspects(term, parts) {
     const result = calcMaxAspects(args.row, args.col);
     // print result
     term.table(result, { contentHasMarkup: true });
-    if (parts.length === 0) {
-        return JSON.stringify(args);
-    }
-    return;
+    return JSON.stringify(args);
 }
 async function maxAspectsPreset(term, parts) {
     // TODO: grab all possible stations
@@ -81,10 +78,7 @@ async function maxAspectsPreset(term, parts) {
     }), aspects);
     // print result
     term.table(result, { contentHasMarkup: true });
-    if (parts.length === 0) {
-        return JSON.stringify([verbId, aspects]);
-    }
-    return;
+    return JSON.stringify([verbId, aspects]);
 }
 // Shared code
 function calcMaxAspects(rowFilters, aspects = []) {
