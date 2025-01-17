@@ -32,4 +32,5 @@ export const markupReplaceList: [RegExp, string][] = [
 
 export const markupItems = {
 	item: "^c", // cyan
+	deck: "^g", // green
 };

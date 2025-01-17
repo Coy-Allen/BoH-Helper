@@ -3,7 +3,7 @@ import type * as saveTypes from "./saveTypes.js";
 
 import {isDebug} from "./config.js";
 
-type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
+export type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
 
 // TODO: maybe put these into nested objects? like save.verbs.get()?
 
@@ -81,6 +81,7 @@ export const save = {
 	rooms: new dataWrapper<saveTypes.tokenCreationCommand>(item=>item.payload.id),
 	elements: new dataWrapper<(element)>(item=>item.id),
 	recipes: new dataWrapper<string>(item=>item),
+	decks: new dataWrapper<[string, string[]]>(item=>item[0]),
 	verbs: new dataWrapper<string>(item=>item),
 };
 
@@ -89,6 +90,7 @@ export function loadSave(saveFile: saveTypes.persistedGameState): void {
 	save.rooms.overwrite(getUnlockedRoomsFromSave(saveFile));
 	save.elements.overwrite([getItemsFromSave(), getHand(saveFile)].flat());
 	save.verbs.overwrite(getVerbsFromSave());
+	save.decks.overwrite(getDecksFromSave(saveFile));
 	save.recipes.overwrite(saveFile.charactercreationcommands.flatMap(
 		character=>character.ambittablerecipesunlocked,
 	));
@@ -151,6 +153,16 @@ function getVerbsFromSave(): string[] {
 				.filter(payload=>payload.$type==="situationcreationcommand"),
 		);
 		return verbs.map(payload=>payload.verbid);
+	});
+}
+function getDecksFromSave(json: saveTypes.persistedGameState): [string, string[]][] {
+	return json.rootpopulationcommand.dealerstable.spheres.map(deckData=>{
+		const name = deckData.governingspherespec.actionid;
+		const cards = deckData.tokens.map(card=>{
+			if (card.payload.$type !== "elementstackcreationcommand") {return undefined;}
+			return card.payload.entityid;
+		}).filter(card=>card!==undefined);
+		return [name, cards];
 	});
 }
 function getItemsFromSave(): (element)[] {

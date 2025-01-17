@@ -75,6 +75,7 @@ export const save = {
     rooms: new dataWrapper(item => item.payload.id),
     elements: new dataWrapper(item => item.id),
     recipes: new dataWrapper(item => item),
+    decks: new dataWrapper(item => item[0]),
     verbs: new dataWrapper(item => item),
 };
 export function loadSave(saveFile) {
@@ -82,6 +83,7 @@ export function loadSave(saveFile) {
     save.rooms.overwrite(getUnlockedRoomsFromSave(saveFile));
     save.elements.overwrite([getItemsFromSave(), getHand(saveFile)].flat());
     save.verbs.overwrite(getVerbsFromSave());
+    save.decks.overwrite(getDecksFromSave(saveFile));
     save.recipes.overwrite(saveFile.charactercreationcommands.flatMap(character => character.ambittablerecipesunlocked));
 }
 function getHand(json) {
@@ -141,6 +143,18 @@ function getVerbsFromSave() {
             .map(token => token.payload)
             .filter(payload => payload.$type === "situationcreationcommand"));
         return verbs.map(payload => payload.verbid);
+    });
+}
+function getDecksFromSave(json) {
+    return json.rootpopulationcommand.dealerstable.spheres.map(deckData => {
+        const name = deckData.governingspherespec.actionid;
+        const cards = deckData.tokens.map(card => {
+            if (card.payload.$type !== "elementstackcreationcommand") {
+                return undefined;
+            }
+            return card.payload.entityid;
+        }).filter(card => card !== undefined);
+        return [name, cards];
     });
 }
 function getItemsFromSave() {

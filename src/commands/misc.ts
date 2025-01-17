@@ -23,6 +23,12 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		["talk", "consider"],
 	] as const;
 	const isIntersecting = (a: readonly string[], b: readonly string[]): boolean=>a.some(str=>b.includes(str));
+	const filterEffects = (a: Record<string,number>): string[] =>{
+ 		return Object.entries(a).filter(entry=>{
+				if(entry[1]<=0){return false;} // don't include any entries that remove items.
+				return true;
+			}).map(entry=>entry[0]);
+	}
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -124,17 +130,22 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid)??0)+saveItem.quantity);
 	}
 	const beginsWith = (recipe: types.dataRecipe, arr: string[]): boolean=>arr.includes(recipe.id.split(".", 1)[0]);
+	// check each group of sources
 	if (isIntersecting(sources, groupings[0])) {
 		for (const recipe of data.recipes.values()) {
 			// TODO: filter out all garbage recipes
-			const isSkillRecipe = beginsWith(recipe, ["craft"]) && Object.keys(recipe.reqs??{}).find(key=>key.startsWith("s."));
+			const requiredSkill = Object.keys(recipe.reqs??{}).find(key=>key.startsWith("s."));
+			const isSkillRecipe = beginsWith(recipe, ["craft"]) && requiredSkill!==undefined;
 			const isOtherRecipe = beginsWith(recipe, otherRecipes);
-			const isUnknown = !(isSkillRecipe!==undefined||isOtherRecipe);
-			if (isSkillRecipe && (!sources.includes("skillRecipes") || !save.elements.find(item=>item.entityid===isSkillRecipe))) {continue;}
+			const isUnknown = !(isSkillRecipe||isOtherRecipe);
+			if (isSkillRecipe && (
+				!sources.includes("skillRecipes") ||
+				!save.elements.find(item=>item.entityid===requiredSkill))
+			) {continue;}
 			if (isOtherRecipe && !sources.includes("otherRecipes")) {continue;}
 			if (isUnknown && !sources.includes("unknownRecipes")) {continue;}
-			const effects = recipe.effects;
-			if (effects) {result.push([recipe.id, Object.keys(effects)]);}
+			const effectsList = filterEffects(recipe.effects??{});
+			if (effectsList.length>0) {result.push([recipe.id, effectsList]);}
 		};
 	}
 	if (isIntersecting(sources, groupings[1])) {
@@ -142,7 +153,8 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 			const isExtra = extraDecks.includes(deck.id);
 			if (isExtra && !sources.includes("decksExtra")) {continue;}
 			if (!isExtra && !sources.includes("decks")) {continue;}
-			result.push([deck.id, deck.spec]);
+			const effectsList = filterEffects(Object.fromEntries(deck.spec.map(key=>[key,1])));
+			if (effectsList.length>0) {result.push([deck.id, effectsList]);}
 		};
 	}
 	if (isIntersecting(sources, groupings[2])) {
@@ -161,6 +173,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 			}
 		}
 	}
+	// filter all the valid items
 	const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
 	const allItems = new Set<string>(result.flatMap(groups=>groups[1]));
 	const validItems = new Set<string>([...allItems.values()].filter(item=>{

@@ -29,4 +29,5 @@ export const markupReplaceList = [
 ];
 export const markupItems = {
     item: "^c", // cyan
+    deck: "^g", // green
 };
