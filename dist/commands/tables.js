@@ -5,6 +5,7 @@ const tables = [["tables"], [
         [["maxAspects"], maxAspects, "shows max aspects available."],
         [["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],
         [["maxAspectsAssistance"], maxAspectsAssistance, "shows max aspects available using assistance. Memories are excluded, checks all helpers, everything else only checks owned items/omens."],
+        [["minAspectRoomUnlock"], minAspectUnlockableRooms, "shows the minimum aspects needed to unlock a room. might break for strange rooms."],
         // list max aspects possible for given crafting bench.
     ], "display's tables of info"];
 async function maxAspects(term, parts) {
@@ -143,23 +144,59 @@ function maxAspectsAssistance(term, parts) {
     [max.data[0], ...sharedCalc.data, max.data[1]], sharedCalc.totals.map((num, i) => num + max.totals[i]));
     return parts.join(" ");
 }
+function minAspectUnlockableRooms(term, parts) {
+    const minAspect = defaultAspects.map(aspect => [aspect, undefined]);
+    for (const room of save.roomsUnlockable.values()) {
+        const recipe = data.recipes.find(entry => entry.id === `terrain.${room.payload.id}`);
+        if (recipe === undefined) {
+            console.log(`failed to find unlock requirement for ${room.payload.id}.`);
+            continue;
+        }
+        const aspects = recipe.preslots?.[0].required;
+        if (aspects === undefined) {
+            console.log(`failed to find aspect requirements for ${room.payload.id}.`);
+            continue;
+        }
+        for (let i = 0; i < defaultAspects.length; i++) {
+            const aspect = defaultAspects[i];
+            const targetAspect = minAspect[i];
+            // can be undefined
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            if (aspects[aspect] === undefined) {
+                continue;
+            }
+            if (targetAspect[1] === undefined || aspects[aspect] < targetAspect[1]) {
+                targetAspect[0] = room.payload.id;
+                targetAspect[1] = aspects[aspect];
+                continue;
+            }
+            if (aspects[aspect] === targetAspect[1]) {
+                targetAspect[0] += "/" + room.payload.id;
+            }
+        }
+    }
+    const finalAspect = minAspect.map(entry => [entry[0], entry[1] ?? 0]);
+    printMaxAspects(term, defaultAspects, ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
+    return parts.join(" ");
+}
+const defaultAspects = [
+    "lantern",
+    "forge",
+    "edge",
+    "winter",
+    "heart",
+    "grail",
+    "moth",
+    "knock",
+    "sky",
+    "moon",
+    "nectar",
+    "scale",
+    "rose",
+];
 function calcMaxAspects(rowFilters, aspects = []) {
     const rowContents = [];
-    const aspectsToUse = aspects.length !== 0 ? aspects : [
-        "lantern",
-        "forge",
-        "edge",
-        "winter",
-        "heart",
-        "grail",
-        "moth",
-        "knock",
-        "sky",
-        "moon",
-        "nectar",
-        "scale",
-        "rose",
-    ];
+    const aspectsToUse = aspects.length !== 0 ? aspects : defaultAspects;
     const header = ["filter query", ...markupReplace(aspectsToUse)];
     const counts = new Array(aspectsToUse.length).fill(0);
     for (const rowFilter of rowFilters) {

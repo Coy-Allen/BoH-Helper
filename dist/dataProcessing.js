@@ -73,6 +73,7 @@ export const data = {
 export const save = {
     raw: undefined,
     rooms: new dataWrapper(item => item.payload.id),
+    roomsUnlockable: new dataWrapper(item => item.payload.id),
     elements: new dataWrapper(item => item.id),
     recipes: new dataWrapper(item => item),
     decks: new dataWrapper(item => item[0]),
@@ -81,6 +82,7 @@ export const save = {
 export function loadSave(saveFile) {
     save.raw = saveFile;
     save.rooms.overwrite(getUnlockedRoomsFromSave(saveFile));
+    save.roomsUnlockable.overwrite(getUnlockableRoomsFromSave(saveFile));
     save.elements.overwrite([getItemsFromSave(), getHand(saveFile)].flat());
     save.verbs.overwrite(getVerbsFromSave());
     save.decks.overwrite(getDecksFromSave(saveFile));
@@ -126,7 +128,26 @@ function getUnlockedRoomsFromSave(json) {
             payload.$type === "situationcreationcommand") {
             return false;
         }
-        return !payload.issealed;
+        return !payload.issealed && !payload.isshrouded;
+    });
+}
+function getUnlockableRoomsFromSave(json) {
+    // TODO: rewrite this
+    // FIXME: can't keep track of parent relationships due to filtering arrays
+    const library = json.rootpopulationcommand.spheres.find((sphere) => sphere.governingspherespec.id === "library");
+    if (!library) {
+        return [];
+    }
+    // library.Tokens === _Rooms_
+    // library.Tokens[number].Payload.IsSealed === _is not unlocked_
+    // library.Tokens[number].Payload.IsShrouded === _can't be unlocked_
+    return library.tokens.filter((room) => {
+        const payload = room.payload;
+        if (payload.$type === "elementstackcreationcommand" ||
+            payload.$type === "situationcreationcommand") {
+            return false;
+        }
+        return !payload.issealed && payload.isshrouded;
     });
 }
 function getVerbsFromSave() {
