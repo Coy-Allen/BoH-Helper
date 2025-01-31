@@ -145,7 +145,7 @@ function maxAspectsAssistance(term, parts) {
     return parts.join(" ");
 }
 function minAspectUnlockableRooms(term, parts) {
-    const minAspect = defaultAspects.map(aspect => [aspect, undefined]);
+    const minAspect = defaultAspects.map(_ => ["-", undefined]);
     for (const room of save.roomsUnlockable.values()) {
         const recipe = data.recipes.find(entry => entry.id === `terrain.${room.payload.id}`);
         if (recipe === undefined) {
@@ -176,7 +176,7 @@ function minAspectUnlockableRooms(term, parts) {
         }
     }
     const finalAspect = minAspect.map(entry => [entry[0], entry[1] ?? 0]);
-    printMaxAspects(term, defaultAspects, ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
+    printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
     return parts.join(" ");
 }
 const defaultAspects = [

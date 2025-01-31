@@ -146,7 +146,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 }
 
 function minAspectUnlockableRooms(term: Terminal, parts: string[]): string {
-	const minAspect: [string, number|undefined][] = defaultAspects.map(aspect=>[aspect, undefined]);
+	const minAspect: [string, number|undefined][] = defaultAspects.map(_=>["-", undefined]);
 	for (const room of save.roomsUnlockable.values()) {
 		const recipe = data.recipes.find(entry=>entry.id===`terrain.${room.payload.id}`);
 		if (recipe===undefined) {
@@ -175,7 +175,7 @@ function minAspectUnlockableRooms(term: Terminal, parts: string[]): string {
 		}
 	}
 	const finalAspect: [string, number][] = minAspect.map(entry=>[entry[0], entry[1]??0]);
-	printMaxAspects(term, defaultAspects, ["Room"], [finalAspect], finalAspect.map(entry=>entry[1]));
+	printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Room"], [finalAspect], finalAspect.map(entry=>entry[1]));
 	return parts.join(" ");
 }
 

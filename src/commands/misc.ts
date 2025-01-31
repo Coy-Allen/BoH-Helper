@@ -23,12 +23,12 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		["talk", "consider"],
 	] as const;
 	const isIntersecting = (a: readonly string[], b: readonly string[]): boolean=>a.some(str=>b.includes(str));
-	const filterEffects = (a: Record<string,number>): string[] =>{
+	const filterEffects = (a: Record<string, number>): string[] =>{
  		return Object.entries(a).filter(entry=>{
-				if(entry[1]<=0){return false;} // don't include any entries that remove items.
-				return true;
-			}).map(entry=>entry[0]);
-	}
+			if (entry[1]<=0) {return false;} // don't include any entries that remove items.
+			return true;
+		}).map(entry=>entry[0]);
+	};
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -153,7 +153,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 			const isExtra = extraDecks.includes(deck.id);
 			if (isExtra && !sources.includes("decksExtra")) {continue;}
 			if (!isExtra && !sources.includes("decks")) {continue;}
-			const effectsList = filterEffects(Object.fromEntries(deck.spec.map(key=>[key,1])));
+			const effectsList = filterEffects(Object.fromEntries(deck.spec.map(key=>[key, 1])));
 			if (effectsList.length>0) {result.push([deck.id, effectsList]);}
 		};
 	}
