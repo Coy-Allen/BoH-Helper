@@ -11,6 +11,7 @@ const tables: types.inputNode = [["tables"], [
 	[["maxAspectsAssistance"], maxAspectsAssistance, "shows max aspects available using assistance. Memories are excluded, checks all helpers, everything else only checks owned items/omens."],
 	[["minAspectRoomUnlock"], minAspectUnlockableRooms, "shows the minimum aspects needed to unlock a room. might break for strange rooms."],
 	// list max aspects possible for given crafting bench.
+	// list min aspects needed for a new book
 ], "display's tables of info"];
 
 async function maxAspects(term: Terminal, parts: string[]): Promise<string> {
