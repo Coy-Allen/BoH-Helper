@@ -6,7 +6,11 @@ This repo is my attempt at a more or less spoiler free helper for a 1st time pla
 This was made for my own use. If you want to discuss improvements, or need help using it, contact me over Discord (coy1010allen). I would love to chat.
 
 
-## external resources
+
+## Known Bugs
+clearing lines breaks horribly if text goes past the edge of the terminal.
+
+## External Resources
 the witness icon from [this](https://www.reddit.com/r/weatherfactory/comments/w76dfj/quotations_for_the_hours/#lightbox) reddit post.
 
 

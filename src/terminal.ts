@@ -1,58 +1,65 @@
-import terminalKit from "terminal-kit";
-import * as loader from "./fileLoader.js";
-import * as inputProcessing from "./inputProcessing.js";
+import type * as types from "./types.js";
 
-type commandFunc = ((term:terminalKit.Terminal,args: string[])=>Promise<void>|void);
-type inputNode = [string,inputNode[]|commandFunc];
+import terminalKit from "terminal-kit";
+import * as fileLoader from "./fileLoader.js";
+import * as commandProcessing from "./commandProcessing.js";
+import fileMetaDataList from "./fileList.js";
+import {dataFolder, isDebug} from "./config.js";
+
+
+import tables from "./commands/tables.js";
+import list from "./commands/list.js";
+import misc from "./commands/misc.js";
+import search from "./commands/search.js";
+import debugCommands from "./commands/debug.js";
+import info from "./commands/info.js";
 
 const term = terminalKit.terminal;
-const inputTree:[string,inputNode[]] = ["",[
-	["help",():void=>{term("WIP\n");}],
-	["clear",():void=>{term.clear()}],
-	["exit",inputProcessing.exit],
-	["quit",inputProcessing.exit],
-	["stop",inputProcessing.exit],
-	["load",inputProcessing.load],
-	["list",[
-		["aspects",inputProcessing.listAspects],
-		// locked recipes? maybe. could cause spoiler issues
-		// shorthands for empty searches. see "search *" commands
-	]],
-	["info",[
-		["items",inputProcessing.infoItems],
-	]],
-	["search",[
-		// crafting areas
-		// locked rooms
-		["items",inputProcessing.searchItems],
-		["recipes",inputProcessing.searchRecipes],
-	]],
+const inputTree: [string[], types.inputNode[], string] = [[""], [
+	[["help", "?"], (t, p): string=>commandProcessing.help(t, p, inputTree), "shows all commands"],
+	[["clear"], (): string=>{
+		term.clear();
+		return "";
+	}, "clears the terminal"],
+	[["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
+	[["load"], commandProcessing.load, "load user save files"],
+	list,
+	info,
+	search,
+	// overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
+	// 	recipes. some recipes' discovery are not recorded in the save file.
 	// something for missing things?
-		// how many skills are left
-		// current loot tables for searches.
-			// must ignore inaccessable searches.
-			// ????? for resulting items that are not curently in the library.
-				// IDK what to do for memories & items that are "discovered" but not present.
+	// 	how many skills are left
+	// 	current loot tables for searches.
+	// 		must ignore inaccessable searches.
+	// 		????? for resulting items that are not curently in the library.
+	// 			IDK what to do for memories & items that are "discovered" but not present.
 	// something for advanced stuff.
-		// list all recipes that create items, where X amount of the item is not already created
-		// list max aspects possible for given crafting bench.
-		// list max aspects possible for arbitrary crafting options (books).
-]];
+	misc,
+	// show max aspects \w specific inputs (skill, knowledge, memories, fuel, flower, ...)
+	tables,
+	// ["alias",[
+	// 	["save",(_=>undefined),"saves the last used command"],
+	// 	["load",(_=>undefined),"loads a specific alias and runs the command"],
+	// ],"save frequently used commands for easy use"],
+], ""];
+
+if (isDebug) {inputTree[1].push(debugCommands);}
 
 async function main(): Promise<void> {
 	await term.drawImage(
 		"resources/splash.png",
-		{shrink:{width:term.width,height:term.height*4}},
+		{shrink: {width: term.width, height: term.height*4}},
 	);
 	term.yellow("Book of Hours' Watcher\n");
 	const fileLoadingProgress = term.progressBar({
 		title: "Loading Files",
-		items: loader.fileMetaDataList.length,
+		items: fileMetaDataList.length,
 		inline: true,
 		// syncMode: true, // BUGGED: https://github.com/cronvel/terminal-kit/issues/251
 	});
-	await loader.loadFiles((type,filename):void=>{
-		switch(type){
+	await fileLoader.loadFiles((type, filename): void=>{
+		switch (type) {
 			case "start":{
 				fileLoadingProgress.startItem(filename);
 				break;
@@ -63,8 +70,9 @@ async function main(): Promise<void> {
 			}
 			case "failed":{
 				fileLoadingProgress.stop();
-				term.red("failed to load "+filename+"\n");
-				break;
+				term.red("failed to load "+dataFolder+"\\"+filename+"\n");
+				term.red("Check \"installFolder\" in the config.js file or verify your game's integrity.\n");
+				throw new Error();
 			}
 		}
 	});
@@ -73,52 +81,97 @@ async function main(): Promise<void> {
 }
 
 async function inputLoop(): Promise<void> {
-	// TODO: persist history
-	const history: string[] = [];
-	while(true){
+	while (true) {
 		term("> ");
 		const input = await term.inputField({
-			history: history,
-			autoComplete: inputTree[1].flatMap(command=>generateAutocomplete(command)),
+			history: await fileLoader.getHistory(),
+			autoComplete: generateAutocomplete,
 			autoCompleteMenu: true,
 			autoCompleteHint: true,
 		}).promise;
 		term("\n");
-		if(!input){
+		if (!input) {
 			term.eraseLine();
 			term.previousLine(0);
 			continue;
 		}
-		history.push(input);
 		const parts = input.split(" ").filter(part=>part!=="");
 		const commandLookup = findCommand(parts);
-		if(commandLookup===undefined){
-			term.yellow("command not found.\n")
+		if (commandLookup===undefined) {
+			term.yellow("command not found.\n");
+			await fileLoader.addHistory(input);
 			continue;
 		}
-		await commandLookup[0](term,commandLookup[1]);
+		try {
+			const changedArguments = await commandLookup[1](term, commandLookup[2]);
+			const finalArgs = changedArguments!==""?changedArguments:commandLookup[2].join(" ");
+			await fileLoader.addHistory((commandLookup[0].join(" ")+" "+finalArgs).trimEnd());
+		} catch (error) {
+			term.red("command threw an error.\n");
+			if (isDebug) {
+				term.red((error as Error).stack??""+"\n");
+				term.red((error as Error).name+"\n");
+				term.red((error as Error).message+"\n");
+			}
+			await fileLoader.addHistory(input);
+		}
 	}
 }
-function findCommand(parts:string[]):[commandFunc,string[]]|undefined{
-	// TODO: clean this up
-	let targetNode:inputNode = inputTree;
-	for(let i=0;i<=parts.length;i++) {
-		const [_name,data] = targetNode;
-		if(!Array.isArray(data)){return [data,parts.splice(i)];}
-		if(parts.length===i){return;}
-		const nextNode = data.find(([name,_data]):boolean=>name===parts[i].toLowerCase());
-		if(nextNode===undefined){return;}
+function findCommand(parts: string[]): [string[], types.commandFunc, string[]]|undefined {
+	let targetNode: types.inputNode = inputTree;
+	const tree: string[] = [];
+	for (let i=0;i<=parts.length;i++) {
+		const [, data] = targetNode;
+		if (!Array.isArray(data)) {return [tree, data, parts.splice(i)];}
+		if (parts.length===i) {return;}
+		const nextNode = data.find(
+			([names, _data]): boolean=>names.some(
+				name=>name.toLowerCase()===parts[i].toLowerCase(),
+			),
+		);
+		if (nextNode===undefined) {return;}
 		targetNode = nextNode;
+		tree.push(nextNode[0][0]);
 	}
 	return;
 }
-function generateAutocomplete([name,data]:inputNode): string[]{
-	if(Array.isArray(data)){
-		return data.flatMap(subCommand=>generateAutocomplete(subCommand).map(part=>name+" "+part));
+function generateAutocomplete(input: string): string|string[] {
+	// FIXME: tabbing at end of fully complete command causes autocomplete to show parent command
+	// FIXME: tabbing \w just a single ` as input causes a crash. maybe returns empty array?
+	const parts = input.toLowerCase().split(" ").filter(part=>part!=="");
+	let outputTarget: types.inputNode = inputTree;
+	let index = 0;
+	const output: string[] = [];
+	const getAliasName = (aliases: string[], targ: string): string=>{
+		return aliases.find(name=>name.startsWith(targ))??aliases[0];
+	};
+	while (true) {
+		const command = outputTarget[1];
+		if (!Array.isArray(command)) {
+			// command found. keep the rest of user input
+			return [...output, ...parts.slice(index)].join(" ");
+		}
+		const part = parts[index]??"";
+		const subCommands = command.filter(inputNode=>inputNode[0].some(name=>name.startsWith(part)));
+		if (subCommands.length > 1) {
+			// multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
+			return subCommands.map(subCommand=>[...output, getAliasName(subCommand[0], part)].join(" "));
+		}
+		if (subCommands.length === 0) {
+			// unknown command
+			return [...output, ...parts.slice(index)].join(" ");
+		}
+		if (parts.length <= index+1 && part.length < subCommands[0].length) {
+			// still typing command
+			return [...output, getAliasName(subCommands[0][0], part)].join(" ");
+		}
+		// switch target to the only command left
+		outputTarget = subCommands[0];
+		output.push(getAliasName(subCommands[0][0], part));
+		index++;
 	}
-	return [name]
-} 
+}
 
-main().finally(():void=>{
+void main().finally((): void=>{
 	term.processExit(0);
-})
+});
