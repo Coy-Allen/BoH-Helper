@@ -1,6 +1,6 @@
 import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
-import { jsonSpacing, saveLocation } from "./config.js";
+import { jsonSpacing, saveLocation, defaultFile } from "./config.js";
 import { watch } from "fs";
 let saveFileWatcher;
 export async function exit(term) {
@@ -12,12 +12,12 @@ export async function exit(term) {
 }
 export async function load(term) {
     if (!closeWatcher()) {
-        term("closing previous save file watcher.\n");
+        term("closed previous save file watcher.\n");
     }
     term("save file> ");
     const filename = await term.fileInput({
         baseDir: saveLocation,
-        default: "AUTOSAVE.json",
+        default: defaultFile,
     }).catch((_) => {
         term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
     });
@@ -44,8 +44,9 @@ export async function load(term) {
                 term("save file reloaded.\n");
                 return;
             }
-            term.red("save file watcher encountered an error and will close.\n");
-            closeWatcher();
+            // FIXME: just try again. skipping this for now
+            // term.red("save file watcher encountered an error and will close.\n");
+            // closeWatcher();
         });
     });
     term("file watcher created\n");

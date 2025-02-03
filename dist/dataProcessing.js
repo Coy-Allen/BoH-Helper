@@ -260,15 +260,13 @@ export const filterBuilders = {
     },
     basicItemFilter: (options) => {
         const aspectFilter = filterBuilders.aspectFilter(options, (elem) => elem.aspects);
-        const nameInvalid = options.nameInvalid;
-        new RegExp(options.nameInvalid);
-        const nameValid = options.nameValid;
-        new RegExp(options.nameValid);
+        const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
+        const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
         return (item) => {
-            if (options.nameInvalid && (new RegExp(options.nameInvalid))?.test(item.entityid)) {
+            if (nameInvalid?.test(item.entityid)) {
                 return false;
             }
-            if (options.nameValid && !(new RegExp(options.nameValid)).test(item.entityid)) {
+            if (nameValid && !nameValid.test(item.entityid)) {
                 return false;
             }
             return aspectFilter(item);

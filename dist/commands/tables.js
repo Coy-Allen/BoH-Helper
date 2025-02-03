@@ -6,6 +6,7 @@ const tables = [["tables"], [
         [["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],
         [["maxAspectsAssistance"], maxAspectsAssistance, "shows max aspects available using assistance. Memories are excluded, checks all helpers, everything else only checks owned items/omens."],
         [["minAspectRoomUnlock"], minAspectUnlockableRooms, "shows the minimum aspects needed to unlock a room. might break for strange rooms."],
+        [["minAspectBooks"], minAspectBooks, "shows the mimimum required aspects to read a book from your owned books."],
         // list max aspects possible for given crafting bench.
         // list min aspects needed for a new book
     ], "display's tables of info"];
@@ -26,7 +27,7 @@ async function maxAspects(term, parts) {
         ],
     });
     // calculate
-    const calc = calcMaxAspects(args.row, args.col);
+    const calc = calcAspectLimit(args.row, maxAspectCheck, args.col);
     // print result
     printMaxAspects(term, calc.header, args.row.map(row => JSON.stringify(row)), calc.data, calc.totals);
     return JSON.stringify(args);
@@ -78,9 +79,9 @@ async function maxAspectsPreset(term, parts) {
         ;
         return options;
     });
-    const calc = calcMaxAspects(filters, aspects);
+    const calc = calcAspectLimit(filters, maxAspectCheck, aspects);
     printMaxAspects(term, calc.header, filters.map(row => JSON.stringify(row)), calc.data, calc.totals);
-    return JSON.stringify([verbId, aspects]);
+    return JSON.stringify(args);
 }
 function maxAspectsAssistance(term, parts) {
     const types = [
@@ -104,13 +105,13 @@ function maxAspectsAssistance(term, parts) {
         totals: Array(13).fill(0),
     };
     const sharedAspects = ["ability", "tool", "sustenance", "beverage"]; // Memory won't be listed. due to memories being created as needed by the user.
-    const sharedCalc = calcMaxAspects(sharedAspects.map(aspect => ({ min: { [aspect]: 1 } })));
+    const sharedCalc = calcAspectLimit(sharedAspects.map(aspect => ({ min: { [aspect]: 1 } })), maxAspectCheck);
     for (const type of types) {
         const typeData = data.elements.get(type[0]);
         if (typeData === undefined) {
             continue;
         }
-        const people = data.elements.findAll(element => element.inherits === type[0]);
+        const people = data.elements.findAll(elem => elem.inherits === type[0]);
         if (people.length === 0) {
             continue;
         }
@@ -122,7 +123,7 @@ function maxAspectsAssistance(term, parts) {
             // returns nothing but adds the row to the resulting table.
             filters.push([]);
         }
-        const calc = calcMaxAspects(filters);
+        const calc = calcAspectLimit(filters, maxAspectCheck);
         for (let colIndex = 0; colIndex < max.totals.length; colIndex++) {
             const maxTotal = max.totals[colIndex];
             const calcTotal = calc.totals[colIndex];
@@ -131,7 +132,7 @@ function maxAspectsAssistance(term, parts) {
             maxTotal < calcTotal ||
                 // allow replacement of equal totals if the new one takes no extra item.
                 maxTotal === calcTotal &&
-                    max.data[1][colIndex][1] > 0 &&
+                    (max.data[1][colIndex][1] ?? 0) > 0 &&
                     calc.data[1][colIndex][1] === 0) {
                 max.totals[colIndex] = calcTotal;
                 for (let rowIndex = 0; rowIndex < 2; rowIndex++) {
@@ -146,6 +147,7 @@ function maxAspectsAssistance(term, parts) {
     return parts.join(" ");
 }
 function minAspectUnlockableRooms(term, parts) {
+    // TODO: rewrite this to use minAspectCheck
     const minAspect = defaultAspects.map(_ => ["-", undefined]);
     for (const room of save.roomsUnlockable.values()) {
         const recipe = data.recipes.find(entry => entry.id === `terrain.${room.payload.id}`);
@@ -180,6 +182,14 @@ function minAspectUnlockableRooms(term, parts) {
     printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
     return parts.join(" ");
 }
+function minAspectBooks(term, parts) {
+    const calc = calcAspectLimit([{
+            any: Object.fromEntries(defaultAspects.map(aspect => ["mystery." + aspect, 1])),
+            max: Object.fromEntries(defaultAspects.map(aspect => ["mastery." + aspect, 0])),
+        }], minAspectCheck, defaultAspects.map(aspect => "mystery." + aspect));
+    printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Book"], calc.data, calc.totals);
+    return parts.join(" ");
+}
 const defaultAspects = [
     "lantern",
     "forge",
@@ -195,37 +205,69 @@ const defaultAspects = [
     "scale",
     "rose",
 ];
-function calcMaxAspects(rowFilters, aspects = []) {
+function maxAspectCheck(item, aspect, targ) {
+    const itemAspects = item.aspects;
+    if (itemAspects?.[aspect] === undefined ||
+        itemAspects[aspect] === 0) {
+        return [-1, 0];
+    }
+    if (targ.length === 0) {
+        return [itemAspects[aspect], itemAspects[aspect]];
+    }
+    const diff = itemAspects[aspect] - targ[1];
+    return [diff, itemAspects[aspect]];
+}
+function minAspectCheck(item, aspect, targ) {
+    const itemAspects = item.aspects;
+    if (itemAspects?.[aspect] === undefined ||
+        itemAspects[aspect] === 0) {
+        return [-1, 0];
+    }
+    if (targ.length === 0) {
+        return [itemAspects[aspect], itemAspects[aspect]];
+    }
+    const diff = targ[1] - itemAspects[aspect];
+    return [diff, itemAspects[aspect]];
+}
+function calcAspectLimit(rowFilters, check, // [sort, target count]
+aspects = []) {
     const rowContents = [];
     const aspectsToUse = aspects.length !== 0 ? aspects : defaultAspects;
     const header = ["filter query", ...markupReplace(aspectsToUse)];
-    const counts = new Array(aspectsToUse.length).fill(0);
     for (const rowFilter of rowFilters) {
         const rowContent = [];
         const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.aspectFilter(rowFilter, item => item.aspects));
         for (const aspect of aspectsToUse) {
-            let name = "-";
-            let max = 0;
+            const target = [];
             for (const item of foundItems) {
-                const itemAspect = item.aspects?.[aspect] ?? 0;
-                if (itemAspect > max) {
-                    /** @ts-expect-error this was a rough implementation to allow both save items and data items */
-                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    name = item.entityid ?? item.id;
-                    max = itemAspect;
+                const [compSort, itemAspect] = check(item, aspect, target);
+                const name = "entityid" in item ? item.entityid : item.id;
+                if (compSort > 0) {
+                    target[0] = name;
+                    target[1] = itemAspect;
                 }
+                else if (compSort === 0) {
+                    target[0] = (target[0] === undefined ? "" : target[0] + "/") + name;
+                    target[1] = itemAspect;
+                } // else {} // ignore all compSort < 0
             }
-            rowContent.push([name, max]);
+            rowContent.push(target);
         }
         rowContents.push(rowContent);
-        for (let i = 0; i < rowContent.length; i++) {
-            counts[i] += rowContent[i][1];
-        }
     }
     return {
         header: header,
         data: rowContents,
-        totals: counts,
+        totals: rowContents.reduce((total, row) => {
+            for (let i = 0; i < total.length; i++) {
+                const cell = row[i];
+                if (cell.length === 0) {
+                    continue;
+                }
+                total[i] += cell[1];
+            }
+            return total;
+        }, new Array(aspectsToUse.length).fill(0)),
     };
 }
 function printMaxAspects(term, header, titles, tableData, totals) {
@@ -234,7 +276,7 @@ function printMaxAspects(term, header, titles, tableData, totals) {
         header,
         ...tableData.map((row, rowIndex) => {
             // TODO: color the cells
-            return [titles[rowIndex], ...row.map(cell => `^c${cell[0]}^::\n^b${cell[1]}^:`)];
+            return [titles[rowIndex], ...row.map(cell => cell.length === 0 ? "" : `^c${cell[0]}^::\n^b${cell[1]}^:`)];
         }),
         ["totals", ...totals.map(count => "^b" + count.toString() + "^:")],
     ];

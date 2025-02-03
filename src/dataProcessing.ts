@@ -273,7 +273,7 @@ export const filterBuilders = {
 		const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
 		const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
 		return (item: element): boolean => {
-			if (nameInvalid && nameInvalid.test(item.entityid)) {return false;}
+			if (nameInvalid?.test(item.entityid)) {return false;}
 			if (nameValid && !nameValid.test(item.entityid)) {return false;}
 			return aspectFilter(item);
 		};

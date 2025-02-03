@@ -2,7 +2,7 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
 import {validateOrGetInput, itemFilter, aspectTarget} from "../commandHelpers.js";
-import {data, filterBuilders, save} from "../dataProcessing.js";
+import {data, element, filterBuilders, save} from "../dataProcessing.js";
 import {markupReplace} from "../dataVisualizationFormatting.js";
 
 const tables: types.inputNode = [["tables"], [
@@ -10,6 +10,7 @@ const tables: types.inputNode = [["tables"], [
 	[["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],
 	[["maxAspectsAssistance"], maxAspectsAssistance, "shows max aspects available using assistance. Memories are excluded, checks all helpers, everything else only checks owned items/omens."],
 	[["minAspectRoomUnlock"], minAspectUnlockableRooms, "shows the minimum aspects needed to unlock a room. might break for strange rooms."],
+	[["minAspectBooks"], minAspectBooks, "shows the mimimum required aspects to read a book from your owned books."],
 	// list max aspects possible for given crafting bench.
 	// list min aspects needed for a new book
 ], "display's tables of info"];
@@ -31,7 +32,7 @@ async function maxAspects(term: Terminal, parts: string[]): Promise<string> {
 		],
 	});
 	// calculate
-	const calc = calcMaxAspects(args.row, args.col);
+	const calc = calcAspectLimit(args.row, maxAspectCheck, args.col);
 	// print result
 	printMaxAspects(term, calc.header, args.row.map(row=>JSON.stringify(row)), calc.data, calc.totals);
 	return JSON.stringify(args);
@@ -75,9 +76,9 @@ async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string
 		};
 		return options;
 	});
-	const calc = calcMaxAspects(filters, aspects);
+	const calc = calcAspectLimit(filters, maxAspectCheck, aspects);
 	printMaxAspects(term, calc.header, filters.map(row=>JSON.stringify(row)), calc.data, calc.totals);
-	return JSON.stringify([verbId, aspects]);
+	return JSON.stringify(args);
 }
 
 function maxAspectsAssistance(term: Terminal, parts: string[]): string {
@@ -96,18 +97,18 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 		["_assistance.usessound", "sound"],
 	] as const;
 	// note that this is a transformed version of the table (swapping rows & cols)
-	const max: maxAspectsResult = {
+	const max: aspectLimitResult = {
 		header: [], // unused
 		data: [Array<[string, number]>(13).fill(["-", 0]), Array<[string, number]>(13).fill(["-", 0])],
 		totals: Array<number>(13).fill(0),
 	};
 
 	const sharedAspects = ["ability", "tool", "sustenance", "beverage"]; // Memory won't be listed. due to memories being created as needed by the user.
-	const sharedCalc = calcMaxAspects(sharedAspects.map(aspect=>({min: {[aspect]: 1}})));
+	const sharedCalc = calcAspectLimit(sharedAspects.map(aspect=>({min: {[aspect]: 1}})), maxAspectCheck);
 	for (const type of types) {
 		const typeData = data.elements.get(type[0]);
 		if (typeData === undefined) {continue;}
-		const people = data.elements.findAll(element=>element.inherits===type[0]);
+		const people = data.elements.findAll(elem=>elem.inherits===type[0]);
 		if (people.length===0) {continue;}
 		const filters: (types.itemSearchOptions|Readonly<types.dataElement>[])[] = [people];
 		if (type[1]) {
@@ -116,7 +117,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 			// returns nothing but adds the row to the resulting table.
 			filters.push([]);
 		}
-		const calc = calcMaxAspects(filters);
+		const calc = calcAspectLimit(filters, maxAspectCheck);
 		for (let colIndex = 0; colIndex < max.totals.length; colIndex++) {
 			const maxTotal = max.totals[colIndex];
 			const calcTotal = calc.totals[colIndex];
@@ -125,7 +126,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 				maxTotal < calcTotal ||
 				// allow replacement of equal totals if the new one takes no extra item.
 				maxTotal === calcTotal &&
-				max.data[1][colIndex][1] > 0 &&
+				(max.data[1][colIndex][1]??0) > 0 &&
 				calc.data[1][colIndex][1] === 0
 			) {
 				max.totals[colIndex] = calcTotal;
@@ -147,6 +148,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 }
 
 function minAspectUnlockableRooms(term: Terminal, parts: string[]): string {
+	// TODO: rewrite this to use minAspectCheck
 	const minAspect: [string, number|undefined][] = defaultAspects.map(_=>["-", undefined]);
 	for (const room of save.roomsUnlockable.values()) {
 		const recipe = data.recipes.find(entry=>entry.id===`terrain.${room.payload.id}`);
@@ -180,10 +182,19 @@ function minAspectUnlockableRooms(term: Terminal, parts: string[]): string {
 	return parts.join(" ");
 }
 
+function minAspectBooks(term: Terminal, parts: string[]): string {
+	const calc = calcAspectLimit([{
+		any: Object.fromEntries(defaultAspects.map(aspect=>["mystery."+aspect, 1])),
+		max: Object.fromEntries(defaultAspects.map(aspect=>["mastery."+aspect, 0])),
+	}], minAspectCheck, defaultAspects.map(aspect=>"mystery."+aspect));
+	printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Book"], calc.data, calc.totals);
+	return parts.join(" ");
+}
+
 // Shared code
-interface maxAspectsResult {
+interface aspectLimitResult {
 	header: string[];
-	data: [string, number][][];
+	data: ([string, number]|[])[][];
 	totals: number[];
 }
 const defaultAspects = [
@@ -202,47 +213,75 @@ const defaultAspects = [
 	"rose",
 ];
 
-function calcMaxAspects(rowFilters: (types.itemSearchOptions|types.dataElement[])[], aspects: string[] = []): maxAspectsResult {
-	const rowContents: [string, number][][] = [];
+function maxAspectCheck(item: types.dataElement | element, aspect: string, targ: ([string, number]|[])): [number, number] {
+	const itemAspects = item.aspects;
+	if (
+		itemAspects?.[aspect] === undefined ||
+		itemAspects[aspect] === 0
+	) {return [-1, 0];}
+	if (targ.length===0) {return [itemAspects[aspect], itemAspects[aspect]];}
+	const diff = itemAspects[aspect] - targ[1];
+	return [diff, itemAspects[aspect]];
+}
+function minAspectCheck(item: types.dataElement | element, aspect: string, targ: ([string, number]|[])): [number, number] {
+	const itemAspects = item.aspects;
+	if (
+		itemAspects?.[aspect] === undefined ||
+		itemAspects[aspect] === 0
+	) {return [-1, 0];}
+	if (targ.length===0) {return [itemAspects[aspect], itemAspects[aspect]];}
+	const diff = targ[1] - itemAspects[aspect];
+	return [diff, itemAspects[aspect]];
+}
+
+function calcAspectLimit(
+	rowFilters: (types.itemSearchOptions|types.dataElement[])[],
+	check: (item: types.dataElement | element, aspect: string, targ: ([string, number]|[])) => [number, number], // [sort, target count]
+	aspects: string[] = [],
+): aspectLimitResult {
+	const rowContents: ([string, number]|[])[][] = [];
 	const aspectsToUse = aspects.length!==0?aspects:defaultAspects;
 	const header = ["filter query", ...markupReplace(aspectsToUse)];
-	const counts: number[] = new Array<number>(aspectsToUse.length).fill(0);
-
 	for (const rowFilter of rowFilters) {
-		const rowContent: [string, number][] = [];
+		const rowContent: ([string, number]|[])[] = [];
 		const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.aspectFilter(rowFilter, item=>item.aspects));
 		for (const aspect of aspectsToUse) {
-			let name = "-";
-			let max = 0;
+			const target: [string, number]|[] = [] as [string, number]|[];
 			for (const item of foundItems) {
-				const itemAspect = item.aspects?.[aspect] ?? 0;
-				if (itemAspect>max) {
-					/** @ts-expect-error this was a rough implementation to allow both save items and data items */
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-					name = item.entityid ?? item.id;
-					max = itemAspect;
-				}
+				const [compSort, itemAspect] = check(item, aspect, target);
+				const name =  "entityid" in item ? item.entityid : item.id;
+				if (compSort > 0) {
+					target[0] = name;
+					target[1] = itemAspect;
+				} else if (compSort === 0) {
+					target[0] = (target[0]===undefined ? "" : target[0]+"/")+name;
+					target[1] = itemAspect;
+				}// else {} // ignore all compSort < 0
 			}
-			rowContent.push([name, max]);
+			rowContent.push(target);
 		}
 		rowContents.push(rowContent);
-		for (let i=0;i<rowContent.length;i++) {
-			counts[i]+=rowContent[i][1];
-		}
 	}
 	return {
 		header: header,
 		data: rowContents,
-		totals: counts,
+		totals: rowContents.reduce((total, row): number[]=>{
+			for (let i=0;i<total.length;i++) {
+				const cell = row[i];
+				if (cell.length===0) {continue;}
+				total[i] += cell[1];
+			}
+			return total;
+		}, new Array<number>(aspectsToUse.length).fill(0)),
 	};
 }
-function printMaxAspects(term: Terminal, header: string[], titles: string[], tableData: [string, number][][], totals: number[]): void {
+function printMaxAspects(term: Terminal, header: string[], titles: string[], tableData: ([string, number]|[])[][], totals: number[]): void {
 	const table = [
 		// TODO: color cells based on aspect
 		header,
 		...tableData.map((row, rowIndex): string[]=>{
 			// TODO: color the cells
-			return [titles[rowIndex], ...row.map(cell=>`^c${cell[0]}^::\n^b${cell[1]}^:`)];
+			return [titles[rowIndex], ...row.map(cell=>cell.length===0?"":`^c${cell[0]}^::\n^b${cell[1]}^:`)];
 		}),
 		["totals", ...totals.map(count=>"^b"+count.toString()+"^:")],
 	];

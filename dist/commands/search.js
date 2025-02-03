@@ -86,7 +86,7 @@ async function searchItems(term, parts) {
                 }],
         ],
     });
-    const items = save.elements.filter(filterBuilders.aspectFilter(args.filter, item => item.aspects));
+    const items = save.elements.filter(filterBuilders.basicItemFilter(args.filter));
     dataVis.displayItemList(term, items, args.output);
     if (parts.length === 0) {
         return JSON.stringify(args);
