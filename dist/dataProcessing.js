@@ -258,14 +258,23 @@ export const filterBuilders = {
             return true;
         };
     },
+    basicItemFilter: (options) => {
+        const aspectFilter = filterBuilders.aspectFilter(options, (elem) => elem.aspects);
+        const nameInvalid = options.nameInvalid;
+        new RegExp(options.nameInvalid);
+        const nameValid = options.nameValid;
+        new RegExp(options.nameValid);
+        return (item) => {
+            if (options.nameInvalid && (new RegExp(options.nameInvalid))?.test(item.entityid)) {
+                return false;
+            }
+            if (options.nameValid && !(new RegExp(options.nameValid)).test(item.entityid)) {
+                return false;
+            }
+            return aspectFilter(item);
+        };
+    },
     /*
-        basicItemFilter: (options: types.itemSearchOptions): ((item: element) => boolean) => {
-            return (item: element): boolean => {
-                if (options.nameInvalid?.test(item.entityid)) {return false;}
-                if (options.nameValid && !options.nameValid.test(item.entityid)) {return false;}
-                return aspectFilter(options, item.aspects);
-            };
-        },
         basicRecipeFilter: (options: types.itemSearchOptions): ((item: types.dataRecipe) => boolean) => {
             return (item: types.dataRecipe): boolean => {
                 if (options.nameInvalid?.test(item.id)) {return false;}

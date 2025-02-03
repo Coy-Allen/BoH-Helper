@@ -279,10 +279,8 @@ export async function availableMemories(term, parts) {
         // FIXME: use all filter options
         if (args.filter?.any !== undefined) {
             const filterEntries = Object.entries(args.filter.any);
-            for (const [aspect, count] of filterEntries) {
-                if ((aspects[aspect] ?? 0) < count) {
-                    return false;
-                }
+            if (!filterEntries.some(([aspect, count]) => (aspects[aspect] ?? 0) > count)) {
+                return false;
             }
         }
         if (!args.owned) {

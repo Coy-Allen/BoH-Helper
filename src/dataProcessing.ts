@@ -268,14 +268,17 @@ export const filterBuilders = {
 			return true;
 		};
 	},
-/*
 	basicItemFilter: (options: types.itemSearchOptions): ((item: element) => boolean) => {
+		const aspectFilter = filterBuilders.aspectFilter(options, (elem: element)=>elem.aspects);
+		const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
+		const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
 		return (item: element): boolean => {
-			if (options.nameInvalid?.test(item.entityid)) {return false;}
-			if (options.nameValid && !options.nameValid.test(item.entityid)) {return false;}
-			return aspectFilter(options, item.aspects);
+			if (nameInvalid && nameInvalid.test(item.entityid)) {return false;}
+			if (nameValid && !nameValid.test(item.entityid)) {return false;}
+			return aspectFilter(item);
 		};
 	},
+/*
 	basicRecipeFilter: (options: types.itemSearchOptions): ((item: types.dataRecipe) => boolean) => {
 		return (item: types.dataRecipe): boolean => {
 			if (options.nameInvalid?.test(item.id)) {return false;}
