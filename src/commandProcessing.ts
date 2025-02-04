@@ -16,16 +16,21 @@ export async function exit(term: Terminal): Promise<string> {
 	term.processExit(0);
 	return "";
 }
-export async function load(term: Terminal): Promise<string> {
-	if (!closeWatcher()) {term("closed previous save file watcher.\n");}
-	term("save file> ");
-	const filename = await term.fileInput({
-		baseDir: saveLocation,
-		default: defaultFile,
-	}).catch((_: unknown): void=>{
-		term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
-	});
-	term("\n");
+export async function load(term: Terminal, parts: string[]): Promise<string> {
+	if (closeWatcher()) {term("closed previous save file watcher.\n");}
+	let filename;
+	if (parts.length===0) {
+		term("save file> ");
+		filename = await term.fileInput({
+			baseDir: saveLocation,
+			default: defaultFile,
+		}).catch((_: unknown): void=>{
+			term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
+		});
+		term("\n");
+	} else {
+		filename = saveLocation+"/"+parts.join(" ");
+	}
 	if (!filename) {
 		term.yellow("File not found.\n");
 		return "";
@@ -34,26 +39,29 @@ export async function load(term: Terminal): Promise<string> {
 		term.yellow("File failed to load.\n");
 		return "";
 	}
-	term("watch file for changes? [y|N]\n");
-	if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return "";}
-	// FIXME: game saves in multiple passes! it WILL fail ~3 times,
-	//   then save unfinished copies 2 times before saving 1 final time.
-	// FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
-	//   then runs the code just before the main input loop asks for user input?
-	saveFileWatcher = watch(filename, (_event): void=>{
-		void loadFile(filename).then(res=>{
-			if (res) {
-				term("save file reloaded.\n");
-				return;
-			}
-			// FIXME: just try again. skipping this for now
-			// term.red("save file watcher encountered an error and will close.\n");
-			// closeWatcher();
+	if (parts.length===0) {
+		term("watch file for changes? [y|N]\n");
+		if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return "";}
+		// FIXME: game saves in multiple passes! it WILL fail ~3 times,
+		//   then save unfinished copies 2 times before saving 1 final time.
+		// FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
+		//   then runs the code just before the main input loop asks for user input?
+		saveFileWatcher = watch(filename, (_event): void=>{
+			void loadFile(filename).then(res=>{
+				if (res) {
+					term("save file reloaded.\n");
+					return;
+				}
+				// FIXME: just try again. skipping this for now
+				// term.red("save file watcher encountered an error and will close.\n");
+				// closeWatcher();
+			});
 		});
-	});
-	term("file watcher created\n");
+		term("file watcher created\n");
+		return "";
+	}
 	// TODO: make args pick which file to load.
-	return "";
+	return parts.join(" ");
 }
 
 function closeWatcher(): boolean {

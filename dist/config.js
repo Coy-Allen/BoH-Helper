@@ -3,6 +3,7 @@ import os from "os";
 export const installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
 export const saveLocation = os.homedir() + "\\AppData\\LocalLow\\Weather Factory\\Book of Hours";
 export const maxHistory = 50;
+export const shouldAutoloadSave = true;
 export const defaultFile = "AUTOSAVE.json";
 export const defaultItemDisplay = "aspects";
 // NOTICE: powershell WILL NOT use trueColors unless you run this command before running the program. (https://github.com/cronvel/terminal-kit/issues/253)

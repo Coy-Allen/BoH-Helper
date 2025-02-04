@@ -2,7 +2,7 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
 import {jsonSpacing, markupItems} from "../config.js";
-import {save, data, mergeAspects} from "../dataProcessing.js";
+import {save, data, mergeAspects, filterBuilders} from "../dataProcessing.js";
 import {validateOrGetInput, itemFilter} from "../commandHelpers.js";
 
 
@@ -20,7 +20,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	const groupings = [
 		["skillRecipes", "otherRecipes", "unknownRecipes"],
 		["decks", "decksExtra"],
-		["talk", "consider"],
+		// ["talk", "consider"],
 	] as const;
 	const isIntersecting = (a: readonly string[], b: readonly string[]): boolean=>a.some(str=>b.includes(str));
 	const filterEffects = (a: Record<string, number>): string[] =>{
@@ -81,7 +81,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		"disassemble",
 		"pumps",
 		"draw",
-		"salon",
+		// "salon",
 		"cook",
 		"gather",
 		"well",
@@ -157,6 +157,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 			if (effectsList.length>0) {result.push([deck.id, effectsList]);}
 		};
 	}
+	/*
 	if (isIntersecting(sources, groupings[2])) {
 		const saveItemUnique = new Set(save.elements.values().map(item=>item.entityid));
 		for (const itemId of saveItemUnique) {
@@ -173,6 +174,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 			}
 		}
 	}
+	*/
 	// filter all the valid items
 	const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
 	const allItems = new Set<string>(result.flatMap(groups=>groups[1]));
@@ -225,6 +227,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 			}
 		}
 	};
+	const autocomplete = ["recipes", "reusables", "consumables", "books", "all"] as const;
 	// input
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
@@ -235,7 +238,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 				id: "stringArray",
 				name: "memory sources",
 				options: {
-					autocomplete: ["recipes", "itemsReusable", "itemsConsumable", "books"],
+					autocomplete: [...autocomplete],
 					strict: true,
 				},
 			}],
@@ -249,6 +252,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 			}],
 		],
 	});
+	const inputs = args.inputs.includes("all") ? autocomplete : args.inputs as unknown as typeof autocomplete;
 	// processing
 	const appendToMap = (map: Map<string, string[]>, key: string, value: string): void=>{
 		if (!map.has(key)) {map.set(key, []);}
@@ -256,22 +260,18 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 		if (!array) {return;}
 		array.push(value);
 	};
+	const filterFull = args.filter??{};
+	if (filterFull.min===undefined) {filterFull.min = {};}
+	filterFull.min["memory"] = 1;
+	const filter = args.filter ? filterBuilders.dataItemFilter(args.filter):undefined;
 	const isValid = (itemId: string): boolean=>{
-		const aspects = mergeAspects(data.elements.getInheritedProperty(itemId, "aspects"));
-		if (!aspects["memory"]) {return false;}
-		// FIXME: use all filter options
-		if (args.filter?.any !== undefined) {
-			const filterEntries = Object.entries(args.filter.any);
-			if(!filterEntries.some(([aspect, count])=> (aspects[aspect]??0) > count)) {return false;}
-		}
-		if (!args.owned) {
-			const alreadyObtained = save.elements.find(item=>item.entityid===itemId);
-			if (alreadyObtained) {return false;}
+		if (filter && !filter(itemId)) {
+			return false;
 		}
 		return true;
 	};
 	const result: availableMemoriesResult = {};
-	if (args.inputs.includes("recipes")) {
+	if (inputs.includes("recipes")) {
 		const foundRecipes = new Map<string, string[]>();
 		const recipes = data.recipes.filter(recipe=>save.recipes.has(recipe.id));
 		for (const recipe of recipes) {
@@ -287,63 +287,72 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 	}
 	// FIXME: items are broken
 	if (
-		args.inputs.includes("itemsReusable") ||
-		args.inputs.includes("itemsConsumable") ||
-		args.inputs.includes("books")
+		inputs.includes("reusables") ||
+		inputs.includes("consumables") ||
+		inputs.includes("books")
 	) {
 		const foundReusableInspect = new Map<string, string[]>();
 		const foundReusableTalk = new Map<string, string[]>();
 		const foundConsumableInspect = new Map<string, string[]>();
 		const foundConsumableTalk = new Map<string, string[]>();
 		const items = [...new Set(save.elements.values().map(item=>item.entityid))]
-			.map(itemId=>data.elements.find(itemData=>itemData.id===itemId))
-			.filter(itemData=>itemData!==undefined);
-		for (const item of items) {
-			if (!item.xtriggers) {
-				continue;
-			}
-			for (const [type, infoArr] of Object.entries(item.xtriggers)) {
+			.map(itemId=>data.elements.getInherited(itemId))
+			.filter(itemList=>itemList.length!==0);
+		for (const itemInheritedList of items) {
+			if (itemInheritedList.length===0) {continue;}
+			const item = {
+				id: itemInheritedList[0].id,
+				xtriggers: Object.assign(
+					{},
+					...itemInheritedList
+						.map(itemInherited=>itemInherited.xtriggers)
+						.filter(xtriggers=>xtriggers!==undefined)
+						.reverse(),
+				) as NonNullable<types.dataElement["xtriggers"]>,
+			};
+			const xtriggers = Object.entries(item.xtriggers);
+			const consumable = xtriggers.find(([type, _infoArr]): boolean=>type === "fatiguing");
+			for (const [type, infoArr] of xtriggers) {
 				for (const info of infoArr) {
 					if (typeof info === "string" || info.morpheffect !== "spawn") {continue;}
 					if (!isValid(info.id)) {continue;}
 					// ignore books if asked
 					if (type.startsWith("reading.")) {
-						if (args.inputs.includes("books")) {
+						if (inputs.includes("books")) {
 							// FIXME: filter out non-mastered books
 							appendToMap(foundReusableInspect, info.id, item.id);
 						}
 						continue;
 					}
-					// FIXME: can't figure out what determines if something gets "used up"
-					// TEMP: just treat them as the same for now.
-					if (
-						!args.inputs.includes("itemsReusable") &&
-						!args.inputs.includes("itemsConsumable")
-					) {
-						continue;
-					}
-
 					if (type==="dist") {
-						appendToMap(foundConsumableTalk, info.id, item.id);
+						if (consumable) {
+							appendToMap(foundConsumableTalk, info.id, item.id);
+						} else {
+							appendToMap(foundReusableTalk, info.id, item.id);
+						}
 						continue;
 					}
 					if (type==="scrutiny") {
-						appendToMap(foundConsumableInspect, info.id, item.id);
+						if (consumable) {
+							appendToMap(foundConsumableInspect, info.id, item.id);
+						} else {
+							appendToMap(foundReusableInspect, info.id, item.id);
+						}
 						continue;
 					}
 				}
 			}
 		}
-		if (foundReusableInspect.size>0) {
+		if (foundReusableInspect.size>0 && inputs.includes("reusables")) {
 			result.itemsReusableInspect = [...foundReusableInspect.entries()];
 		}
-		if (foundReusableTalk.size>0) {
+		if (foundReusableTalk.size>0 && inputs.includes("reusables")) {
 			result.itemsReusableTalk = [...foundReusableTalk.entries()];
 		}
-		if (foundConsumableInspect.size>0) {
+		if (foundConsumableInspect.size>0 && inputs.includes("consumables")) {
 			result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
 		}
-		if (foundConsumableTalk.size>0) {
+		if (foundConsumableTalk.size>0 && inputs.includes("consumables")) {
 			result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
 		}
 	}

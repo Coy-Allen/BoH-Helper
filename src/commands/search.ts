@@ -85,13 +85,13 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string> {
 				name: "output format",
 				options: {
 					autocomplete: [...dataVis.itemDisplaySelection],
-					default: "full",
+					default: "rooms",
 					strict: true,
 				},
 			}],
 		],
 	});
-	const items = save.elements.filter(filterBuilders.basicItemFilter(args.filter));
+	const items = save.elements.filter(filterBuilders.saveItemFilter(args.filter));
 	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
 	if (parts.length === 0) {
 		return JSON.stringify(args);

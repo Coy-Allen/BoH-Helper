@@ -4,7 +4,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import {dataFolder, isDebug} from "./config.js";
+import {dataFolder, isDebug, shouldAutoloadSave, defaultFile} from "./config.js";
 
 
 import tables from "./commands/tables.js";
@@ -77,6 +77,14 @@ async function main(): Promise<void> {
 		}
 	});
 	term("\n");
+	if (shouldAutoloadSave) {
+		try {
+			await commandProcessing.load(term, defaultFile.split(" "));
+		} catch (_) {
+			term(`failed to autoload the save "${defaultFile}".`);
+		}
+	}
+	term("");
 	await inputLoop();
 }
 

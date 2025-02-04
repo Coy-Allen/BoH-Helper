@@ -1,5 +1,5 @@
 import { jsonSpacing, markupItems } from "../config.js";
-import { save, data, mergeAspects } from "../dataProcessing.js";
+import { save, data, mergeAspects, filterBuilders } from "../dataProcessing.js";
 import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
@@ -9,7 +9,7 @@ export async function missingCraftable(term, parts) {
     const groupings = [
         ["skillRecipes", "otherRecipes", "unknownRecipes"],
         ["decks", "decksExtra"],
-        ["talk", "consider"],
+        // ["talk", "consider"],
     ];
     const isIntersecting = (a, b) => a.some(str => b.includes(str));
     const filterEffects = (a) => {
@@ -72,7 +72,7 @@ export async function missingCraftable(term, parts) {
         "disassemble",
         "pumps",
         "draw",
-        "salon",
+        // "salon",
         "cook",
         "gather",
         "well",
@@ -162,8 +162,9 @@ export async function missingCraftable(term, parts) {
         }
         ;
     }
+    /*
     if (isIntersecting(sources, groupings[2])) {
-        const saveItemUnique = new Set(save.elements.values().map(item => item.entityid));
+        const saveItemUnique = new Set(save.elements.values().map(item=>item.entityid));
         for (const itemId of saveItemUnique) {
             const item = data.elements.get(itemId);
             if (!item) {
@@ -178,6 +179,7 @@ export async function missingCraftable(term, parts) {
             }
         }
     }
+    */
     // filter all the valid items
     const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
@@ -236,6 +238,7 @@ export async function availableMemories(term, parts) {
             }
         }
     };
+    const autocomplete = ["recipes", "reusables", "consumables", "books", "all"];
     // input
     const args = await validateOrGetInput(term, parts.join(" "), {
         id: "object",
@@ -246,7 +249,7 @@ export async function availableMemories(term, parts) {
                     id: "stringArray",
                     name: "memory sources",
                     options: {
-                        autocomplete: ["recipes", "itemsReusable", "itemsConsumable", "books"],
+                        autocomplete: [...autocomplete],
                         strict: true,
                     },
                 }],
@@ -260,6 +263,7 @@ export async function availableMemories(term, parts) {
                 }],
         ],
     });
+    const inputs = args.inputs.includes("all") ? autocomplete : args.inputs;
     // processing
     const appendToMap = (map, key, value) => {
         if (!map.has(key)) {
@@ -271,28 +275,20 @@ export async function availableMemories(term, parts) {
         }
         array.push(value);
     };
+    const filterFull = args.filter ?? {};
+    if (filterFull.min === undefined) {
+        filterFull.min = {};
+    }
+    filterFull.min["memory"] = 1;
+    const filter = args.filter ? filterBuilders.dataItemFilter(args.filter) : undefined;
     const isValid = (itemId) => {
-        const aspects = mergeAspects(data.elements.getInheritedProperty(itemId, "aspects"));
-        if (!aspects["memory"]) {
+        if (filter && !filter(itemId)) {
             return false;
-        }
-        // FIXME: use all filter options
-        if (args.filter?.any !== undefined) {
-            const filterEntries = Object.entries(args.filter.any);
-            if (!filterEntries.some(([aspect, count]) => (aspects[aspect] ?? 0) > count)) {
-                return false;
-            }
-        }
-        if (!args.owned) {
-            const alreadyObtained = save.elements.find(item => item.entityid === itemId);
-            if (alreadyObtained) {
-                return false;
-            }
         }
         return true;
     };
     const result = {};
-    if (args.inputs.includes("recipes")) {
+    if (inputs.includes("recipes")) {
         const foundRecipes = new Map();
         const recipes = data.recipes.filter(recipe => save.recipes.has(recipe.id));
         for (const recipe of recipes) {
@@ -307,21 +303,30 @@ export async function availableMemories(term, parts) {
         }
     }
     // FIXME: items are broken
-    if (args.inputs.includes("itemsReusable") ||
-        args.inputs.includes("itemsConsumable") ||
-        args.inputs.includes("books")) {
+    if (inputs.includes("reusables") ||
+        inputs.includes("consumables") ||
+        inputs.includes("books")) {
         const foundReusableInspect = new Map();
         const foundReusableTalk = new Map();
         const foundConsumableInspect = new Map();
         const foundConsumableTalk = new Map();
         const items = [...new Set(save.elements.values().map(item => item.entityid))]
-            .map(itemId => data.elements.find(itemData => itemData.id === itemId))
-            .filter(itemData => itemData !== undefined);
-        for (const item of items) {
-            if (!item.xtriggers) {
+            .map(itemId => data.elements.getInherited(itemId))
+            .filter(itemList => itemList.length !== 0);
+        for (const itemInheritedList of items) {
+            if (itemInheritedList.length === 0) {
                 continue;
             }
-            for (const [type, infoArr] of Object.entries(item.xtriggers)) {
+            const item = {
+                id: itemInheritedList[0].id,
+                xtriggers: Object.assign({}, ...itemInheritedList
+                    .map(itemInherited => itemInherited.xtriggers)
+                    .filter(xtriggers => xtriggers !== undefined)
+                    .reverse()),
+            };
+            const xtriggers = Object.entries(item.xtriggers);
+            const consumable = xtriggers.find(([type, _infoArr]) => type === "fatiguing");
+            for (const [type, infoArr] of xtriggers) {
                 for (const info of infoArr) {
                     if (typeof info === "string" || info.morpheffect !== "spawn") {
                         continue;
@@ -331,39 +336,43 @@ export async function availableMemories(term, parts) {
                     }
                     // ignore books if asked
                     if (type.startsWith("reading.")) {
-                        if (args.inputs.includes("books")) {
+                        if (inputs.includes("books")) {
                             // FIXME: filter out non-mastered books
                             appendToMap(foundReusableInspect, info.id, item.id);
                         }
                         continue;
                     }
-                    // FIXME: can't figure out what determines if something gets "used up"
-                    // TEMP: just treat them as the same for now.
-                    if (!args.inputs.includes("itemsReusable") &&
-                        !args.inputs.includes("itemsConsumable")) {
-                        continue;
-                    }
                     if (type === "dist") {
-                        appendToMap(foundConsumableTalk, info.id, item.id);
+                        if (consumable) {
+                            appendToMap(foundConsumableTalk, info.id, item.id);
+                        }
+                        else {
+                            appendToMap(foundReusableTalk, info.id, item.id);
+                        }
                         continue;
                     }
                     if (type === "scrutiny") {
-                        appendToMap(foundConsumableInspect, info.id, item.id);
+                        if (consumable) {
+                            appendToMap(foundConsumableInspect, info.id, item.id);
+                        }
+                        else {
+                            appendToMap(foundReusableInspect, info.id, item.id);
+                        }
                         continue;
                     }
                 }
             }
         }
-        if (foundReusableInspect.size > 0) {
+        if (foundReusableInspect.size > 0 && inputs.includes("reusables")) {
             result.itemsReusableInspect = [...foundReusableInspect.entries()];
         }
-        if (foundReusableTalk.size > 0) {
+        if (foundReusableTalk.size > 0 && inputs.includes("reusables")) {
             result.itemsReusableTalk = [...foundReusableTalk.entries()];
         }
-        if (foundConsumableInspect.size > 0) {
+        if (foundConsumableInspect.size > 0 && inputs.includes("consumables")) {
             result.itemsConsumableInspect = [...foundConsumableInspect.entries()];
         }
-        if (foundConsumableTalk.size > 0) {
+        if (foundConsumableTalk.size > 0 && inputs.includes("consumables")) {
             result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
         }
     }

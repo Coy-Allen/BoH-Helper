@@ -193,7 +193,8 @@ function getItemsFromSave() {
         const containers = itemDomain.spheres.filter((container) => {
             // FIXME: false negatives
             // the others are strange
-            return ["bookshelf", "wallart", "things", "comfort"].includes(container.governingspherespec.label);
+            return (["bookshelf", "wallart", "things", "comfort"].includes(container.governingspherespec.label) &&
+                !container.shrouded);
         });
         // FIXME: filter out non stack items
         const allItems = containers.flatMap(container => {
@@ -258,7 +259,7 @@ export const filterBuilders = {
             return true;
         };
     },
-    basicItemFilter: (options) => {
+    saveItemFilter: (options) => {
         const aspectFilter = filterBuilders.aspectFilter(options, (elem) => elem.aspects);
         const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
         const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
@@ -270,6 +271,20 @@ export const filterBuilders = {
                 return false;
             }
             return aspectFilter(item);
+        };
+    },
+    dataItemFilter: (options) => {
+        const aspectFilter = filterBuilders.aspectFilter(options, (aspects) => aspects);
+        const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
+        const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
+        return (itemId) => {
+            if (nameInvalid?.test(itemId)) {
+                return false;
+            }
+            if (nameValid && !nameValid.test(itemId)) {
+                return false;
+            }
+            return aspectFilter(mergeAspects(data.elements.getInheritedProperty(itemId, "aspects")));
         };
     },
     /*
