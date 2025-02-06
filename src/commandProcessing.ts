@@ -80,21 +80,26 @@ async function loadFile(filename: string): Promise<boolean> {
 	}
 }
 
-export function help(term: Terminal, _parts: string[], inputNode: types.inputNode): string {
+export function help(term: Terminal, parts: string[], inputNode: types.inputNode): string {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;
-		if (depth>=0) {
-			term(jsonSpacing.repeat(depth));
-			term.cyan(name.join("/"));
-			term(": "+helpText+"\n");
-		}
+		term(jsonSpacing.repeat(depth));
+		term.cyan(name.join("/"));
+		term(": "+helpText+"\n");
 		if (Array.isArray(data)) {
 			for (const subNode of data) {
 				getHelp(subNode, depth+1);
 			}
 		}
 	};
-	getHelp(inputNode, -1);
-	// TODO: allow subhelps
+	let targetNode = inputNode;
+	for (const part of parts) {
+		const subTree = targetNode[1];
+		if (!Array.isArray(subTree)) {break;}
+		const nextTree = subTree.find(node=>node[0].includes(part));
+		if (nextTree===undefined) {break;}
+		targetNode = nextTree;
+	}
+	getHelp(targetNode, 0);
 	return "";
 }

@@ -42,7 +42,7 @@ const inputTree: [string[], types.inputNode[], string] = [[""], [
 	// 	["save",(_=>undefined),"saves the last used command"],
 	// 	["load",(_=>undefined),"loads a specific alias and runs the command"],
 	// ],"save frequently used commands for easy use"],
-], ""];
+], "The console! Autocomplete with tab. up/down to go through command history."];
 
 if (isDebug) {inputTree[1].push(debugCommands);}
 
