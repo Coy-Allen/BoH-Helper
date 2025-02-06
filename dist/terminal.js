@@ -82,6 +82,7 @@ async function main() {
 }
 async function inputLoop() {
     while (true) {
+        await commandProcessing.checkWatcherFileLoad(term);
         term("> ");
         const input = await term.inputField({
             history: await fileLoader.getHistory(),

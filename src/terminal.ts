@@ -90,6 +90,7 @@ async function main(): Promise<void> {
 
 async function inputLoop(): Promise<void> {
 	while (true) {
+		await commandProcessing.checkWatcherFileLoad(term);
 		term("> ");
 		const input = await term.inputField({
 			history: await fileLoader.getHistory(),
