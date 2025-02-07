@@ -62,6 +62,7 @@ async function searchVerbs(term, parts) {
         }
         return true;
     });
+    // TODO: have alternative outputs
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
     if (parts.length === 0) {
         return JSON.stringify(args);

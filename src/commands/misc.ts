@@ -133,15 +133,15 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	// check each group of sources
 	if (isIntersecting(sources, groupings[0])) {
 		for (const recipe of data.recipes.values()) {
-			// TODO: filter out all garbage recipes
 			const requiredSkill = Object.keys(recipe.reqs??{}).find(key=>key.startsWith("s."));
 			const isSkillRecipe = beginsWith(recipe, ["craft"]) && requiredSkill!==undefined;
 			const isOtherRecipe = beginsWith(recipe, otherRecipes);
 			const isUnknown = !(isSkillRecipe||isOtherRecipe);
 			if (isSkillRecipe && (
 				!sources.includes("skillRecipes") ||
-				!save.elements.find(item=>item.entityid===requiredSkill))
-			) {continue;}
+				!save.elements.find(item=>item.entityid===requiredSkill) ||
+				!save.recipes.find(recipeSave=>recipeSave===recipe.id)
+			)) {continue;}
 			if (isOtherRecipe && !sources.includes("otherRecipes")) {continue;}
 			if (isUnknown && !sources.includes("unknownRecipes")) {continue;}
 			const effectsList = filterEffects(recipe.effects??{});
