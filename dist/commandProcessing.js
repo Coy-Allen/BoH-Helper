@@ -79,6 +79,7 @@ export async function checkWatcherFileLoad(term) {
         term.red("failed to load save file. stopping file watcher.\n");
         closeWatcher();
     }
+    shouldReadFile = false;
 }
 async function loadFile(filename) {
     try {
