@@ -7,7 +7,10 @@ import * as dataProcessing from "./dataProcessing.js";
 import {jsonSpacing, saveLocation, defaultFile} from "./config.js";
 import {watch, type FSWatcher} from "fs";
 
+let saveFileWatcherFilename: string;
 let saveFileWatcher: FSWatcher|undefined;
+let fileReadTimer: NodeJS.Timeout|undefined;
+let shouldReadFile: boolean;
 
 export async function exit(term: Terminal): Promise<string> {
 	term("exiting...");
@@ -42,35 +45,42 @@ export async function load(term: Terminal, parts: string[]): Promise<string> {
 	if (parts.length===0) {
 		term("watch file for changes? [y|N]\n");
 		if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return "";}
-		// FIXME: game saves in multiple passes! it WILL fail ~3 times,
-		//   then save unfinished copies 2 times before saving 1 final time.
-		// FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
-		//   then runs the code just before the main input loop asks for user input?
-		saveFileWatcher = watch(filename, (_event): void=>{
-			void loadFile(filename).then(res=>{
-				if (res) {
-					term("save file reloaded.\n");
-					return;
-				}
-				// FIXME: just try again. skipping this for now
-				// term.red("save file watcher encountered an error and will close.\n");
-				// closeWatcher();
-			});
-		});
+		saveFileWatcherFilename = filename;
+		saveFileWatcher = watch(filename, fileChangeTrigger);
 		term("file watcher created\n");
 		return "";
 	}
-	// TODO: make args pick which file to load.
 	return parts.join(" ");
 }
 
 function closeWatcher(): boolean {
-	if (saveFileWatcher===undefined) {return false;}
+	if (saveFileWatcher === undefined) {return false;}
 	saveFileWatcher.close();
-	saveFileWatcher=undefined;
+	saveFileWatcher = undefined;
+	fileReadTimer = undefined;
+	shouldReadFile = false;
 	return true;
 }
-
+function fileChangeTrigger(): void {
+	clearInterval(fileReadTimer);
+	fileReadTimer = undefined;
+	shouldReadFile = false;
+	fileReadTimer = setInterval(
+		(): undefined=>{shouldReadFile = true;},
+		5000,
+	);
+}
+export async function checkWatcherFileLoad(term: Terminal): Promise<void> {
+	if (!shouldReadFile) {return;}
+	term("loading save file\n");
+	if (await loadFile(saveFileWatcherFilename)) {
+		term("save file loaded\n");
+	} else {
+		term.red("failed to load save file. stopping file watcher.\n");
+		closeWatcher();
+	}
+	shouldReadFile = false;
+}
 async function loadFile(filename: string): Promise<boolean> {
 	try {
 		dataProcessing.loadSave(JSON.parse(await loadSave(filename)) as saveTypes.persistedGameState);
@@ -80,21 +90,26 @@ async function loadFile(filename: string): Promise<boolean> {
 	}
 }
 
-export function help(term: Terminal, _parts: string[], inputNode: types.inputNode): string {
+export function help(term: Terminal, parts: string[], inputNode: types.inputNode): string {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;
-		if (depth>=0) {
-			term(jsonSpacing.repeat(depth));
-			term.cyan(name.join("/"));
-			term(": "+helpText+"\n");
-		}
+		term(jsonSpacing.repeat(depth));
+		term.cyan(name.join("/"));
+		term(": "+helpText+"\n");
 		if (Array.isArray(data)) {
 			for (const subNode of data) {
 				getHelp(subNode, depth+1);
 			}
 		}
 	};
-	getHelp(inputNode, -1);
-	// TODO: allow subhelps
+	let targetNode = inputNode;
+	for (const part of parts) {
+		const subTree = targetNode[1];
+		if (!Array.isArray(subTree)) {break;}
+		const nextTree = subTree.find(node=>node[0].includes(part));
+		if (nextTree===undefined) {break;}
+		targetNode = nextTree;
+	}
+	getHelp(targetNode, 0);
 	return "";
 }

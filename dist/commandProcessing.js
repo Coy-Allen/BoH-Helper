@@ -2,7 +2,10 @@ import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
 import { jsonSpacing, saveLocation, defaultFile } from "./config.js";
 import { watch } from "fs";
+let saveFileWatcherFilename;
 let saveFileWatcher;
+let fileReadTimer;
+let shouldReadFile;
 export async function exit(term) {
     term("exiting...");
     closeWatcher();
@@ -41,25 +44,11 @@ export async function load(term, parts) {
         if (!await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
             return "";
         }
-        // FIXME: game saves in multiple passes! it WILL fail ~3 times,
-        //   then save unfinished copies 2 times before saving 1 final time.
-        // FIXME: this async output breaks the display. need a work around. maybe something that delays the load/output,
-        //   then runs the code just before the main input loop asks for user input?
-        saveFileWatcher = watch(filename, (_event) => {
-            void loadFile(filename).then(res => {
-                if (res) {
-                    term("save file reloaded.\n");
-                    return;
-                }
-                // FIXME: just try again. skipping this for now
-                // term.red("save file watcher encountered an error and will close.\n");
-                // closeWatcher();
-            });
-        });
+        saveFileWatcherFilename = filename;
+        saveFileWatcher = watch(filename, fileChangeTrigger);
         term("file watcher created\n");
         return "";
     }
-    // TODO: make args pick which file to load.
     return parts.join(" ");
 }
 function closeWatcher() {
@@ -68,7 +57,29 @@ function closeWatcher() {
     }
     saveFileWatcher.close();
     saveFileWatcher = undefined;
+    fileReadTimer = undefined;
+    shouldReadFile = false;
     return true;
+}
+function fileChangeTrigger() {
+    clearInterval(fileReadTimer);
+    fileReadTimer = undefined;
+    shouldReadFile = false;
+    fileReadTimer = setInterval(() => { shouldReadFile = true; }, 5000);
+}
+export async function checkWatcherFileLoad(term) {
+    if (!shouldReadFile) {
+        return;
+    }
+    term("loading save file\n");
+    if (await loadFile(saveFileWatcherFilename)) {
+        term("save file loaded\n");
+    }
+    else {
+        term.red("failed to load save file. stopping file watcher.\n");
+        closeWatcher();
+    }
+    shouldReadFile = false;
 }
 async function loadFile(filename) {
     try {
@@ -79,21 +90,30 @@ async function loadFile(filename) {
         return false;
     }
 }
-export function help(term, _parts, inputNode) {
+export function help(term, parts, inputNode) {
     const getHelp = (node, depth) => {
         const [name, data, helpText] = node;
-        if (depth >= 0) {
-            term(jsonSpacing.repeat(depth));
-            term.cyan(name.join("/"));
-            term(": " + helpText + "\n");
-        }
+        term(jsonSpacing.repeat(depth));
+        term.cyan(name.join("/"));
+        term(": " + helpText + "\n");
         if (Array.isArray(data)) {
             for (const subNode of data) {
                 getHelp(subNode, depth + 1);
             }
         }
     };
-    getHelp(inputNode, -1);
-    // TODO: allow subhelps
+    let targetNode = inputNode;
+    for (const part of parts) {
+        const subTree = targetNode[1];
+        if (!Array.isArray(subTree)) {
+            break;
+        }
+        const nextTree = subTree.find(node => node[0].includes(part));
+        if (nextTree === undefined) {
+            break;
+        }
+        targetNode = nextTree;
+    }
+    getHelp(targetNode, 0);
     return "";
 }

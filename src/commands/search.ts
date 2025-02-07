@@ -67,6 +67,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 		},
 		// TODO: filter via args.slots
 	);
+	// TODO: have alternative outputs
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);
