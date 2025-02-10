@@ -4,6 +4,7 @@ import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],
+        [["missingSkills"], missingSkills, "list unobtained skills."],
     ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
 export async function missingCraftable(term, parts) {
     const groupings = [
@@ -405,5 +406,19 @@ export async function availableMemories(term, parts) {
         genListOutput(result.itemsReusableTalk);
     }
     return JSON.stringify(args);
+}
+function missingSkills(term, parts) {
+    const allSkills = data.elements
+        .filter(filterBuilders.aspectFilter({ min: { skill: 1 } }, elem => elem.aspects ?? {}))
+        .map(skill => skill.id);
+    const obtainedSkills = save.elements
+        .filter(filterBuilders.aspectFilter({ min: { skill: 1 } }, elem => elem.aspects))
+        .map(skill => skill.entityid);
+    const missing = allSkills.filter(skill => !obtainedSkills.includes(skill));
+    // TODO: show if we have a book that can give the skill
+    term.red("missing")(": ");
+    term(missing.join(", ") + "\n");
+    // TODO: stub
+    return parts.join(" ");
 }
 export default misc;

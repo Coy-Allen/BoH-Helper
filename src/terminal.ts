@@ -29,14 +29,12 @@ const inputTree: [string[], types.inputNode[], string] = [[""], [
 	// overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
 	// 	recipes. some recipes' discovery are not recorded in the save file.
 	// something for missing things?
-	// 	how many skills are left
 	// 	current loot tables for searches.
 	// 		must ignore inaccessable searches.
 	// 		????? for resulting items that are not curently in the library.
 	// 			IDK what to do for memories & items that are "discovered" but not present.
 	// something for advanced stuff.
 	misc,
-	// show max aspects \w specific inputs (skill, knowledge, memories, fuel, flower, ...)
 	tables,
 	// ["alias",[
 	// 	["save",(_=>undefined),"saves the last used command"],

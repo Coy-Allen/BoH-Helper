@@ -245,7 +245,7 @@ export async function getInput(term, target) {
             term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
             for (const [name, isRequired, subType] of target.subType) {
                 if (!isRequired) {
-                    term(name + ": \n");
+                    term(`${subType.name} (${subType.id}): \n`);
                     term("skip? [y|N]\n");
                     const shouldSkip = await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise;
                     term.previousLine(0);
