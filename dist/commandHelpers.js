@@ -204,16 +204,15 @@ export async function getInput(term, target) {
     let result;
     if (!(target.required ?? true)) {
         term("skip? [y|N]\n");
-        if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
-            term.previousLine(0);
-            term.eraseLine();
+        const shouldSkip = await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise;
+        term.previousLine(0);
+        term.eraseLine();
+        if (shouldSkip) {
             term.previousLine(0);
             term.eraseLine();
             term(target.name + ": undefined\n");
             return undefined;
         }
-        term.previousLine(0);
-        term.eraseLine();
     }
     term.previousLine(0);
     term.eraseLine();
@@ -246,7 +245,16 @@ export async function getInput(term, target) {
             term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
             for (const [name, isRequired, subType] of target.subType) {
                 if (!isRequired) {
-                    // TODO: stub. ask if needed
+                    term(name + ": \n");
+                    term("skip? [y|N]\n");
+                    const shouldSkip = await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise;
+                    term.previousLine(0);
+                    term.eraseLine();
+                    term.previousLine(0);
+                    term.eraseLine();
+                    if (shouldSkip) {
+                        continue;
+                    }
                 }
                 const subTypeResult = await getInput(term, subType);
                 tempResult[name] = subTypeResult;
