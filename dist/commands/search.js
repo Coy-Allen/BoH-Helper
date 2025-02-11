@@ -1,5 +1,5 @@
 import { itemFilter, validateOrGetInput } from "../commandHelpers.js";
-import { data, save, filterBuilders } from "../dataProcessing.js";
+import { data, save, filterBuilders, filterPresets } from "../dataProcessing.js";
 import { jsonSpacing } from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
 const search = [["search"], [
@@ -95,54 +95,6 @@ async function searchItems(term, parts) {
     return parts.join(" ");
 }
 async function searchItemPresets(term, parts) {
-    /* eslint-disable @typescript-eslint/naming-convention */
-    const presets = new Map([
-        ["unreadBooks", {
-                any: {
-                    "mystery.lantern": 1,
-                    "mystery.forge": 1,
-                    "mystery.edge": 1,
-                    "mystery.winter": 1,
-                    "mystery.heart": 1,
-                    "mystery.grail": 1,
-                    "mystery.moth": 1,
-                    "mystery.knock": 1,
-                    "mystery.sky": 1,
-                    "mystery.moon": 1,
-                    "mystery.nectar": 1,
-                    "mystery.scale": 1,
-                    "mystery.rose": 1,
-                },
-                max: {
-                    "mastery.lantern": 0,
-                    "mastery.forge": 0,
-                    "mastery.edge": 0,
-                    "mastery.winter": 0,
-                    "mastery.heart": 0,
-                    "mastery.grail": 0,
-                    "mastery.moth": 0,
-                    "mastery.knock": 0,
-                    "mastery.sky": 0,
-                    "mastery.moon": 0,
-                    "mastery.nectar": 0,
-                    "mastery.scale": 0,
-                    "mastery.rose": 0,
-                },
-            }],
-        ["cursedBooks", {
-                any: {
-                    "contamination.actinic": 1,
-                    "contamination.bloodlines": 1,
-                    "contamination.chionic": 1,
-                    "contamination.curse.fifth.eye": 1,
-                    "contamination.keeperskin": 1,
-                    "contamination.sthenic.taint": 1,
-                    "contamination.winkwell": 1,
-                    "contamination.witchworms": 1,
-                },
-            }],
-    ]);
-    /* eslint-enable @typescript-eslint/naming-convention */
     const args = await validateOrGetInput(term, parts.join(" "), {
         id: "object",
         name: "options",
@@ -152,7 +104,7 @@ async function searchItemPresets(term, parts) {
                     id: "string",
                     name: "preset",
                     options: {
-                        autocomplete: [...presets.keys()],
+                        autocomplete: [...filterPresets.keys()],
                         strict: true,
                     },
                 }],
@@ -167,7 +119,7 @@ async function searchItemPresets(term, parts) {
                 }],
         ],
     });
-    const targetPreset = presets.get(args.preset);
+    const targetPreset = filterPresets.get(args.preset);
     if (targetPreset === undefined) {
         throw Error("preset not found");
     }

@@ -2,7 +2,7 @@ import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
 import {jsonSpacing, markupItems} from "../config.js";
-import {save, data, mergeAspects, filterBuilders} from "../dataProcessing.js";
+import {save, data, mergeAspects, filterBuilders, filterPresets} from "../dataProcessing.js";
 import {validateOrGetInput, itemFilter} from "../commandHelpers.js";
 
 
@@ -389,16 +389,36 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 }
 function missingSkills(term: Terminal, parts: string[]): string {
 	const allSkills = data.elements
-		.filter(filterBuilders.aspectFilter({min: {skill: 1}}, elem=>elem.aspects??{}))
+		.filter(
+			filterBuilders.aspectFilter({min: {skill: 1}}, elem=>elem.aspects??{}),
+			elem=>elem.id.startsWith("s."),
+		)
 		.map(skill=>skill.id);
 	const obtainedSkills = save.elements
 		.filter(filterBuilders.aspectFilter({min: {skill: 1}}, elem=>elem.aspects))
 		.map(skill=>skill.entityid);
-
 	const missing = allSkills.filter(skill=>!obtainedSkills.includes(skill));
-	// TODO: show if we have a book that can give the skill
+	const canObtain = new Set(save.elements
+		.filter(filterBuilders.aspectFilter(filterPresets.get("unreadBooks")??{}, elem=>elem.aspects))
+		.flatMap(element=>Object.entries<number>(element.aspects)
+			.filter(aspect=>aspect[0].startsWith("r."))
+			.map(aspect=>aspect[0].replace(/^r\./, "x."))));
+
+	const results = {
+		missing: [] as string[],
+		canObtain: [] as string[],
+	};
+	for (const skill of missing) {
+		if (canObtain.has(skill)) {
+			results.canObtain.push(skill);
+			continue;
+		}
+		results.missing.push(skill);
+	}
 	term.red("missing")(": ");
-	term(missing.join(", ")+"\n");
+	term(results.missing.join(", ")+"\n");
+	term.yellow("can obtain")(": ");
+	term(results.canObtain.join(", ")+"\n");
 	// TODO: stub
 	return parts.join(" ");
 }
