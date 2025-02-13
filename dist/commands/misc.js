@@ -377,8 +377,6 @@ export async function availableMemories(term, parts) {
             result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
         }
     }
-    // TODO: filter out wrong aspected memories
-    // TODO: filter out already obtained
     // output
     if (result.recipes) {
         term.blue("Recipes");
@@ -409,14 +407,15 @@ export async function availableMemories(term, parts) {
 }
 function missingSkills(term, parts) {
     const allSkills = data.elements
-        .filter(filterBuilders.aspectFilter({ min: { skill: 1 } }, elem => elem.aspects ?? {}), elem => elem.id.startsWith("s."))
-        .map(skill => skill.id);
+        .map(elem => elem.id)
+        .filter(filterBuilders.dataItemFilter({ min: { skill: 1 } }))
+        .filter(id => id.startsWith("s."));
     const obtainedSkills = save.elements
-        .filter(filterBuilders.aspectFilter({ min: { skill: 1 } }, elem => elem.aspects))
+        .filter(filterBuilders.saveItemFilter({ min: { skill: 1 } }))
         .map(skill => skill.entityid);
     const missing = allSkills.filter(skill => !obtainedSkills.includes(skill));
     const canObtain = new Set(save.elements
-        .filter(filterBuilders.aspectFilter(filterPresets.get("unreadBooks") ?? {}, elem => elem.aspects))
+        .filter(filterBuilders.saveItemFilter(filterPresets.get("unreadBooks") ?? {}))
         .flatMap(element => Object.entries(element.aspects)
         .filter(aspect => aspect[0].startsWith("r."))
         .map(aspect => aspect[0].replace(/^r\./, "x."))));
@@ -435,7 +434,6 @@ function missingSkills(term, parts) {
     term(results.missing.join(", ") + "\n");
     term.yellow("can obtain")(": ");
     term(results.canObtain.join(", ") + "\n");
-    // TODO: stub
     return parts.join(" ");
 }
 export default misc;

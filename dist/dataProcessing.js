@@ -30,6 +30,7 @@ class dataWrapper {
         this._data.set(key, item);
         return isPresent;
     }
+    map(func) { return this.values().map(func); }
     some(filter) { return this.find(filter) !== undefined; }
     find(filter) { return this.values().find(filter); }
     findAll(filter) { return this.filter(filter); }
@@ -260,7 +261,7 @@ export const filterBuilders = {
         };
     },
     saveItemFilter: (options) => {
-        const aspectFilter = filterBuilders.aspectFilter(options, (elem) => elem.aspects);
+        const aspectFilter = filterBuilders.aspectFilter(options, (aspects) => aspects);
         const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
         const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
         return (item) => {
@@ -270,7 +271,8 @@ export const filterBuilders = {
             if (nameValid && !nameValid.test(item.entityid)) {
                 return false;
             }
-            return aspectFilter(item);
+            const dataAspects = data.elements.getInheritedProperty(item.entityid, "aspects");
+            return aspectFilter(mergeAspects([item.aspects, ...dataAspects]));
         };
     },
     dataItemFilter: (options) => {
@@ -345,4 +347,4 @@ export const filterPresets = new Map([
             },
         }],
 ]);
-/* eslint-enable @typescript-eslint/naming-convention */ 
+/* eslint-enable @typescript-eslint/naming-convention */

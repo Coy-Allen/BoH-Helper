@@ -123,7 +123,7 @@ async function searchItemPresets(term, parts) {
     if (targetPreset === undefined) {
         throw Error("preset not found");
     }
-    const items = save.elements.filter(filterBuilders.aspectFilter(targetPreset, item => item.aspects));
+    const items = save.elements.filter(filterBuilders.saveItemFilter(targetPreset));
     dataVis.displayItemList(term, items, args.output);
     if (parts.length === 0) {
         return JSON.stringify(args);
@@ -156,7 +156,9 @@ async function searchRecipes(term, parts) {
                 }],
         ],
     });
-    const result = data.recipes.filter(recipe => save.recipes.has(recipe.id), filterBuilders.aspectFilter(args.reqs ?? {}, recipe => recipe.reqs ?? {})).map(recipe => [recipe, recipe.reqs]);
+    const result = data.recipes.filter(recipe => save.recipes.has(recipe.id), 
+    // remember aspectFilter does not take inheritance into account
+    filterBuilders.aspectFilter(args.reqs ?? {}, recipe => recipe.reqs ?? {})).map(recipe => [recipe, recipe.reqs]);
     term(JSON.stringify(result, null, jsonSpacing) + "\n");
     return JSON.stringify(args);
 }

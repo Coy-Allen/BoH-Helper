@@ -38,6 +38,7 @@ class dataWrapper<t> {
 		this._data.set(key, item);
 		return isPresent;
 	}
+	map<u>(func: (item: t) => u): u[] {return this.values().map(func);}
 	some(filter: (item: t) => boolean): boolean {return this.find(filter)!==undefined;}
 	find(filter: (item: t) => boolean): Readonly<t>|undefined {return this.values().find(filter);}
 	findAll(filter: (item: t) => boolean): Readonly<t>[] {return this.filter(filter);}
@@ -272,13 +273,14 @@ export const filterBuilders = {
 		};
 	},
 	saveItemFilter: (options: types.itemSearchOptions): ((item: element) => boolean) => {
-		const aspectFilter = filterBuilders.aspectFilter(options, (elem: element): types.aspects=>elem.aspects);
+		const aspectFilter = filterBuilders.aspectFilter(options, (aspects: types.aspects): types.aspects=>aspects);
 		const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
 		const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
 		return (item: element): boolean => {
 			if (nameInvalid?.test(item.entityid)) {return false;}
 			if (nameValid && !nameValid.test(item.entityid)) {return false;}
-			return aspectFilter(item);
+			const dataAspects = data.elements.getInheritedProperty(item.entityid, "aspects");
+			return aspectFilter(mergeAspects([item.aspects, ...dataAspects]));
 		};
 	},
 	dataItemFilter: (options: types.itemSearchOptions): ((itemId: string) => boolean) => {

@@ -129,7 +129,7 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 		throw Error("preset not found");
 	}
 	const items = save.elements.filter(
-		filterBuilders.aspectFilter(targetPreset, item=>item.aspects),
+		filterBuilders.saveItemFilter(targetPreset),
 	);
 	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
 	if (parts.length === 0) {
@@ -165,6 +165,7 @@ async function searchRecipes(term: Terminal, parts: string[]): Promise<string> {
 	});
 	const result = data.recipes.filter(
 		recipe=>save.recipes.has(recipe.id),
+		// remember aspectFilter does not take inheritance into account
 		filterBuilders.aspectFilter(args.reqs??{}, recipe=>recipe.reqs??{}),
 	).map(recipe=>[recipe, recipe.reqs]);
 	term(JSON.stringify(result, null, jsonSpacing)+"\n");

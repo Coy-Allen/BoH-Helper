@@ -244,7 +244,7 @@ function calcAspectLimit(
 	const header = ["filter query", ...markupReplace(aspectsToUse)];
 	for (const rowFilter of rowFilters) {
 		const rowContent: ([string, number]|[])[] = [];
-		const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.aspectFilter(rowFilter, item=>item.aspects));
+		const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.saveItemFilter(rowFilter));
 		for (const aspect of aspectsToUse) {
 			const target: [string, number]|[] = [] as [string, number]|[];
 			for (const item of foundItems) {
