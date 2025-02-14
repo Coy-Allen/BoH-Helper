@@ -7,8 +7,8 @@ const tables = [["tables"], [
         [["maxAspectsAssistance"], maxAspectsAssistance, "shows max aspects available using assistance. Memories are excluded, checks all helpers, everything else only checks owned items/omens."],
         [["minAspectRoomUnlock"], minAspectUnlockableRooms, "shows the minimum aspects needed to unlock a room. might break for strange rooms."],
         [["minAspectBooks"], minAspectBooks, "shows the mimimum required aspects to read a book from your owned books."],
+        [["maxAspectsAllVerbs"], maxAspectVerbs, "shows max aspects possible using all known verbs"],
         // list max aspects possible for given crafting bench.
-        // list min aspects needed for a new book
     ], "display's tables of info"];
 async function maxAspects(term, parts) {
     // get input
@@ -190,6 +190,33 @@ function minAspectBooks(term, parts) {
     printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Book"], calc.data, calc.totals);
     return parts.join(" ");
 }
+function maxAspectVerbs(term, parts) {
+    const ownedVerbs = save.verbs.values();
+    const verbOutput = data.verbs
+        .filter(verb => ownedVerbs.includes(verb.id))
+        .map(verb => calcAspectLimit(((verb.slot ? [verb.slot] : verb.slots) ?? []).map(slot => {
+        const filter = {};
+        if (slot.forbidden) {
+            filter.max = Object.fromEntries(Object.entries(slot.forbidden).map(entry => [entry[0], 0]));
+        }
+        if (slot.required) {
+            filter.any = slot.required;
+        }
+        if (slot.essential) {
+            filter.min = slot.essential;
+        }
+        return filter;
+    }), maxAspectCheck));
+    // FIXME: verbOutput does not have uniform lengths in it's data due to multiple slot counts in verbs
+    const result = mergeTableMaxAspect(verbOutput);
+    if (result === undefined) {
+        // TODO: stub. show error
+        return parts.join(" ");
+    }
+    console.log(result);
+    printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], new Array(result.data.length).map((_v, i) => `card ${i + 1}`), result.data, result.totals);
+    return parts.join(" ");
+}
 const defaultAspects = [
     "lantern",
     "forge",
@@ -282,4 +309,48 @@ function printMaxAspects(term, header, titles, tableData, totals) {
     ];
     term.table(table, { contentHasMarkup: true });
 }
+function mergeTableMaxAspect(tableList) {
+    if (tableList.length === 0) {
+        return;
+    }
+    if (tableList.length === 1) {
+        return tableList[0];
+    }
+    // verify if we can merge these results
+    for (let i = 1; i < tableList.length; i++) {
+        const table = tableList[i];
+        if (table.header.some((header, index) => header !== tableList[0].header[index])) {
+            return undefined;
+        }
+        if (table.data.length !== tableList[0].data.length) {
+            return undefined;
+        }
+        if (table.data.some((row, index) => row.some((cell, subindex) => cell[0] !== tableList[0].data[index][subindex][0]))) {
+            return undefined;
+        }
+    }
+    const result = {
+        header: [...tableList[0].header],
+        data: [],
+        totals: [],
+    };
+    // merge
+    // TODO: figure out a way to solve max aspect ties. this currently prioritizes the first match
+    for (let i = 0; i < result.data.length; i++) {
+        let tableIndex = -1;
+        let max = -1;
+        for (const table of tableList) {
+            if (table.totals[i] > max) {
+                tableIndex = i;
+                max = table.totals[i];
+            }
+        }
+        // append to results
+        const targTable = tableList[tableIndex];
+        result.data.push([...targTable.data[i]]);
+        result.totals.push(targTable.totals[i]);
+    }
+    return result;
+}
 export default tables;
+// TODO: turn all of this into a class
