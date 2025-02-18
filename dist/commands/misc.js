@@ -418,7 +418,7 @@ function missingSkills(term, parts) {
         .filter(filterBuilders.saveItemFilter(filterPresets.get("unreadBooks") ?? {}))
         .flatMap(element => Object.entries(element.aspects)
         .filter(aspect => aspect[0].startsWith("r."))
-        .map(aspect => aspect[0].replace(/^r\./, "x."))));
+        .map(aspect => aspect[0].replace(/^r\./, "s."))));
     const results = {
         missing: [],
         canObtain: [],
@@ -432,7 +432,7 @@ function missingSkills(term, parts) {
     }
     term.red("missing")(": ");
     term(results.missing.join(", ") + "\n");
-    term.yellow("can obtain")(": ");
+    term.green("can obtain")(": ");
     term(results.canObtain.join(", ") + "\n");
     return parts.join(" ");
 }
