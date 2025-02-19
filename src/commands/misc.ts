@@ -261,12 +261,24 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 		if (!array) {return;}
 		array.push(value);
 	};
+	// only populate veriable if needed
+	const ownedMems = new Set<string>(
+		args.owned ?
+			save.elements
+				.filter(filterBuilders.saveItemFilter({min: {memory: 1}}))
+				.map(item=>item.entityid) :
+			[],
+	);
 	const filterFull = args.filter??{};
 	if (filterFull.min===undefined) {filterFull.min = {};}
 	filterFull.min["memory"] = 1;
 	const filter = args.filter ? filterBuilders.dataItemFilter(args.filter):undefined;
 	const isValid = (itemId: string): boolean=>{
 		if (filter && !filter(itemId)) {
+			return false;
+		}
+		// owned check
+		if (args.owned && ownedMems.has(itemId)) {
 			return false;
 		}
 		return true;

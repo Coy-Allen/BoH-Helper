@@ -4,6 +4,7 @@ import type * as types from "../types.js";
 import {validateOrGetInput, itemFilter, aspectTarget} from "../commandHelpers.js";
 import {data, element, filterBuilders, save} from "../dataProcessing.js";
 import {markupReplace} from "../dataVisualizationFormatting.js";
+import {markupItems} from "../config.js";
 
 const tables: types.inputNode = [["tables"], [
 	[["maxAspects"], maxAspects, "shows max aspects available."],
@@ -194,7 +195,7 @@ function maxAspectVerbs(term: Terminal, parts: string[]): string {
 	const ownedVerbs = save.verbs.values();
 	const verbOutput = data.verbs
 		.filter(verb=>ownedVerbs.includes(verb.id))
-		.map(verb=>calcAspectLimit(
+		.map(verb=>({id: verb.id, data: calcAspectLimit(
 			((verb.slot?[verb.slot]:verb.slots)??[]).map(slot=>{
 				const filter: types.itemSearchOptions = {};
 				if (slot.forbidden) {
@@ -209,9 +210,9 @@ function maxAspectVerbs(term: Terminal, parts: string[]): string {
 				return filter;
 			}),
 			maxAspectCheck,
-		));
-	// FIXME: verbOutput does not have uniform lengths in it's data due to multiple slot counts in verbs
-	const result = mergeTableMaxAspect(verbOutput);
+		)}));
+	// FIXME: name of verb is not shown to user, so they can't even use this information...
+	const result = mergeTableMaxAspect(verbOutput, false);
 	if (result===undefined) {
 		// TODO: stub. show error
 		return parts.join(" ");
@@ -219,8 +220,8 @@ function maxAspectVerbs(term: Terminal, parts: string[]): string {
 	console.log(result);
 	printMaxAspects(
 		term,
-		["filter query", ...markupReplace(defaultAspects)],
-		new Array(result.data.length).map((_v, i): string=>`card ${i+1}`),
+		["filter query", ...result.header],
+		new Array(result.data.length).fill(undefined).map((_v, i): string=>`slot ${i+1}`),
 		result.data,
 		result.totals,
 	);
@@ -322,40 +323,57 @@ function printMaxAspects(term: Terminal, header: string[], titles: string[], tab
 	term.table(table, {contentHasMarkup: true});
 }
 
-function mergeTableMaxAspect(tableList: aspectLimitResult[]): aspectLimitResult | undefined {
-	if (tableList.length===0) {return;}
-	if (tableList.length===1) {return tableList[0];}
+function mergeTableMaxAspect(tableData: {id: string; data: aspectLimitResult}[], strict: boolean): aspectLimitResult | undefined {
+	if (tableData.length===0) {return;}
+	if (tableData.length===1) {return tableData[0].data;}
+	const tableList = tableData.map(tableObj=>tableObj.data);
+	console.log(tableList.length);
 	// verify if we can merge these results
 	for (let i=1;i<tableList.length;i++) {
 		const table = tableList[i];
 		if (table.header.some((header, index): boolean=>header!==tableList[0].header[index])) {return undefined;}
-		if (table.data.length !== tableList[0].data.length) {return undefined;}
-		if (table.data.some(
-			(row, index): boolean=> row.some(
-				(cell, subindex): boolean=> cell[0]!==tableList[0].data[index][subindex][0],
-			),
-		)) {return undefined;}
+		if (strict) {
+			if (table.data.length !== tableList[0].data.length) {return undefined;}
+			if (table.data.some(
+				(row, index): boolean=> row.some(
+					(cell, subindex): boolean=> cell[0]!==tableList[0].data[index][subindex][0],
+				),
+			)) {return undefined;}
+		}
 	}
 	const result: aspectLimitResult = {
-		header: [...tableList[0].header],
-		data: [],
+		header: [], // ...tableList[0].header
+		data: new Array(Math.max(...tableList.map(table=>table.data.length)))
+			.fill(undefined)
+			.map(_=>[]),
 		totals: [],
 	};
 	// merge
 	// TODO: figure out a way to solve max aspect ties. this currently prioritizes the first match
-	for (let i=0;i<result.data.length;i++) {
-		let tableIndex = -1;
-		let max = -1;
-		for (const table of tableList) {
-			if (table.totals[i] > max) {
-				tableIndex = i;
-				max = table.totals[i];
+	// aspect index starts at 1 to skip the "filter query" header
+	for (let aspectIndex=1; aspectIndex<tableList[0].header.length; aspectIndex++) {
+		let tableIndexTarget = -1;
+		let maxAspect = -1;
+		for (let tableIndex=0; tableIndex<tableList.length; tableIndex++) {
+			const table = tableList[tableIndex];
+			if (table.totals[aspectIndex] > maxAspect) {
+				tableIndexTarget = tableIndex;
+				maxAspect = table.totals[aspectIndex];
 			}
 		}
+		if (maxAspect<0) {
+			result.header.push(markupReplace(tableList[0].header[aspectIndex]));
+			result.data.push([]);
+			result.totals.push(0);
+			continue;
+		}
 		// append to results
-		const targTable = tableList[tableIndex];
-		result.data.push([...targTable.data[i]]);
-		result.totals.push(targTable.totals[i]);
+		const targTable = tableList[tableIndexTarget];
+		result.header.push(`${markupReplace(tableList[0].header[aspectIndex])}: ${markupItems.verb}${tableData[tableIndexTarget].id}^:`);
+		for (let rowIndex=0; rowIndex<result.data.length; rowIndex++) {
+			result.data[rowIndex].push(targTable.data[rowIndex]?.[aspectIndex] ?? []);
+		}
+		result.totals.push(targTable.totals[aspectIndex]);
 	}
 	return result;
 }

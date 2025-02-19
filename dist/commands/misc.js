@@ -276,6 +276,12 @@ export async function availableMemories(term, parts) {
         }
         array.push(value);
     };
+    // only populate veriable if needed
+    const ownedMems = new Set(args.owned ?
+        save.elements
+            .filter(filterBuilders.saveItemFilter({ min: { memory: 1 } }))
+            .map(item => item.entityid) :
+        []);
     const filterFull = args.filter ?? {};
     if (filterFull.min === undefined) {
         filterFull.min = {};
@@ -284,6 +290,10 @@ export async function availableMemories(term, parts) {
     const filter = args.filter ? filterBuilders.dataItemFilter(args.filter) : undefined;
     const isValid = (itemId) => {
         if (filter && !filter(itemId)) {
+            return false;
+        }
+        // owned check
+        if (args.owned && ownedMems.has(itemId)) {
             return false;
         }
         return true;
