@@ -424,26 +424,56 @@ function missingSkills(term, parts) {
         .filter(filterBuilders.saveItemFilter({ min: { skill: 1 } }))
         .map(skill => skill.entityid);
     const missing = allSkills.filter(skill => !obtainedSkills.includes(skill));
-    const canObtain = new Set(save.elements
+    // get avail visitors
+    const visitors = new Set([
+        // address book
+        ...Object.entries(save.elements.find(item => item.entityid === "wc")?.aspects ?? {})
+            .filter(aspect => aspect[0].startsWith("address."))
+            .map(aspect => aspect[0].replace(/^address\./, "")),
+        // unwritten cards
+        ...save.elements
+            .filter(item => item.entityid.startsWith("callingcard."))
+            .map(item => item.entityid.replace(/^callingcard\./, "")),
+        // visitors already here
+        ...save.elements
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .filter(filterBuilders.saveItemFilter({ min: { visitor: 1 }, max: { "visitor.villager": 0 } }))
+            .map(vis => vis.id),
+    ]);
+    // find all obtainable skills
+    // visitors
+    const canObtainVisitor = new Set([...visitors.values()]
+        .flatMap(id => Object.entries(mergeAspects(data.elements.getInheritedProperty(id, "aspects"))))
+        .filter(aspect => aspect[0].startsWith("u."))
+        .map(aspect => aspect[0].replace(/^u\./, "s.")));
+    // books
+    const canObtainBook = new Set(save.elements
         .filter(filterBuilders.saveItemFilter(filterPresets.get("unreadBooks") ?? {}))
-        .flatMap(element => Object.entries(element.aspects)
+        .flatMap(element => Object.entries(element.aspects))
         .filter(aspect => aspect[0].startsWith("r."))
-        .map(aspect => aspect[0].replace(/^r\./, "s."))));
+        .map(aspect => aspect[0].replace(/^r\./, "s.")));
     const results = {
         missing: [],
-        canObtain: [],
+        canObtainBook: [],
+        canObtainVisitor: [],
     };
     for (const skill of missing) {
-        if (canObtain.has(skill)) {
-            results.canObtain.push(skill);
+        if (canObtainBook.has(skill)) {
+            results.canObtainBook.push(skill);
+            continue;
+        }
+        if (canObtainVisitor.has(skill)) {
+            results.canObtainVisitor.push(skill);
             continue;
         }
         results.missing.push(skill);
     }
     term.red("missing")(": ");
     term(results.missing.join(", ") + "\n");
-    term.green("can obtain")(": ");
-    term(results.canObtain.join(", ") + "\n");
+    term.green("can obtain via book")(": ");
+    term(results.canObtainBook.join(", ") + "\n");
+    term.green("can obtain via visitor")(": ");
+    term(results.canObtainVisitor.join(", ") + "\n");
     return parts.join(" ");
 }
 export default misc;
