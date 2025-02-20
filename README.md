@@ -1,5 +1,6 @@
 # Book of Hours helper
-This repo is my attempt at a more or less spoiler free helper for a 1st time playethrough of Book of Hours. It will only show items/recipes that your save file has access to.
+This repo is my attempt at a helper for a 1st time playethrough of Book of Hours.
+This can show spoilers if you are not carefull.
 
 
 ## WIP

@@ -5,7 +5,7 @@ const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],
         [["missingSkills"], missingSkills, "list unobtained skills."],
-    ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
+    ], "things I couldn't categorize."];
 export async function missingCraftable(term, parts) {
     const groupings = [
         ["skillRecipes", "otherRecipes", "unknownRecipes"],

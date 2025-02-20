@@ -10,7 +10,7 @@ const list: types.inputNode = [["list"], [
 	// locked recipes? maybe. could cause spoiler issues
 	// shorthands for empty searches. see "search *" commands
 	// remaining draws in decks. (RootPopulationCommand.DealersTable)
-], "lists things in the game. CAN CONTAIN SPOILERS!"];
+], "lists things in the game."];
 
 
 function listAspects(term: Terminal): string {

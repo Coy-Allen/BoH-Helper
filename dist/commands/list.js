@@ -6,7 +6,7 @@ const list = [["list"], [
         // locked recipes? maybe. could cause spoiler issues
         // shorthands for empty searches. see "search *" commands
         // remaining draws in decks. (RootPopulationCommand.DealersTable)
-    ], "lists things in the game. CAN CONTAIN SPOILERS!"];
+    ], "lists things in the game."];
 function listAspects(term) {
     // TODO: output filtering
     term(data.aspects.values().sort().join(", ") + "\n");
