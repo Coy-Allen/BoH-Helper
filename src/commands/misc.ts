@@ -298,7 +298,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 			result.recipes = [...foundRecipes.entries()];
 		}
 	}
-	// FIXME: items are broken
+	// FIXME: items are broken. EDIT: wait how? did I fix this already without realizing?
 	if (
 		inputs.includes("reusables") ||
 		inputs.includes("consumables") ||

@@ -102,7 +102,7 @@ function maxAspectsAssistance(term, parts) {
     // note that this is a transformed version of the table (swapping rows & cols)
     const max = {
         header: [], // unused
-        data: [Array(13).fill(["-", 0]), Array(13).fill(["-", 0])],
+        data: [Array(13).fill([["-"], 0]), Array(13).fill([["-"], 0])],
         totals: Array(13).fill(0),
     };
     const sharedAspects = ["ability", "tool", "sustenance", "beverage"]; // Memory won't be listed. due to memories being created as needed by the user.
@@ -179,7 +179,7 @@ function minAspectUnlockableRooms(term, parts) {
             }
         }
     }
-    const finalAspect = minAspect.map(entry => [entry[0], entry[1] ?? 0]);
+    const finalAspect = minAspect.map(entry => [[entry[0]], entry[1] ?? 0]);
     printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
     return parts.join(" ");
 }
@@ -191,11 +191,30 @@ function minAspectBooks(term, parts) {
     printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Book"], calc.data, calc.totals);
     return parts.join(" ");
 }
-function maxAspectVerbs(term, parts) {
+async function maxAspectVerbs(term, parts) {
+    // TODO: option to skip over specific slots (skill).
+    const args = await validateOrGetInput(term, parts.join(" "), {
+        id: "object",
+        options: {},
+        name: "args",
+        subType: [
+            ["skipSkill", true, {
+                    id: "boolean",
+                    options: {
+                        default: false,
+                    },
+                    name: "skip skill slot",
+                }],
+        ],
+    });
     const ownedVerbs = save.verbs.values();
     const verbOutput = data.verbs
         .filter(verb => ownedVerbs.includes(verb.id))
         .map(verb => ({ id: verb.id, data: calcAspectLimit(((verb.slot ? [verb.slot] : verb.slots) ?? []).map(slot => {
+            if (args.skipSkill &&
+                (slot.essential?.["skill"] ?? 0) > 0) {
+                return [];
+            }
             const filter = {};
             if (slot.forbidden) {
                 filter.max = Object.fromEntries(Object.entries(slot.forbidden).map(entry => [entry[0], 0]));
@@ -208,15 +227,13 @@ function maxAspectVerbs(term, parts) {
             }
             return filter;
         }), maxAspectCheck) }));
-    // FIXME: name of verb is not shown to user, so they can't even use this information...
     const result = mergeTableMaxAspect(verbOutput, false);
     if (result === undefined) {
-        // TODO: stub. show error
-        return parts.join(" ");
+        throw new Error("failed to merge/filter results");
     }
-    console.log(result);
-    printMaxAspects(term, ["filter query", ...result.header], new Array(result.data.length).fill(undefined).map((_v, i) => `slot ${i + 1}`), result.data, result.totals);
-    return parts.join(" ");
+    const titles = ["Soul (usually)", "Skill (usually)", "Memory (usually)"];
+    printMaxAspects(term, ["filter query", ...result.header], [...titles, ...new Array(result.data.length - 3).fill(undefined).map((_v, i) => `slot ${i + 4}`)], result.data, result.totals);
+    return JSON.stringify(args);
 }
 const defaultAspects = [
     "lantern",
@@ -271,11 +288,14 @@ aspects = []) {
                 const [compSort, itemAspect] = check(item, aspect, target);
                 const name = "entityid" in item ? item.entityid : item.id;
                 if (compSort > 0) {
-                    target[0] = name;
+                    target[0] = [name];
                     target[1] = itemAspect;
                 }
                 else if (compSort === 0) {
-                    target[0] = (target[0] === undefined ? "" : target[0] + "/") + name;
+                    if (target[0] === undefined) {
+                        target[0] = [];
+                    }
+                    target[0].push(name);
                     target[1] = itemAspect;
                 } // else {} // ignore all compSort < 0
             }
@@ -304,7 +324,7 @@ function printMaxAspects(term, header, titles, tableData, totals) {
         header,
         ...tableData.map((row, rowIndex) => {
             // TODO: color the cells
-            return [titles[rowIndex], ...row.map(cell => cell.length === 0 ? "" : `^c${cell[0]}^::\n^b${cell[1]}^:`)];
+            return [titles[rowIndex], ...row.map(cell => cell.length === 0 ? "" : `^c${cell[0].join("^:/^c")}^::\n^b${cell[1]}^:`)];
         }),
         ["totals", ...totals.map(count => "^b" + count.toString() + "^:")],
     ];
@@ -318,7 +338,6 @@ function mergeTableMaxAspect(tableData, strict) {
         return tableData[0].data;
     }
     const tableList = tableData.map(tableObj => tableObj.data);
-    console.log(tableList.length);
     // verify if we can merge these results
     for (let i = 1; i < tableList.length; i++) {
         const table = tableList[i];

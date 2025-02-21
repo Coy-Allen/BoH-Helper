@@ -3,7 +3,7 @@ import { data, save } from "../dataProcessing.js";
 const list = [["list"], [
         [["aspects"], listAspects, "displays all aspects in the game (even hidden ones)"],
         [["decks"], listDecks, "displays all decks and their contents in the save file."],
-        // locked recipes? maybe. could cause spoiler issues
+        // locked recipes?
         // shorthands for empty searches. see "search *" commands
         // remaining draws in decks. (RootPopulationCommand.DealersTable)
     ], "lists things in the game."];

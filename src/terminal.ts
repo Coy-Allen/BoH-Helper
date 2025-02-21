@@ -26,14 +26,6 @@ const inputTree: [string[], types.inputNode[], string] = [[""], [
 	list,
 	info,
 	search,
-	// overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
-	// 	recipes. some recipes' discovery are not recorded in the save file.
-	// something for missing things?
-	// 	current loot tables for searches.
-	// 		must ignore inaccessable searches.
-	// 		????? for resulting items that are not curently in the library.
-	// 			IDK what to do for memories & items that are "discovered" but not present.
-	// something for advanced stuff.
 	misc,
 	tables,
 	// ["alias",[
