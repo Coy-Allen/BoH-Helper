@@ -130,7 +130,11 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	for (const saveItem of save.elements.values()) {
 		saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid)??0)+saveItem.quantity);
 	}
-	const beginsWith = (recipe: types.dataRecipe, arr: string[]): boolean=>arr.includes(recipe.id.split(".", 1)[0]);
+	const beginsWith = (recipe: types.dataRecipe, arr: string[]): boolean=>{
+		const start = recipe.id.split(".", 1)[0];
+		if (start==undefined) {return false;}
+		return arr.includes(start);
+	};
 	// check each group of sources
 	if (isIntersecting(sources, groupings[0])) {
 		for (const recipe of data.recipes.values()) {
@@ -177,7 +181,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 	}
 	*/
 	// filter all the valid items
-	const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
+	const uniqueItemsSave = save.raw?.charactercreationcommands[0]?.uniqueelementsmanifested ?? [];
 	const allItems = new Set<string>(result.flatMap(groups=>groups[1]));
 	const validItems = new Set<string>([...allItems.values()].filter(item=>{
 		const foundItem = data.elements.find(itemData=>itemData.id===item);
@@ -312,9 +316,10 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 			.map(itemId=>data.elements.getInherited(itemId))
 			.filter(itemList=>itemList.length!==0);
 		for (const itemInheritedList of items) {
-			if (itemInheritedList.length===0) {continue;}
+			const firstItem = itemInheritedList[0];
+			if (firstItem===undefined) {continue;}
 			const item = {
-				id: itemInheritedList[0].id,
+				id: firstItem.id,
 				xtriggers: Object.assign(
 					{},
 					...itemInheritedList

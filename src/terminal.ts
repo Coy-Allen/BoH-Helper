@@ -15,7 +15,7 @@ import debugCommands from "./commands/debug.js";
 import info from "./commands/info.js";
 
 const term = terminalKit.terminal;
-const inputTree: [string[], types.inputNode[], string] = [[""], [
+const inputTree: [[string, ...string[]], [types.inputNode, ...types.inputNode[]], string] = [[""], [
 	[["help", "?"], (t, p): string=>commandProcessing.help(t, p, inputTree), "shows all commands"],
 	[["clear"], (): string=>{
 		term.clear();
@@ -122,10 +122,11 @@ function findCommand(parts: string[]): [string[], types.commandFunc, string[]]|u
 	for (let i=0;i<=parts.length;i++) {
 		const [, data] = targetNode;
 		if (!Array.isArray(data)) {return [tree, data, parts.splice(i)];}
-		if (parts.length===i) {return;}
+		const part = parts[i];
+		if (part===undefined) {return;}
 		const nextNode = data.find(
 			([names, _data]): boolean=>names.some(
-				name=>name.toLowerCase()===parts[i].toLowerCase(),
+				name=>name.toLowerCase()===part.toLowerCase(),
 			),
 		);
 		if (nextNode===undefined) {return;}
@@ -141,7 +142,7 @@ function generateAutocomplete(input: string): string|string[] {
 	let outputTarget: types.inputNode = inputTree;
 	let index = 0;
 	const output: string[] = [];
-	const getAliasName = (aliases: string[], targ: string): string=>{
+	const getAliasName = (aliases: [string, ...string[]], targ: string): string=>{
 		return aliases.find(name=>name.startsWith(targ))??aliases[0];
 	};
 	while (true) {
@@ -156,17 +157,18 @@ function generateAutocomplete(input: string): string|string[] {
 			// multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
 			return subCommands.map(subCommand=>[...output, getAliasName(subCommand[0], part)].join(" "));
 		}
-		if (subCommands.length === 0) {
+		const subCommand = subCommands[0];
+		if (subCommand === undefined) {
 			// unknown command
 			return [...output, ...parts.slice(index)].join(" ");
 		}
-		if (parts.length <= index+1 && part.length < subCommands[0].length) {
+		if (parts.length <= index+1 && part.length < subCommand.length) {
 			// still typing command
-			return [...output, getAliasName(subCommands[0][0], part)].join(" ");
+			return [...output, getAliasName(subCommand[0], part)].join(" ");
 		}
 		// switch target to the only command left
-		outputTarget = subCommands[0];
-		output.push(getAliasName(subCommands[0][0], part));
+		outputTarget = subCommand;
+		output.push(getAliasName(subCommand[0], part));
 		index++;
 	}
 }

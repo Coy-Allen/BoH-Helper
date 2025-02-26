@@ -117,10 +117,11 @@ function findCommand(parts) {
         if (!Array.isArray(data)) {
             return [tree, data, parts.splice(i)];
         }
-        if (parts.length === i) {
+        const part = parts[i];
+        if (part === undefined) {
             return;
         }
-        const nextNode = data.find(([names, _data]) => names.some(name => name.toLowerCase() === parts[i].toLowerCase()));
+        const nextNode = data.find(([names, _data]) => names.some(name => name.toLowerCase() === part.toLowerCase()));
         if (nextNode === undefined) {
             return;
         }
@@ -151,17 +152,18 @@ function generateAutocomplete(input) {
             // multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
             return subCommands.map(subCommand => [...output, getAliasName(subCommand[0], part)].join(" "));
         }
-        if (subCommands.length === 0) {
+        const subCommand = subCommands[0];
+        if (subCommand === undefined) {
             // unknown command
             return [...output, ...parts.slice(index)].join(" ");
         }
-        if (parts.length <= index + 1 && part.length < subCommands[0].length) {
+        if (parts.length <= index + 1 && part.length < subCommand.length) {
             // still typing command
-            return [...output, getAliasName(subCommands[0][0], part)].join(" ");
+            return [...output, getAliasName(subCommand[0], part)].join(" ");
         }
         // switch target to the only command left
-        outputTarget = subCommands[0];
-        output.push(getAliasName(subCommands[0][0], part));
+        outputTarget = subCommand;
+        output.push(getAliasName(subCommand[0], part));
         index++;
     }
 }

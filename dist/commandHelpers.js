@@ -49,11 +49,11 @@ function generateAutocomplete(options, inputRaw) {
             // multiple possible commands
             return commands.map(command => [...output, command[0]].join(""));
         }
-        if (commands.length === 0) {
+        const command = commands[0];
+        if (command === undefined) {
             // unknown command
             return output.join("");
         }
-        const command = commands[0];
         output.push(command[0]);
         inputIndex += command[0].length;
         outputTargets = command;

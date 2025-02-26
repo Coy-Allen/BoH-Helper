@@ -121,7 +121,13 @@ export async function missingCraftable(term, parts) {
     for (const saveItem of save.elements.values()) {
         saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
-    const beginsWith = (recipe, arr) => arr.includes(recipe.id.split(".", 1)[0]);
+    const beginsWith = (recipe, arr) => {
+        const start = recipe.id.split(".", 1)[0];
+        if (start == undefined) {
+            return false;
+        }
+        return arr.includes(start);
+    };
     // check each group of sources
     if (isIntersecting(sources, groupings[0])) {
         for (const recipe of data.recipes.values()) {
@@ -182,7 +188,7 @@ export async function missingCraftable(term, parts) {
     }
     */
     // filter all the valid items
-    const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
+    const uniqueItemsSave = save.raw?.charactercreationcommands[0]?.uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
     const validItems = new Set([...allItems.values()].filter(item => {
         const foundItem = data.elements.find(itemData => itemData.id === item);
@@ -325,11 +331,12 @@ export async function availableMemories(term, parts) {
             .map(itemId => data.elements.getInherited(itemId))
             .filter(itemList => itemList.length !== 0);
         for (const itemInheritedList of items) {
-            if (itemInheritedList.length === 0) {
+            const firstItem = itemInheritedList[0];
+            if (firstItem === undefined) {
                 continue;
             }
             const item = {
-                id: itemInheritedList[0].id,
+                id: firstItem.id,
                 xtriggers: Object.assign({}, ...itemInheritedList
                     .map(itemInherited => itemInherited.xtriggers)
                     .filter(xtriggers => xtriggers !== undefined)
