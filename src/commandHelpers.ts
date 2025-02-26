@@ -78,8 +78,10 @@ export type processedType<t extends targetTypes> =  (t["required"] extends false
 		{[key in t["subType"][number] as key[1] extends true ? key[0] : never]: processedType<key[2]>} &
 		{[key in t["subType"][number] as key[1] extends false ? key[0] : never]?: processedType<key[2]>}
 	) :
-	t extends targetString ? string :
-	t extends targetStringArray ? string[] :
+	t extends targetString ?
+		(t["options"]["strict"] extends true ? t["options"]["autocomplete"][number] : string) :
+	t extends targetStringArray ?
+		(t["options"]["strict"] extends true ? t["options"]["autocomplete"][number][] : string[]) :
 	t extends targetAspects ? Record<string, number> :
 	t extends targetInteger ? number :
 	t extends targetBoolean ? boolean :
@@ -170,7 +172,7 @@ export function validateInput(input: unknown, target: targetTypes): string {
 	switch (target.id) {
 		case "string":{
 			if (typeof input !== "string") {return "is not a string";}
-			if ( target.options.strict && !target.options.autocomplete.includes(input)) {
+			if (target.options.strict && !target.options.autocomplete.includes(input)) {
 				return "is not included in autocomplete list";
 			}
 			return "";

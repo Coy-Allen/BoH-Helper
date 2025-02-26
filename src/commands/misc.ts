@@ -59,7 +59,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		],
 	});
 	// processing
-	const sources = args.sources as (typeof groupings[number][number])[];
+	const sources = args.sources;
 	const result: [string, string[]][] = [];
 	const extraDecks = [
 		"sweetbones.employables",

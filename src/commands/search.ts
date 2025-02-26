@@ -93,7 +93,7 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string> {
 		],
 	});
 	const items = save.elements.filter(filterBuilders.saveItemFilter(args.filter));
-	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
+	dataVis.displayItemList(term, items, args.output);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
@@ -131,7 +131,7 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 	const items = save.elements.filter(
 		filterBuilders.saveItemFilter(targetPreset),
 	);
-	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
+	dataVis.displayItemList(term, items, args.output);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
