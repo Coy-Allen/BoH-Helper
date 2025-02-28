@@ -8,7 +8,7 @@
 		"moduleResolution": "node",
 		"outDir": "./dist/",
 		"rootDir": "./src/",
-		"noUncheckedIndexedAccess": false,
+		"noUncheckedIndexedAccess": true,
 		"checkJs": false,
 	}
 }

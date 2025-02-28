@@ -36,4 +36,5 @@ export const markupItems = {
 	item: "^c", // cyan
 	deck: "^g", // green
 	verb: "^m", // magenta
+	totals: "^b", // blue
 };

@@ -28,9 +28,9 @@ async function maxAspects(term, parts) {
         ],
     });
     // calculate
-    const calc = calcAspectLimit(args.row, maxAspectCheck, args.col);
-    // print result
-    printMaxAspects(term, calc.header, args.row.map(row => JSON.stringify(row)), calc.data, calc.totals);
+    const tableObj = new table(args.col ?? defaultAspects);
+    args.row.forEach(row => { tableObj.addRow(JSON.stringify(row), row, maxAspectCheck); });
+    tableObj.print(term);
     return JSON.stringify(args);
 }
 async function maxAspectsPreset(term, parts) {
@@ -54,9 +54,8 @@ async function maxAspectsPreset(term, parts) {
             ["col", false, aspectTarget],
         ],
     });
-    const [verbId, aspects] = [args.verb, args.col];
     // get station info
-    const targetVerb = verbs.find(verb => verb.id === verbId);
+    const targetVerb = verbs.find(verb => verb.id === args.verb);
     if (targetVerb === undefined) {
         throw new Error("verb not found");
     }
@@ -80,11 +79,13 @@ async function maxAspectsPreset(term, parts) {
         ;
         return options;
     });
-    const calc = calcAspectLimit(filters, maxAspectCheck, aspects);
-    printMaxAspects(term, calc.header, filters.map(row => JSON.stringify(row)), calc.data, calc.totals);
+    const tableObj = new table(args.col ?? defaultAspects);
+    filters.forEach(row => { tableObj.addRow(JSON.stringify(row), row, maxAspectCheck); });
+    tableObj.print(term);
     return JSON.stringify(args);
 }
 function maxAspectsAssistance(term, parts) {
+    // TODO: figure out how to make this NOT hard coded
     const types = [
         ["_assistance", undefined],
         ["_assistance.usescandles", "candle"],
@@ -99,99 +100,61 @@ function maxAspectsAssistance(term, parts) {
         ["_assistance.usescooperative", "cooperative"],
         ["_assistance.usessound", "sound"],
     ];
-    // note that this is a transformed version of the table (swapping rows & cols)
-    const max = {
-        header: [], // unused
-        data: [Array(13).fill([["-"], 0]), Array(13).fill([["-"], 0])],
-        totals: Array(13).fill(0),
-    };
-    const sharedAspects = ["ability", "tool", "sustenance", "beverage"]; // Memory won't be listed. due to memories being created as needed by the user.
-    const sharedCalc = calcAspectLimit(sharedAspects.map(aspect => ({ min: { [aspect]: 1 } })), maxAspectCheck);
-    for (const type of types) {
-        const typeData = data.elements.get(type[0]);
-        if (typeData === undefined) {
-            continue;
-        }
-        const people = data.elements.findAll(elem => elem.inherits === type[0]);
+    const sharedAspects = ["ability", "memory", "tool", "sustenance", "beverage"]; // Memory won't be listed. due to memories being created as needed by the user.
+    const sharedCalc = new table(defaultAspects);
+    sharedAspects.forEach(aspect => { sharedCalc.addRow(aspect, { min: { [aspect]: 1 } }, maxAspectCheck); });
+    const allTables = [];
+    for (const [prototype, aspect] of types) {
+        const people = data.elements.findAll(elem => elem.inherits === prototype);
         if (people.length === 0) {
             continue;
         }
-        const filters = [people];
-        if (type[1]) {
-            filters.push({ min: { [type[1]]: 1 } });
+        const tableCalc = new table(defaultAspects);
+        tableCalc.addRow("assistance", people, maxAspectCheck);
+        if (aspect) {
+            tableCalc.addRow("extra", { min: { [aspect]: 1 } }, maxAspectCheck);
         }
-        else {
-            // returns nothing but adds the row to the resulting table.
-            filters.push([]);
-        }
-        const calc = calcAspectLimit(filters, maxAspectCheck);
-        for (let colIndex = 0; colIndex < max.totals.length; colIndex++) {
-            const maxTotal = max.totals[colIndex];
-            const calcTotal = calc.totals[colIndex];
-            if (
-            // if this is better
-            maxTotal < calcTotal ||
-                // allow replacement of equal totals if the new one takes no extra item.
-                maxTotal === calcTotal &&
-                    (max.data[1][colIndex][1] ?? 0) > 0 &&
-                    calc.data[1][colIndex][1] === 0) {
-                max.totals[colIndex] = calcTotal;
-                for (let rowIndex = 0; rowIndex < 2; rowIndex++) {
-                    max.data[rowIndex][colIndex] = calc.data[rowIndex][colIndex];
-                }
-            }
-        }
+        allTables.push(tableCalc);
     }
-    printMaxAspects(term, sharedCalc.header, ["assistance", ...sharedAspects, "extra"], 
-    // this is probably wrong. this might be data[row][col] instead of data[col][row]
-    [max.data[0], ...sharedCalc.data, max.data[1]], sharedCalc.totals.map((num, i) => num + max.totals[i]));
+    const finalTable = table.append([sharedCalc, table.merge(allTables)]);
+    finalTable.print(term);
     return parts.join(" ");
 }
 function minAspectUnlockableRooms(term, parts) {
     // TODO: rewrite this to use minAspectCheck
-    const minAspect = defaultAspects.map(_ => ["-", undefined]);
-    for (const room of save.roomsUnlockable.values()) {
+    // const minAspect: [string, number|undefined][] = defaultAspects.map(_=>["-", undefined]);
+    const requirements = save.roomsUnlockable.map((room) => {
         const recipe = data.recipes.find(entry => entry.id === `terrain.${room.payload.id}`);
         if (recipe === undefined) {
             console.log(`failed to find unlock requirement for ${room.payload.id}.`);
-            continue;
+            return;
         }
-        const aspects = recipe.preslots?.[0].required;
+        const aspects = recipe.preslots?.[0]?.required;
         if (aspects === undefined) {
             console.log(`failed to find aspect requirements for ${room.payload.id}.`);
-            continue;
+            return;
         }
-        for (let i = 0; i < defaultAspects.length; i++) {
-            const aspect = defaultAspects[i];
-            const targetAspect = minAspect[i];
-            // can be undefined
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            if (aspects[aspect] === undefined) {
-                continue;
-            }
-            if (targetAspect[1] === undefined || aspects[aspect] < targetAspect[1]) {
-                targetAspect[0] = room.payload.id;
-                targetAspect[1] = aspects[aspect];
-                continue;
-            }
-            if (aspects[aspect] === targetAspect[1]) {
-                targetAspect[0] += "/" + room.payload.id;
-            }
-        }
-    }
-    const finalAspect = minAspect.map(entry => [[entry[0]], entry[1] ?? 0]);
-    printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Room"], [finalAspect], finalAspect.map(entry => entry[1]));
+        return {
+            id: recipe.id,
+            aspects: aspects,
+        };
+    }).filter(req => req !== undefined);
+    const tableObj = new table(defaultAspects);
+    tableObj.addRow("Room", requirements, minAspectCheck);
+    tableObj.print(term);
     return parts.join(" ");
 }
 function minAspectBooks(term, parts) {
-    const calc = calcAspectLimit([{
-            any: Object.fromEntries(defaultAspects.map(aspect => ["mystery." + aspect, 1])),
-            max: Object.fromEntries(defaultAspects.map(aspect => ["mastery." + aspect, 0])),
-        }], minAspectCheck, defaultAspects.map(aspect => "mystery." + aspect));
-    printMaxAspects(term, ["filter query", ...markupReplace(defaultAspects)], ["Book"], calc.data, calc.totals);
+    const tableObj = new table(defaultAspects.map(aspect => "mystery." + aspect));
+    tableObj.addRow("book", {
+        any: Object.fromEntries(defaultAspects.map(aspect => ["mystery." + aspect, 1])),
+        max: Object.fromEntries(defaultAspects.map(aspect => ["mastery." + aspect, 0])),
+    }, minAspectCheck);
+    tableObj.print(term);
     return parts.join(" ");
 }
 async function maxAspectVerbs(term, parts) {
+    // FIXME: doesn't have all rows
     // TODO: option to skip over specific slots (skill).
     const args = await validateOrGetInput(term, parts.join(" "), {
         id: "object",
@@ -208,9 +171,11 @@ async function maxAspectVerbs(term, parts) {
         ],
     });
     const ownedVerbs = save.verbs.values();
-    const verbOutput = data.verbs
+    const verbTables = data.verbs
         .filter(verb => ownedVerbs.includes(verb.id))
-        .map(verb => ({ id: verb.id, data: calcAspectLimit(((verb.slot ? [verb.slot] : verb.slots) ?? []).map(slot => {
+        .map(verb => {
+        const tableObj = new table(defaultAspects);
+        const filters = ((verb.slot ? [verb.slot] : verb.slots) ?? []).map((slot) => {
             if (args.skipSkill &&
                 (slot.essential?.["skill"] ?? 0) > 0) {
                 return [];
@@ -226,13 +191,13 @@ async function maxAspectVerbs(term, parts) {
                 filter.min = slot.essential;
             }
             return filter;
-        }), maxAspectCheck) }));
-    const result = mergeTableMaxAspect(verbOutput, false);
-    if (result === undefined) {
-        throw new Error("failed to merge/filter results");
-    }
+        });
+        filters.forEach(row => { tableObj.addRow(JSON.stringify(row), row, maxAspectCheck); });
+        return tableObj;
+    });
     const titles = ["Soul (usually)", "Skill (usually)", "Memory (usually)"];
-    printMaxAspects(term, ["filter query", ...result.header], [...titles, ...new Array(result.data.length - 3).fill(undefined).map((_v, i) => `slot ${i + 4}`)], result.data, result.totals);
+    const result = table.merge(verbTables, titles);
+    result.print(term);
     return JSON.stringify(args);
 }
 const defaultAspects = [
@@ -274,120 +239,152 @@ function minAspectCheck(item, aspect, targ) {
     const diff = targ[1] - itemAspects[aspect];
     return [diff, itemAspects[aspect]];
 }
-function calcAspectLimit(rowFilters, check, // [sort, target count]
-aspects = []) {
-    const rowContents = [];
-    const aspectsToUse = aspects.length !== 0 ? aspects : defaultAspects;
-    const header = ["filter query", ...markupReplace(aspectsToUse)];
-    for (const rowFilter of rowFilters) {
-        const rowContent = [];
+export default tables;
+;
+class table {
+    cols = [];
+    rowNames = []; // all cols[number].data[number] and rowNames should have the same length at all times!
+    constructor(headers) {
+        this.cols = headers.map(header => ({
+            name: header,
+            data: [],
+            total: 0,
+        }));
+    }
+    addRow(rowName, rowFilter, check) {
         const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.saveItemFilter(rowFilter));
-        for (const aspect of aspectsToUse) {
-            const target = [];
+        for (const col of this.cols) {
+            let max = [];
             for (const item of foundItems) {
-                const [compSort, itemAspect] = check(item, aspect, target);
+                const [compSort, itemAspect] = check(item, col.name, max);
                 const name = "entityid" in item ? item.entityid : item.id;
                 if (compSort > 0) {
-                    target[0] = [name];
-                    target[1] = itemAspect;
-                }
-                else if (compSort === 0) {
-                    if (target[0] === undefined) {
-                        target[0] = [];
-                    }
-                    target[0].push(name);
-                    target[1] = itemAspect;
-                } // else {} // ignore all compSort < 0
-            }
-            rowContent.push(target);
-        }
-        rowContents.push(rowContent);
-    }
-    return {
-        header: header,
-        data: rowContents,
-        totals: rowContents.reduce((total, row) => {
-            for (let i = 0; i < total.length; i++) {
-                const cell = row[i];
-                if (cell.length === 0) {
+                    max = [[name], itemAspect];
                     continue;
                 }
-                total[i] += cell[1];
+                else if (compSort === 0) {
+                    if (max.length === 0) {
+                        max = [[], itemAspect];
+                    }
+                    max[0].push(name);
+                    max[1] = itemAspect;
+                    continue;
+                }
+                // ignore all compSort < 0
             }
-            return total;
-        }, new Array(aspectsToUse.length).fill(0)),
-    };
+            col.data.push(max[0] ?? []);
+            col.total += max[1] ?? 0;
+        }
+        this.rowNames.push(rowName);
+    }
+    print(term) {
+        const tableFormatted = [["", ...this.cols.map(col => markupReplace(col.name))]];
+        for (let i = 0; i < this.rowNames.length; i++) {
+            const rowName = this.rowNames[i] ?? `slot ${i + 1}`;
+            tableFormatted.push([
+                rowName,
+                ...this.cols.map(col => {
+                    const colData = col.data[i] ?? [];
+                    return colData.length === 0 ?
+                        "" :
+                        `${markupItems.item}${colData.join(`^:/${markupItems.item}`)}^:`; // :\n^b${/* TODO: count */}^:`;
+                }),
+            ]);
+        }
+        tableFormatted.push(["totals", ...this.cols.map(col => markupItems.totals + col.total.toString() + "^:")]);
+        term.table(tableFormatted, { contentHasMarkup: true });
+    }
+    static append(tableList) {
+        const firstTable = tableList[0];
+        if (firstTable === undefined) {
+            return new table(defaultAspects);
+        }
+        if (tableList.length === 1) {
+            return firstTable;
+        }
+        const resultTable = new table(firstTable.cols.map(col => col.name));
+        resultTable.rowNames = tableList.flatMap(entry => entry.rowNames);
+        for (const tableEntry of tableList) {
+            const colNames = [...new Set([...resultTable.cols.map(col => col.name), ...resultTable.cols.map(col => col.name)])];
+            for (const colName of colNames) {
+                const resultCol = resultTable.cols.find(col => col.name === colName);
+                const entryCol = tableEntry.cols.find(col => col.name === colName);
+                if (entryCol !== undefined && resultCol !== undefined) {
+                    resultCol.data.push(...entryCol.data);
+                    resultCol.total += entryCol.total;
+                }
+                if (entryCol !== undefined && resultCol === undefined) {
+                    resultTable.cols.push({
+                        name: entryCol.name,
+                        data: [...entryCol.data],
+                        total: entryCol.total,
+                    });
+                }
+                if (entryCol === undefined && resultCol !== undefined) {
+                    resultCol.data.push(...new Array(tableEntry.rowNames.length)
+                        .fill(undefined)
+                        // we must use map to make sure each cell is it's own object.
+                        .map((_) => []));
+                }
+                if (entryCol === undefined && resultCol === undefined) {
+                    throw new Error("impossible code path found");
+                }
+            }
+        }
+        return resultTable;
+    }
+    static merge(tableList, rowNames) {
+        // FIXME: the rowNames param can be a different length than the data
+        const firstTable = tableList[0];
+        if (firstTable === undefined) {
+            return new table(defaultAspects);
+        }
+        if (tableList.length === 1) {
+            return firstTable;
+        }
+        const resultTable = new table(firstTable.cols.map(col => col.name));
+        for (const col of resultTable.cols) {
+            const maxFound = [];
+            // find max
+            for (const tableEntry of tableList) {
+                const tableCol = tableEntry.cols.find(entryCol => entryCol.name === col.name);
+                if (tableCol === undefined) {
+                    throw new Error(`Failed to find header ${col.name}.`);
+                }
+                const maxFoundFirst = maxFound[0];
+                if (maxFoundFirst === undefined || maxFoundFirst.total < tableCol.total) {
+                    maxFound.length = 0;
+                    maxFound.push(tableCol);
+                    continue;
+                }
+                if (maxFoundFirst.total > tableCol.total) {
+                    continue;
+                }
+                if (maxFoundFirst.total === tableCol.total) {
+                    maxFound.push(tableCol);
+                    continue;
+                }
+            }
+            // TODO: select which col of the maxed cols to use
+            const selectedMaxCol = maxFound[0];
+            if (selectedMaxCol === undefined) {
+                continue;
+            }
+            col.data = selectedMaxCol.data;
+            col.total = selectedMaxCol.total;
+        }
+        // FIXME: make sure all cols & rowNames are the correct length
+        const maxRows = Math.max(...resultTable.cols.map(col => col.data.length));
+        for (const col of resultTable.cols) {
+            while (col.data.length < maxRows) {
+                col.data.push([]);
+            }
+        }
+        const rowNamesFinal = rowNames ?
+            rowNames :
+            new Array(maxRows).fill("").map((_, i) => `slot ${i + 1}`);
+        rowNamesFinal.length = Math.min(maxRows, rowNamesFinal.length);
+        resultTable.rowNames = rowNamesFinal;
+        return resultTable;
+    }
 }
-function printMaxAspects(term, header, titles, tableData, totals) {
-    const table = [
-        // TODO: color cells based on aspect
-        header,
-        ...tableData.map((row, rowIndex) => {
-            // TODO: color the cells
-            return [titles[rowIndex], ...row.map(cell => cell.length === 0 ? "" : `^c${cell[0].join("^:/^c")}^::\n^b${cell[1]}^:`)];
-        }),
-        ["totals", ...totals.map(count => "^b" + count.toString() + "^:")],
-    ];
-    term.table(table, { contentHasMarkup: true });
-}
-function mergeTableMaxAspect(tableData, strict) {
-    if (tableData.length === 0) {
-        return;
-    }
-    if (tableData.length === 1) {
-        return tableData[0].data;
-    }
-    const tableList = tableData.map(tableObj => tableObj.data);
-    // verify if we can merge these results
-    for (let i = 1; i < tableList.length; i++) {
-        const table = tableList[i];
-        if (table.header.some((header, index) => header !== tableList[0].header[index])) {
-            return undefined;
-        }
-        if (strict) {
-            if (table.data.length !== tableList[0].data.length) {
-                return undefined;
-            }
-            if (table.data.some((row, index) => row.some((cell, subindex) => cell[0] !== tableList[0].data[index][subindex][0]))) {
-                return undefined;
-            }
-        }
-    }
-    const result = {
-        header: [], // ...tableList[0].header
-        data: new Array(Math.max(...tableList.map(table => table.data.length)))
-            .fill(undefined)
-            .map(_ => []),
-        totals: [],
-    };
-    // merge
-    // TODO: figure out a way to solve max aspect ties. this currently prioritizes the first match
-    // aspect index starts at 1 to skip the "filter query" header
-    for (let aspectIndex = 1; aspectIndex < tableList[0].header.length; aspectIndex++) {
-        let tableIndexTarget = -1;
-        let maxAspect = -1;
-        for (let tableIndex = 0; tableIndex < tableList.length; tableIndex++) {
-            const table = tableList[tableIndex];
-            if (table.totals[aspectIndex] > maxAspect) {
-                tableIndexTarget = tableIndex;
-                maxAspect = table.totals[aspectIndex];
-            }
-        }
-        if (maxAspect < 0) {
-            result.header.push(markupReplace(tableList[0].header[aspectIndex]));
-            result.data.push([]);
-            result.totals.push(0);
-            continue;
-        }
-        // append to results
-        const targTable = tableList[tableIndexTarget];
-        result.header.push(`${markupReplace(tableList[0].header[aspectIndex])}: ${markupItems.verb}${tableData[tableIndexTarget].id}^:`);
-        for (let rowIndex = 0; rowIndex < result.data.length; rowIndex++) {
-            result.data[rowIndex].push(targTable.data[rowIndex]?.[aspectIndex] ?? []);
-        }
-        result.totals.push(targTable.totals[aspectIndex]);
-    }
-    return result;
-}
-export default tables;
-// TODO: turn all of this into a class
