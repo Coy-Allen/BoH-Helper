@@ -1,6 +1,7 @@
 import { jsonSpacing, markupItems } from "../config.js";
 import { save, data, mergeAspects, filterBuilders, filterPresets } from "../dataProcessing.js";
-import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
+import { validateOrGetInput } from "../commandHelpers.js";
+import { itemFilter } from "../commandHelperPresets.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],

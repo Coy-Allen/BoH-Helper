@@ -1,4 +1,5 @@
-import { validateOrGetInput, itemFilter, aspectTarget } from "../commandHelpers.js";
+import { validateOrGetInput } from "../commandHelpers.js";
+import { itemFilter, aspectTarget } from "../commandHelperPresets.js";
 import { data, filterBuilders, save } from "../dataProcessing.js";
 import { markupReplace } from "../dataVisualizationFormatting.js";
 import { markupItems } from "../config.js";

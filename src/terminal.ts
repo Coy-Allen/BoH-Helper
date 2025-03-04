@@ -4,7 +4,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import {dataFolder, isDebug, shouldAutoloadSave, defaultFile} from "./config.js";
+import {configCommands, dataFolder, isDebug, config} from "./config.js";
 
 
 import tables from "./commands/tables.js";
@@ -17,6 +17,7 @@ import info from "./commands/info.js";
 const term = terminalKit.terminal;
 const inputTree: [[string, ...string[]], [types.inputNode, ...types.inputNode[]], string] = [[""], [
 	[["help", "?"], (t, p): string=>commandProcessing.help(t, p, inputTree), "shows all commands"],
+	configCommands,
 	[["clear"], (): string=>{
 		term.clear();
 		return "";
@@ -67,11 +68,11 @@ async function main(): Promise<void> {
 		}
 	});
 	term("\n");
-	if (shouldAutoloadSave) {
+	if (config.shouldAutoloadSave) {
 		try {
-			await commandProcessing.load(term, defaultFile.split(" "));
+			await commandProcessing.load(term, config.defaultFile.split(" "));
 		} catch (_) {
-			term(`failed to autoload the save "${defaultFile}".`);
+			term(`failed to autoload the save "${config.defaultFile}".`);
 		}
 	}
 	term("");

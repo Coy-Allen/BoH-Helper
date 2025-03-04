@@ -1,7 +1,7 @@
 import type {elementStackCreationCommand} from "./saveTypes.js";
 import type {stackExtraInfo} from "./types.js";
 import type {Terminal} from "terminal-kit";
-import {defaultItemDisplay, jsonSpacing, markupItems, markupReplaceList} from "./config.js";
+import {config, jsonSpacing, markupItems, markupReplaceList} from "./config.js";
 
 export const itemDisplaySelection = ["full", "aspects", "rooms", "counts"] as const;
 
@@ -23,7 +23,7 @@ export function markupReplace<t extends string[]|string>(text: t): t {
 }
 
 export function displayItemList(term: Terminal, items: (elementStackCreationCommand & stackExtraInfo)[], type?: typeof itemDisplaySelection[number]): void {
-	switch (type??defaultItemDisplay) {
+	switch (type??config.defaultItemDisplay) {
 		case "full": {
 			term(JSON.stringify(items, null, jsonSpacing)+"\n");
 			return;

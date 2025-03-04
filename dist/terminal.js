@@ -2,7 +2,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import { dataFolder, isDebug, shouldAutoloadSave, defaultFile } from "./config.js";
+import { configCommands, dataFolder, isDebug, config } from "./config.js";
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
 import misc from "./commands/misc.js";
@@ -12,6 +12,7 @@ import info from "./commands/info.js";
 const term = terminalKit.terminal;
 const inputTree = [[""], [
         [["help", "?"], (t, p) => commandProcessing.help(t, p, inputTree), "shows all commands"],
+        configCommands,
         [["clear"], () => {
                 term.clear();
                 return "";
@@ -59,12 +60,12 @@ async function main() {
         }
     });
     term("\n");
-    if (shouldAutoloadSave) {
+    if (config.shouldAutoloadSave) {
         try {
-            await commandProcessing.load(term, defaultFile.split(" "));
+            await commandProcessing.load(term, config.defaultFile.split(" "));
         }
         catch (_) {
-            term(`failed to autoload the save "${defaultFile}".`);
+            term(`failed to autoload the save "${config.defaultFile}".`);
         }
     }
     term("");

@@ -1,4 +1,4 @@
-import { defaultItemDisplay, jsonSpacing, markupItems, markupReplaceList } from "./config.js";
+import { config, jsonSpacing, markupItems, markupReplaceList } from "./config.js";
 export const itemDisplaySelection = ["full", "aspects", "rooms", "counts"];
 export function markupReplace(text) {
     const isArray = Array.isArray(text);
@@ -16,7 +16,7 @@ export function markupReplace(text) {
     return res[0];
 }
 export function displayItemList(term, items, type) {
-    switch (type ?? defaultItemDisplay) {
+    switch (type ?? config.defaultItemDisplay) {
         case "full": {
             term(JSON.stringify(items, null, jsonSpacing) + "\n");
             return;

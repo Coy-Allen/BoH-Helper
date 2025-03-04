@@ -3,7 +3,8 @@ import type * as types from "../types.js";
 
 import {jsonSpacing, markupItems} from "../config.js";
 import {save, data, mergeAspects, filterBuilders, filterPresets} from "../dataProcessing.js";
-import {validateOrGetInput, itemFilter} from "../commandHelpers.js";
+import {validateOrGetInput} from "../commandHelpers.js";
+import {itemFilter} from "../commandHelperPresets.js";
 
 
 type availableMemoriesResult = Partial<Record<

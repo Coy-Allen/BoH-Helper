@@ -4,7 +4,7 @@ import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
 import {data} from "./dataProcessing.js";
 import type * as types from "./types.js";
-import {dataFolder, maxHistory} from "./config.js";
+import {dataFolder, config} from "./config.js";
 
 
 const fileOutputs = {
@@ -78,7 +78,7 @@ export async function saveHistory(): Promise<void> {
 		return;
 	}
 	try {
-		const trunkHistory = history.slice(Math.max(history.length-maxHistory, 0));
+		const trunkHistory = history.slice(Math.max(history.length-config.maxHistory, 0));
 		await fs.writeFile(import.meta.dirname+"/../history.txt", trunkHistory.join("\n"));
 	} catch (_) {
 		// TODO: alert user of save issue

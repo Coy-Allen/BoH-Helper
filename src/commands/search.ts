@@ -1,7 +1,8 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {itemFilter, validateOrGetInput} from "../commandHelpers.js";
+import {validateOrGetInput} from "../commandHelpers.js";
+import {itemFilter} from "../commandHelperPresets.js";
 import {data, save, filterBuilders, filterPresets} from "../dataProcessing.js";
 import {jsonSpacing} from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
