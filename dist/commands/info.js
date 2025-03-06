@@ -9,7 +9,8 @@ async function items(term, parts) {
         id: "string",
         name: "item name",
         options: {
-            autocomplete: [],
+            autocomplete: data.elements.keys(),
+            autocompleteDelimiter: "\\.",
             strict: false,
         },
     });

@@ -13,7 +13,8 @@ async function items(term: Terminal, parts: string[]): Promise<string> {
 		id: "string",
 		name: "item name",
 		options: {
-			autocomplete: [],
+			autocomplete: data.elements.keys(),
+			autocompleteDelimiter: "\\.",
 			strict: false,
 		},
 	});
