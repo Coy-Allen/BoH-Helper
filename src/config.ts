@@ -145,7 +145,7 @@ function applyConfig(): void {
 			config[key] = userConfig[key];
 		}
 	}
-	fs.writeFileSync(configFilePath, JSON.stringify(userConfig));
+	fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, jsonSpacing));
 }
 
 // Apply loaded user config
