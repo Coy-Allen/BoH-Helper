@@ -154,8 +154,9 @@ function applyConfig() {
 applyConfig();
 // config commands
 async function getConfigItem(term, part) {
+    const validatadPart = part ?? "".length > 0 ? `"${part}"` : "";
     // this processes as JSON so we need to incase it in quotes.
-    return validateOrGetInput(term, `"${part}"`, {
+    return validateOrGetInput(term, validatadPart, {
         id: "string",
         name: "option",
         options: {
@@ -185,25 +186,25 @@ async function setSetting(term, parts) {
     /* @ts-expect-error typescript does not support same key assignment (https://github.com/microsoft/TypeScript/issues/32693) */
     userConfig[key] = value;
     applyConfig();
-    return `key ${JSON.stringify(value)}`;
+    return `${key} ${JSON.stringify(value)}`;
 }
 async function getSetting(term, parts) {
     const key = await getConfigItem(term, parts[0]);
-    term(`${markupItems.item}key^:`);
-    term(`: ${userConfig[key]}\n`);
+    term(`${getKeyColor(key)}${key}^:: ${config[key]}\n`);
     return key;
 }
 function listSetting(term, _parts) {
     // TODO: show user settings and default settings as different things.
     for (const key of Object.keys(configMetadata)) {
         const metadata = configMetadata[key];
-        if (key in userConfig) {
-            term(`${markupItems.settingUser}${key}^:`);
-        }
-        else {
-            term(`${markupItems.settingDefault}${key}^:`);
-        }
-        term(` (${metadata.targetType.id}): ${metadata.helpText} \n`);
+        term(`${getKeyColor(key)}${key}^: (${metadata.targetType.id}): ${metadata.helpText} \n`);
     }
     return "";
+}
+// helpers
+function getKeyColor(key) {
+    if (key in userConfig) {
+        return markupItems.settingUser;
+    }
+    return markupItems.settingDefault;
 }
