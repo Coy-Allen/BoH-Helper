@@ -56,24 +56,3 @@ export function displayItemList(term, items, type) {
         }
     }
 }
-/*
-
-.forEach(entry=>{
-        const key = entry.entityid;
-        if (!result.has(key)) {result.set(key, []);}
-        const values = result.get(key);
-        if (values===undefined) {return;}
-        if (!values.includes(entry.room)) {
-            values.push(entry.room);
-        }
-    });
-
-
-    findItems(args).forEach(item=>{
-        counts.set(item.entityid, (counts.get(item.entityid)??0)+1);
-    });
-        .sort(([_a, countA], [_b, countB]): number=>countA-countB)
-        .map(([name, count]): string=>`${name}: ${count}\n`)
-        .join(""));
-
-*/
