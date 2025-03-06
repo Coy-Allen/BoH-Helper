@@ -3,7 +3,7 @@ import json5 from "json5";
 import iconv from "iconv-lite";
 import fileMetaDataList from "./fileList.js";
 import { data } from "./dataProcessing.js";
-import { dataFolder, config } from "./config.js";
+import { config } from "./config.js";
 const fileOutputs = {
     decks: [],
     items: [],
@@ -17,7 +17,7 @@ export async function loadFiles(dispatch) {
         dispatch("start", fileMetaData.name);
         const outputs = fileOutputs[fileMetaData.type];
         try {
-            const fileContent = await fs.readFile(dataFolder + "\\" + fileMetaData.name)
+            const fileContent = await fs.readFile(config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core\\" + fileMetaData.name)
                 .then(file => iconv.decode(file, fileMetaData.encoding).toLowerCase())
                 .then(contents => fileMetaData.postProcessing?.(contents) ?? contents);
             outputs.push(json5.parse(fileContent));

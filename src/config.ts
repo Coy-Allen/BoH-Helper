@@ -37,11 +37,38 @@ const defaultConfig: config = {
 	isTrueColor: true,
 };
 
-const userConfig: Partial<config> = {};
-export const config: config = Object.assign({}, defaultConfig);
+// internal config.
+const configFilePath = "./config.json";
+export const isDebug = true as boolean;
+export const jsonSpacing = "  ";
+export const markupReplaceList: [RegExp, string][] = [
+	[/\blantern\b/gi, "#ffe300"],
+	[/\bforge\b/gi, "#ff8e3e"],
+	[/\bedge\b/gi, "#d7dd49"],
+	[/\bwinter\b/gi, "#beeeff"],
+	[/\bheart\b/gi, "#f97a89"],
+	[/\bgrail\b/gi, "#fe6150"],
+	[/\bmoth\b/gi, "#f2e9c2"],
+	[/\bknock\b/gi, "#b54efc"],
+	[/\bsky\b/gi, "#2c68e1"],
+	[/\bmoon\b/gi, "#ccbcd6"],
+	[/\bnectar\b/gi, "#20a360"],
+	[/\bscale\b/gi, "#cb9f4e"],
+	[/\brose\b/gi, "#f163ff"],
+];
+
+export const markupItems = {
+	item: "^c", // cyan
+	deck: "^g", // green
+	verb: "^m", // magenta
+	totals: "^b", // blue
+	settingUser: "^c", // cyan
+	settingDefault: "^b", // blue
+};
 
 // final config setup
-const configFilePath = "./config.json";
+const userConfig: Partial<config> = {};
+export const config: config = Object.assign({}, defaultConfig);
 if (fs.existsSync(configFilePath)) {
 	try {
 		const unverifiedConfig: unknown = JSON.parse(fs.readFileSync(configFilePath, {encoding: "utf8"}));
@@ -150,35 +177,6 @@ function applyConfig(): void {
 
 // Apply loaded user config
 applyConfig();
-
-// internal config.
-export const isDebug = true as boolean;
-export const dataFolder = config.installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core";
-export const jsonSpacing = "  ";
-export const markupReplaceList: [RegExp, string][] = [
-	[/\blantern\b/gi, "#ffe300"],
-	[/\bforge\b/gi, "#ff8e3e"],
-	[/\bedge\b/gi, "#d7dd49"],
-	[/\bwinter\b/gi, "#beeeff"],
-	[/\bheart\b/gi, "#f97a89"],
-	[/\bgrail\b/gi, "#fe6150"],
-	[/\bmoth\b/gi, "#f2e9c2"],
-	[/\bknock\b/gi, "#b54efc"],
-	[/\bsky\b/gi, "#2c68e1"],
-	[/\bmoon\b/gi, "#ccbcd6"],
-	[/\bnectar\b/gi, "#20a360"],
-	[/\bscale\b/gi, "#cb9f4e"],
-	[/\brose\b/gi, "#f163ff"],
-];
-
-export const markupItems = {
-	item: "^c", // cyan
-	deck: "^g", // green
-	verb: "^m", // magenta
-	totals: "^b", // blue
-	settingUser: "^c", // cyan
-	settingDefault: "^b", // blue
-};
 
 // config commands
 

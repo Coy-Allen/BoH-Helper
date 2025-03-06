@@ -19,10 +19,36 @@ const defaultConfig = {
     defaultItemDisplay: "aspects",
     isTrueColor: true,
 };
+// internal config.
+const configFilePath = "./config.json";
+export const isDebug = true;
+export const jsonSpacing = "  ";
+export const markupReplaceList = [
+    [/\blantern\b/gi, "#ffe300"],
+    [/\bforge\b/gi, "#ff8e3e"],
+    [/\bedge\b/gi, "#d7dd49"],
+    [/\bwinter\b/gi, "#beeeff"],
+    [/\bheart\b/gi, "#f97a89"],
+    [/\bgrail\b/gi, "#fe6150"],
+    [/\bmoth\b/gi, "#f2e9c2"],
+    [/\bknock\b/gi, "#b54efc"],
+    [/\bsky\b/gi, "#2c68e1"],
+    [/\bmoon\b/gi, "#ccbcd6"],
+    [/\bnectar\b/gi, "#20a360"],
+    [/\bscale\b/gi, "#cb9f4e"],
+    [/\brose\b/gi, "#f163ff"],
+];
+export const markupItems = {
+    item: "^c", // cyan
+    deck: "^g", // green
+    verb: "^m", // magenta
+    totals: "^b", // blue
+    settingUser: "^c", // cyan
+    settingDefault: "^b", // blue
+};
+// final config setup
 const userConfig = {};
 export const config = Object.assign({}, defaultConfig);
-// final config setup
-const configFilePath = "./config.json";
 if (fs.existsSync(configFilePath)) {
     try {
         const unverifiedConfig = JSON.parse(fs.readFileSync(configFilePath, { encoding: "utf8" }));
@@ -122,37 +148,10 @@ function applyConfig() {
             config[key] = userConfig[key];
         }
     }
-    fs.writeFileSync(configFilePath, JSON.stringify(userConfig));
+    fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, jsonSpacing));
 }
 // Apply loaded user config
 applyConfig();
-// internal config.
-export const isDebug = true;
-export const dataFolder = config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core";
-export const jsonSpacing = "  ";
-export const markupReplaceList = [
-    [/\blantern\b/gi, "#ffe300"],
-    [/\bforge\b/gi, "#ff8e3e"],
-    [/\bedge\b/gi, "#d7dd49"],
-    [/\bwinter\b/gi, "#beeeff"],
-    [/\bheart\b/gi, "#f97a89"],
-    [/\bgrail\b/gi, "#fe6150"],
-    [/\bmoth\b/gi, "#f2e9c2"],
-    [/\bknock\b/gi, "#b54efc"],
-    [/\bsky\b/gi, "#2c68e1"],
-    [/\bmoon\b/gi, "#ccbcd6"],
-    [/\bnectar\b/gi, "#20a360"],
-    [/\bscale\b/gi, "#cb9f4e"],
-    [/\brose\b/gi, "#f163ff"],
-];
-export const markupItems = {
-    item: "^c", // cyan
-    deck: "^g", // green
-    verb: "^m", // magenta
-    totals: "^b", // blue
-    settingUser: "^c", // cyan
-    settingDefault: "^b", // blue
-};
 // config commands
 async function getConfigItem(term, part) {
     // this processes as JSON so we need to incase it in quotes.

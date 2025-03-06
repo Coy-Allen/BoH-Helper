@@ -4,7 +4,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import {configCommands, dataFolder, isDebug, config} from "./config.js";
+import {configCommands, isDebug, config} from "./config.js";
 
 
 import tables from "./commands/tables.js";
@@ -23,19 +23,11 @@ const inputTree: [[string, ...string[]], [types.inputNode, ...types.inputNode[]]
 		return "";
 	}, "clears the terminal"],
 	[["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
-	[["load"], commandProcessing.load, "load user save files"],
-	list,
-	info,
-	search,
-	misc,
-	tables,
 	// ["alias",[
 	// 	["save",(_=>undefined),"saves the last used command"],
 	// 	["load",(_=>undefined),"loads a specific alias and runs the command"],
 	// ],"save frequently used commands for easy use"],
 ], "The console! Autocomplete with tab. up/down to go through command history."];
-
-if (isDebug) {inputTree[1].push(debugCommands);}
 
 async function main(): Promise<void> {
 	await term.drawImage(
@@ -61,11 +53,14 @@ async function main(): Promise<void> {
 			}
 			case "failed":{
 				fileLoadingProgress.stop();
-				term.red("failed to load "+dataFolder+"\\"+filename+"\n");
-				term.red("Check \"installFolder\" in the config.js file or verify your game's integrity.\n");
-				throw new Error();
+				throw new Error(filename);
 			}
 		}
+	}).then(_=>{
+		initalizeCommands();
+	}).catch((err: unknown): void=>{
+		term.red("failed to load "+config.installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core\\"+(err as Error).message+"\n");
+		term.red("Check \"installFolder\" in the config.json file or verify your game's integrity.\n");
 	});
 	term("\n");
 	if (config.shouldAutoloadSave) {
@@ -77,6 +72,18 @@ async function main(): Promise<void> {
 	}
 	term("");
 	await inputLoop();
+}
+
+function initalizeCommands(): void {
+	inputTree[1].push(
+		[["load"], commandProcessing.load, "load user save files"],
+		list,
+		info,
+		search,
+		misc,
+		tables,
+	);
+	if (isDebug) {inputTree[1].push(debugCommands);}
 }
 
 async function inputLoop(): Promise<void> {
