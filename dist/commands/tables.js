@@ -61,7 +61,7 @@ async function maxAspectsPreset(term, parts) {
         throw new Error("verb not found");
     }
     // calculate
-    const slots = targetVerb.slot ? [targetVerb.slot] : targetVerb.slots ? targetVerb.slots : [];
+    const slots = targetVerb.slot ? [targetVerb.slot] : targetVerb.slots ?? [];
     const filters = slots.map(slot => {
         const options = {};
         if (slot.essential) {
@@ -117,7 +117,7 @@ function maxAspectsAssistance(term, parts) {
         }
         allTables.push(tableCalc);
     }
-    const finalTable = table.append([sharedCalc, table.merge(allTables)]);
+    const finalTable = table.append([sharedCalc, table.merge(allTables, ["assistance", "extra"])]);
     finalTable.print(term);
     return parts.join(" ");
 }
@@ -146,6 +146,7 @@ function minAspectUnlockableRooms(term, parts) {
     return parts.join(" ");
 }
 function minAspectBooks(term, parts) {
+    // FIXME: exclude books we don't have the language for
     const tableObj = new table(defaultAspects.map(aspect => "mystery." + aspect));
     tableObj.addRow("book", {
         any: Object.fromEntries(defaultAspects.map(aspect => ["mystery." + aspect, 1])),
@@ -335,7 +336,6 @@ class table {
         return resultTable;
     }
     static merge(tableList, rowNames) {
-        // FIXME: the rowNames param can be a different length than the data
         const firstTable = tableList[0];
         if (firstTable === undefined) {
             return new table(defaultAspects);
@@ -374,16 +374,13 @@ class table {
             col.data = selectedMaxCol.data;
             col.total = selectedMaxCol.total;
         }
-        // FIXME: make sure all cols & rowNames are the correct length
         const maxRows = Math.max(...resultTable.cols.map(col => col.data.length));
         for (const col of resultTable.cols) {
             while (col.data.length < maxRows) {
                 col.data.push([]);
             }
         }
-        const rowNamesFinal = rowNames ?
-            rowNames :
-            new Array(maxRows).fill("").map((_, i) => `slot ${i + 1}`);
+        const rowNamesFinal = rowNames ?? new Array(maxRows).fill("").map((_, i) => `slot ${i + 1}`);
         rowNamesFinal.length = Math.min(maxRows, rowNamesFinal.length);
         resultTable.rowNames = rowNamesFinal;
         return resultTable;

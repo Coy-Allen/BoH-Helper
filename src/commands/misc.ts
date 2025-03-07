@@ -1,7 +1,7 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {jsonSpacing, markupItems} from "../config.js";
+import {config, markupItems} from "../config.js";
 import {save, data, mergeAspects, filterBuilders, filterPresets} from "../dataProcessing.js";
 import {validateOrGetInput} from "../commandHelpers.js";
 import {itemFilter} from "../commandHelperPresets.js";
@@ -223,7 +223,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 	const maxTargLen = 15;
 	const genListOutput = (memories: [string, string[]][]): void=>{
 		for (const [memId, targs] of memories) {
-			term(`${jsonSpacing}${markupItems.item}${memId}^:: `);
+			term(`${config.jsonSpacing}${markupItems.item}${memId}^:: `);
 			if (targs.length <= maxTargLen) {
 				term(targs.join(", ")+"\n");
 			} else {
@@ -249,10 +249,10 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 				},
 			}],
 			["filter", false, itemFilter],
-			// FIXME: this is inverted! true = exclude owned
+			// TODO: verify this bug is fixed: this is inverted! true = exclude owned
 			["owned", true, {
 				id: "boolean",
-				name: "include already obtained",
+				name: "include already obtained memories",
 				options: {
 					default: false,
 				},
@@ -268,13 +268,9 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 		array.push(value);
 	};
 	// only populate veriable if needed
-	const ownedMems = new Set<string>(
-		args.owned ?
-			save.elements
-				.filter(filterBuilders.saveItemFilter({min: {memory: 1}}))
-				.map(item=>item.entityid) :
-			[],
-	);
+	const ownedMems = new Set<string>(save.elements
+		.filter(filterBuilders.saveItemFilter({min: {memory: 1}}))
+		.map(item=>item.entityid));
 	const filterFull = args.filter??{};
 	if (filterFull.min===undefined) {filterFull.min = {};}
 	filterFull.min["memory"] = 1;
@@ -283,8 +279,8 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 		if (filter && !filter(itemId)) {
 			return false;
 		}
-		// owned check
-		if (args.owned && ownedMems.has(itemId)) {
+		// owned check (args.owned = exclude if we have it)
+		if (!args.owned && ownedMems.has(itemId)) {
 			return false;
 		}
 		return true;
@@ -339,7 +335,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 					// ignore books if asked
 					if (type.startsWith("reading.")) {
 						if (inputs.includes("books")) {
-							// FIXME: filter out non-mastered books
+							// FIXME: filter out non-mastered books. we lost that info due to going from save to data elements.
 							appendToMap(foundReusableInspect, info.id, item.id);
 						}
 						continue;

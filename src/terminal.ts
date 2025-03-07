@@ -4,7 +4,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import {configCommands, isDebug, config} from "./config.js";
+import {configCommands, config} from "./config.js";
 
 
 import tables from "./commands/tables.js";
@@ -83,7 +83,7 @@ function initalizeCommands(): void {
 		misc,
 		tables,
 	);
-	if (isDebug) {inputTree[1].push(debugCommands);}
+	if (config.isDebug) {inputTree[1].push(debugCommands);}
 }
 
 async function inputLoop(): Promise<void> {
@@ -115,7 +115,7 @@ async function inputLoop(): Promise<void> {
 			await fileLoader.addHistory((commandLookup[0].join(" ")+" "+finalArgs).trimEnd());
 		} catch (error) {
 			term.red("command threw an error.\n");
-			if (isDebug) {
+			if (config.isDebug) {
 				term.red((error as Error).stack??""+"\n");
 				term.red((error as Error).name+"\n");
 				term.red((error as Error).message+"\n");

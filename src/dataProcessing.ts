@@ -1,13 +1,11 @@
 import type * as types from "./types.js";
 import type * as saveTypes from "./saveTypes.js";
 
-import {isDebug} from "./config.js";
+import {config} from "./config.js";
 
 export type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
 
-// TODO: maybe put these into nested objects? like save.verbs.get()?
-
-// FIXME: replace all console.* calls with terminal calls
+// TODO: replace all console.* calls with terminal calls
 
 class dataWrapper<t> {
 	private _data;
@@ -32,7 +30,7 @@ class dataWrapper<t> {
 	add(item: t): boolean {
 		const key = this._keyFunc(item);
 		const isPresent = this.hasKey(key);
-		if (isDebug && isPresent) {
+		if (config.isDebug && isPresent) {
 			console.warn("dupe found: "+key);
 		}
 		this._data.set(key, item);

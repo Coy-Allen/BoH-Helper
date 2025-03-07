@@ -1,6 +1,5 @@
-import { isDebug } from "./config.js";
-// TODO: maybe put these into nested objects? like save.verbs.get()?
-// FIXME: replace all console.* calls with terminal calls
+import { config } from "./config.js";
+// TODO: replace all console.* calls with terminal calls
 class dataWrapper {
     _data;
     _keyFunc;
@@ -24,7 +23,7 @@ class dataWrapper {
     add(item) {
         const key = this._keyFunc(item);
         const isPresent = this.hasKey(key);
-        if (isDebug && isPresent) {
+        if (config.isDebug && isPresent) {
             console.warn("dupe found: " + key);
         }
         this._data.set(key, item);

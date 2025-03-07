@@ -1,7 +1,7 @@
 import { validateOrGetInput } from "../commandHelpers.js";
 import { itemFilter } from "../commandHelperPresets.js";
 import { data, save, filterBuilders, filterPresets } from "../dataProcessing.js";
-import { jsonSpacing } from "../config.js";
+import { config } from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
 const search = [["search"], [
         [["verbs"], searchVerbs, "search found popups and their card inputs."],
@@ -52,7 +52,6 @@ async function searchVerbs(term, parts) {
             */
         ],
     });
-    // FIXME: need to figure out how to do this
     const result = data.verbs.filter(verb => save.verbs.has(verb.id), verb => {
         const slotCount = verb.slots ? verb.slots.length : verb.slot ? 1 : 0;
         if (args.slotMax && args.slotMax < slotCount) {
@@ -64,7 +63,7 @@ async function searchVerbs(term, parts) {
         return true;
     });
     // TODO: have alternative outputs
-    term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    term(JSON.stringify(result, null, config.jsonSpacing) + "\n");
     if (parts.length === 0) {
         return JSON.stringify(args);
     }
@@ -160,7 +159,7 @@ async function searchRecipes(term, parts) {
     const result = data.recipes.filter(recipe => save.recipes.has(recipe.id), 
     // remember aspectFilter does not take inheritance into account
     filterBuilders.aspectFilter(args.reqs ?? {}, recipe => recipe.reqs ?? {})).map(recipe => [recipe, recipe.reqs]);
-    term(JSON.stringify(result, null, jsonSpacing) + "\n");
+    term(JSON.stringify(result, null, config.jsonSpacing) + "\n");
     return JSON.stringify(args);
 }
 export default search;

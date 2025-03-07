@@ -16,13 +16,13 @@ const defaultConfig = {
     maxHistory: 50,
     shouldAutoloadSave: true,
     defaultFile: "AUTOSAVE.json",
-    defaultItemDisplay: "aspects",
+    defaultItemDisplay: "rooms",
     isTrueColor: true,
+    isDebug: false,
+    jsonSpacing: "  ",
 };
 // internal config.
 const configFilePath = "./config.json";
-export const isDebug = true;
-export const jsonSpacing = "  ";
 export const markupReplaceList = [
     [/\blantern\b/gi, "#ffe300"],
     [/\bforge\b/gi, "#ff8e3e"],
@@ -56,7 +56,7 @@ if (fs.existsSync(configFilePath)) {
         Object.assign(userConfig, unverifiedConfig);
     }
     catch (_) {
-        // FIXME: alert user that the config failed to load
+        console.error("user config failed to load!");
     }
 }
 const configMetadata = {
@@ -127,7 +127,7 @@ const configMetadata = {
                 strict: true,
             },
         },
-        helpText: "Default display type for item searching. defaults to aspects.",
+        helpText: "Default display type for item searching. Defaults to aspects.",
     },
     isTrueColor: {
         targetType: {
@@ -137,7 +137,28 @@ const configMetadata = {
                 default: config.isTrueColor,
             },
         },
-        helpText: "if we should use 24 bit colors instead of the 16 color pallet. default is true.",
+        helpText: "If we should use 24 bit colors instead of the 16 color pallet. Default is true.",
+    },
+    isDebug: {
+        targetType: {
+            id: "boolean",
+            name: "isDebug",
+            options: {
+                default: config.isDebug,
+            },
+        },
+        helpText: "If debugging information should be printed to the console. Default is false.",
+    },
+    jsonSpacing: {
+        targetType: {
+            id: "string",
+            name: "jsonSpacing",
+            options: {
+                autocomplete: [],
+                strict: false,
+            },
+        },
+        helpText: "The spacing used for printing JSON objects such as save files and complex command output. Default is two spaces.",
     },
 };
 function applyConfig() {
@@ -148,7 +169,7 @@ function applyConfig() {
             config[key] = userConfig[key];
         }
     }
-    fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, jsonSpacing));
+    fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, config.jsonSpacing));
 }
 // Apply loaded user config
 applyConfig();

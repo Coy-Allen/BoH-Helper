@@ -4,7 +4,7 @@ import type * as types from "../types.js";
 import {validateOrGetInput} from "../commandHelpers.js";
 import {itemFilter} from "../commandHelperPresets.js";
 import {data, save, filterBuilders, filterPresets} from "../dataProcessing.js";
-import {jsonSpacing} from "../config.js";
+import {config} from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
 
 const search: types.inputNode = [["search"], [
@@ -57,7 +57,6 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 			*/
 		],
 	});
-	// FIXME: need to figure out how to do this
 	const result = data.verbs.filter(
 		verb=>save.verbs.has(verb.id),
 		verb=>{
@@ -69,7 +68,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 		// TODO: filter via args.slots
 	);
 	// TODO: have alternative outputs
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	term(JSON.stringify(result, null, config.jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
@@ -169,7 +168,7 @@ async function searchRecipes(term: Terminal, parts: string[]): Promise<string> {
 		// remember aspectFilter does not take inheritance into account
 		filterBuilders.aspectFilter(args.reqs??{}, recipe=>recipe.reqs??{}),
 	).map(recipe=>[recipe, recipe.reqs]);
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	term(JSON.stringify(result, null, config.jsonSpacing)+"\n");
 	return JSON.stringify(args);
 }
 

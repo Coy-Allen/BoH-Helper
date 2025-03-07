@@ -4,7 +4,7 @@ import type * as saveTypes from "./saveTypes.js";
 
 import {loadSave, saveHistory} from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
-import {jsonSpacing, config} from "./config.js";
+import {config} from "./config.js";
 import {watch, type FSWatcher} from "fs";
 
 let saveFileWatcherFilename: string;
@@ -93,7 +93,7 @@ async function loadFile(filename: string): Promise<boolean> {
 export function help(term: Terminal, parts: string[], inputNode: types.inputNode): string {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;
-		term(jsonSpacing.repeat(depth));
+		term(config.jsonSpacing.repeat(depth));
 		term.cyan(name.join("/"));
 		term(": "+helpText+"\n");
 		if (Array.isArray(data)) {

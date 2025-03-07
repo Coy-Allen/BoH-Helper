@@ -65,7 +65,7 @@ async function maxAspectsPreset(term: Terminal, parts: string[]): Promise<string
 	const targetVerb = verbs.find(verb=>verb.id===args.verb);
 	if (targetVerb===undefined) {throw new Error("verb not found");}
 	// calculate
-	const slots = targetVerb.slot?[targetVerb.slot]:targetVerb.slots?targetVerb.slots:[];
+	const slots = targetVerb.slot?[targetVerb.slot]:targetVerb.slots??[];
 	const filters = slots.map(slot=>{
 		const options: types.itemSearchOptions = {};
 		if (slot.essential) {options.min=slot.essential;};
@@ -113,7 +113,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 		if (aspect) {tableCalc.addRow("extra", {min: {[aspect]: 1}}, maxAspectCheck);}
 		allTables.push(tableCalc);
 	}
-	const finalTable = table.append([sharedCalc, table.merge(allTables)]);
+	const finalTable = table.append([sharedCalc, table.merge(allTables, ["assistance", "extra"])]);
 	finalTable.print(term);
 	return parts.join(" ");
 }
@@ -348,7 +348,6 @@ class table<headers extends string[]> {
 		return resultTable;
 	}
 	static merge<u extends string[]>(tableList: table<u>[], rowNames?: string[]): table<u> {
-		// FIXME: the rowNames param can be a different length than the data
 		const firstTable = tableList[0];
 		if (firstTable===undefined) {return new table(defaultAspects);}
 		if (tableList.length===1) {return firstTable;}
@@ -377,16 +376,13 @@ class table<headers extends string[]> {
 			col.data = selectedMaxCol.data;
 			col.total = selectedMaxCol.total;
 		}
-		// FIXME: make sure all cols & rowNames are the correct length
 		const maxRows = Math.max(...resultTable.cols.map(col=>col.data.length));
 		for (const col of resultTable.cols) {
 			while (col.data.length < maxRows) {
 				col.data.push([]);
 			}
 		}
-		const rowNamesFinal = rowNames ?
-			rowNames :
-			new Array(maxRows).fill("").map((_, i): string=>`slot ${i+1}`);
+		const rowNamesFinal = rowNames ?? new Array(maxRows).fill("").map((_, i): string=>`slot ${i+1}`);
 		rowNamesFinal.length = Math.min(maxRows, rowNamesFinal.length);
 		resultTable.rowNames = rowNamesFinal;
 		return resultTable;

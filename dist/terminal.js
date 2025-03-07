@@ -2,7 +2,7 @@ import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import fileMetaDataList from "./fileList.js";
-import { configCommands, isDebug, config } from "./config.js";
+import { configCommands, config } from "./config.js";
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
 import misc from "./commands/misc.js";
@@ -67,7 +67,7 @@ async function main() {
 }
 function initalizeCommands() {
     inputTree[1].push([["load"], commandProcessing.load, "load user save files"], list, info, search, misc, tables);
-    if (isDebug) {
+    if (config.isDebug) {
         inputTree[1].push(debugCommands);
     }
 }
@@ -101,7 +101,7 @@ async function inputLoop() {
         }
         catch (error) {
             term.red("command threw an error.\n");
-            if (isDebug) {
+            if (config.isDebug) {
                 term.red(error.stack ?? "" + "\n");
                 term.red(error.name + "\n");
                 term.red(error.message + "\n");
