@@ -249,6 +249,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 				},
 			}],
 			["filter", false, itemFilter],
+			// FIXME: this is inverted! true = exclude owned
 			["owned", true, {
 				id: "boolean",
 				name: "include already obtained",

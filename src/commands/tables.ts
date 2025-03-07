@@ -144,6 +144,7 @@ function minAspectUnlockableRooms(term: Terminal, parts: string[]): string {
 }
 
 function minAspectBooks(term: Terminal, parts: string[]): string {
+	// FIXME: exclude books we don't have the language for
 	const tableObj = new table(defaultAspects.map(aspect=>"mystery."+aspect));
 	tableObj.addRow("book", {
 		any: Object.fromEntries(defaultAspects.map(aspect=>["mystery."+aspect, 1])),
