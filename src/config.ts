@@ -83,6 +83,21 @@ if (fs.existsSync(configFilePath)) {
 	}
 }
 
+function applyConfig(): void {
+	for (const key in userConfig) {
+		if (key in config) {
+			/* @ts-expect-error typescript does not support same key assignment (https://github.com/microsoft/TypeScript/issues/32693) */
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+			config[key] = userConfig[key];
+		}
+	}
+	fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, config.jsonSpacing));
+}
+
+// Apply loaded user config
+applyConfig();
+
+// FIXME: defaults do not update when the user changes the config
 const configMetadata: Record<keyof config, {
 	targetType: targetTypes;
 	helpText: string;
@@ -195,26 +210,12 @@ const configMetadata: Record<keyof config, {
 			options: {
 				autocomplete: [],
 				strict: false,
-				default: config.countAsObtained,
+				default: config.countAsObtained, // FIXME: somehow not showing the default
 			},
 		},
 		helpText: "A list of items that should always be counted as \"owned\" for any command dealing with save files. Usefull for memories. Defaults to empty list.",
 	},
 };
-
-function applyConfig(): void {
-	for (const key in userConfig) {
-		if (key in config) {
-			/* @ts-expect-error typescript does not support same key assignment (https://github.com/microsoft/TypeScript/issues/32693) */
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-			config[key] = userConfig[key];
-		}
-	}
-	fs.writeFileSync(configFilePath, JSON.stringify(userConfig, null, config.jsonSpacing));
-}
-
-// Apply loaded user config
-applyConfig();
 
 // config commands
 async function getConfigItem(term: Terminal, part: string|undefined): Promise<keyof config> {

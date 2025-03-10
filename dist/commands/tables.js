@@ -2,7 +2,7 @@ import { validateOrGetInput } from "../commandHelpers.js";
 import { itemFilter, aspectTarget } from "../commandHelperPresets.js";
 import { data, filterBuilders, save } from "../dataProcessing.js";
 import { markupReplace } from "../dataVisualizationFormatting.js";
-import { markupItems } from "../config.js";
+import { markupItems, config } from "../config.js";
 const tables = [["tables"], [
         [["maxAspects"], maxAspects, "shows max aspects available."],
         [["maxAspectsPreset"], maxAspectsPreset, "shows max aspects available for a given workbench."],
@@ -11,7 +11,7 @@ const tables = [["tables"], [
         [["minAspectBooks"], minAspectBooks, "shows the mimimum required aspects to read a book from your owned books."],
         [["maxAspectsAllVerbs"], maxAspectVerbs, "shows max aspects possible using all known verbs"],
         // list max aspects possible for given crafting bench.
-    ], "display's tables of info"];
+    ], "display's tables of info. Most commands use the countAsObtained config for memories."];
 async function maxAspects(term, parts) {
     // get input
     const args = await validateOrGetInput(term, parts.join(" "), {
@@ -254,7 +254,15 @@ class table {
         }));
     }
     addRow(rowName, rowFilter, check) {
-        const foundItems = Array.isArray(rowFilter) ? rowFilter : save.elements.filter(filterBuilders.saveItemFilter(rowFilter));
+        const foundItems = Array.isArray(rowFilter) ?
+            rowFilter :
+            [
+                ...save.elements.filter(filterBuilders.saveItemFilter(rowFilter)),
+                ...config.countAsObtained
+                    .filter(filterBuilders.dataItemFilter(rowFilter))
+                    .map(itemId => data.elements.get(itemId))
+                    .filter(item => item !== undefined),
+            ];
         for (const col of this.cols) {
             let max = [];
             for (const item of foundItems) {
@@ -380,8 +388,11 @@ class table {
                 col.data.push([]);
             }
         }
-        const rowNamesFinal = rowNames ?? new Array(maxRows).fill("").map((_, i) => `slot ${i + 1}`);
+        const rowNamesFinal = rowNames ?? [];
         rowNamesFinal.length = Math.min(maxRows, rowNamesFinal.length);
+        for (let i = rowNamesFinal.length; i < maxRows; i++) {
+            rowNamesFinal.push(`slot ${i + 1}`);
+        }
         resultTable.rowNames = rowNamesFinal;
         return resultTable;
     }
