@@ -59,6 +59,7 @@ export async function devQuickCommand(term) {
                     name: "foods",
                     options: {
                         autocomplete: ["bread", "apple", "corn", "candy"],
+                        default: ["apple"],
                         minLength: 1,
                         maxLength: 99,
                         strict: false,

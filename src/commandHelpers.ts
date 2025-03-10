@@ -104,6 +104,7 @@ export interface targetStringArray extends targetBase {
 		strict: boolean;
 		minLength?: number;
 		maxLength?: number;
+		default?: string[];
 	};
 };
 export interface targetAspects extends targetBase {
@@ -368,6 +369,9 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 		}
 		case "stringArray":{
 			const selected = new Set<string>();
+			for (const option of target.options.default ?? []) {
+				selected.add(option);
+			}
 			// setup autocomplete
 			const autocompleteDelimiter = target.options.autocompleteDelimiter;
 			const autocompleteList: string|string[]|((input: string)=>(string|string[])) = autocompleteDelimiter===undefined ?

@@ -246,6 +246,7 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 				options: {
 					autocomplete: [...autocomplete],
 					strict: true,
+					default: ["all"],
 				},
 			}],
 			["filter", false, itemFilter],

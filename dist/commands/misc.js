@@ -259,6 +259,7 @@ export async function availableMemories(term, parts) {
                     options: {
                         autocomplete: [...autocomplete],
                         strict: true,
+                        default: ["all"],
                     },
                 }],
             ["filter", false, itemFilter],

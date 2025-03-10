@@ -20,6 +20,7 @@ const defaultConfig = {
     isTrueColor: true,
     isDebug: false,
     jsonSpacing: "  ",
+    countAsObtained: [],
 };
 // internal config.
 const configFilePath = "./config.json";
@@ -156,9 +157,22 @@ const configMetadata = {
             options: {
                 autocomplete: [],
                 strict: false,
+                default: config.jsonSpacing,
             },
         },
         helpText: "The spacing used for printing JSON objects such as save files and complex command output. Default is two spaces.",
+    },
+    countAsObtained: {
+        targetType: {
+            id: "stringArray",
+            name: "countAsObtained",
+            options: {
+                autocomplete: [],
+                strict: false,
+                default: config.countAsObtained,
+            },
+        },
+        helpText: "A list of items that should always be counted as \"owned\" for any command dealing with save files. Usefull for memories. Defaults to empty list.",
     },
 };
 function applyConfig() {
@@ -211,7 +225,8 @@ async function setSetting(term, parts) {
 }
 async function getSetting(term, parts) {
     const key = await getConfigItem(term, parts[0]);
-    term(`${getKeyColor(key)}${key}^:: ${config[key]}\n`);
+    const value = config[key];
+    term(`${getKeyColor(key)}${key}^:: ${JSON.stringify(value)}\n`);
     return key;
 }
 function listSetting(term, _parts) {

@@ -310,6 +310,9 @@ export async function getInput(term, target) {
         }
         case "stringArray": {
             const selected = new Set();
+            for (const option of target.options.default ?? []) {
+                selected.add(option);
+            }
             // setup autocomplete
             const autocompleteDelimiter = target.options.autocompleteDelimiter;
             const autocompleteList = autocompleteDelimiter === undefined ?

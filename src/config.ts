@@ -19,6 +19,7 @@ interface config {
 	isTrueColor: boolean;
 	isDebug: boolean;
 	jsonSpacing: string;
+	countAsObtained: string[];
 }
 
 export const configCommands: types.inputNode = [["config"], [
@@ -39,6 +40,7 @@ const defaultConfig: config = {
 	isTrueColor: true,
 	isDebug: false,
 	jsonSpacing: "  ",
+	countAsObtained: [],
 };
 
 // internal config.
@@ -181,9 +183,22 @@ const configMetadata: Record<keyof config, {
 			options: {
 				autocomplete: [],
 				strict: false,
+				default: config.jsonSpacing,
 			},
 		},
 		helpText: "The spacing used for printing JSON objects such as save files and complex command output. Default is two spaces.",
+	},
+	countAsObtained: {
+		targetType: {
+			id: "stringArray",
+			name: "countAsObtained",
+			options: {
+				autocomplete: [],
+				strict: false,
+				default: config.countAsObtained,
+			},
+		},
+		helpText: "A list of items that should always be counted as \"owned\" for any command dealing with save files. Usefull for memories. Defaults to empty list.",
 	},
 };
 
@@ -239,7 +254,8 @@ async function setSetting(term: Terminal, parts: string[]): Promise<string> {
 }
 async function getSetting(term: Terminal, parts: string[]): Promise<string> {
 	const key = await getConfigItem(term, parts[0]);
-	term(`${getKeyColor(key)}${key}^:: ${config[key]}\n`);
+	const value = config[key];
+	term(`${getKeyColor(key)}${key}^:: ${JSON.stringify(value)}\n`);
 	return key;
 }
 function listSetting(term: Terminal, _parts: string[]): string {
