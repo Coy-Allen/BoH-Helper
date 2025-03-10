@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import json5 from "json5";
 import iconv from "iconv-lite";
-import fileMetaDataList from "./fileList.js";
+import {fileMetaDataList, type dlcMaxCounts} from "./fileList.js";
 import {data} from "./dataProcessing.js";
 import type * as types from "./types.js";
 import {config} from "./config.js";
@@ -15,8 +15,8 @@ const fileOutputs = {
 };
 let history: string[]|undefined;
 
-export async function loadFiles(dispatch: (type: "start"|"success"|"failed", file: string) => void): Promise<void> {
-	// TODO: find BoH data folder even if installed elsewhere
+export async function loadFiles(dispatch: (type: "start"|"success"|"failed", file: string) => void): Promise<typeof dlcMaxCounts> {
+	const successList: typeof dlcMaxCounts = new Map();
 	for (const fileMetaData of fileMetaDataList) {
 		dispatch("start", fileMetaData.name);
 		const outputs = fileOutputs[fileMetaData.type];
@@ -25,6 +25,8 @@ export async function loadFiles(dispatch: (type: "start"|"success"|"failed", fil
 				.then(file=>iconv.decode(file, fileMetaData.encoding).toLowerCase())
 				.then(contents=>fileMetaData.postProcessing?.(contents)??contents);
 			outputs.push(json5.parse(fileContent));
+			const count = successList.get(fileMetaData.dlc)??0;
+			successList.set(fileMetaData.dlc, count+1);
 			dispatch("success", fileMetaData.name);
 		} catch (_) {
 			dispatch("failed", fileMetaData.name);
@@ -34,6 +36,7 @@ export async function loadFiles(dispatch: (type: "start"|"success"|"failed", fil
 	// FIXME: dupe messages have the loading bar behind them. need to clear the line beforehand.
 	pushData();
 	dispatch("success", "finalizing");
+	return successList;
 }
 
 export async function loadSave(saveFile: string): Promise<string> {
@@ -81,6 +84,6 @@ export async function saveHistory(): Promise<void> {
 		const trunkHistory = history.slice(Math.max(history.length-config.maxHistory, 0));
 		await fs.writeFile(import.meta.dirname+"/../history.txt", trunkHistory.join("\n"));
 	} catch (_) {
-		// TODO: alert user of save issue
+		// failed to save
 	}
 }

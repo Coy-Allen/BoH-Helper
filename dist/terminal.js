@@ -1,7 +1,7 @@
 import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
-import fileMetaDataList from "./fileList.js";
+import { fileMetaDataList, dlcMaxCounts } from "./fileList.js";
 import { configCommands, config } from "./config.js";
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
@@ -43,17 +43,43 @@ async function main() {
                 break;
             }
             case "failed": {
-                fileLoadingProgress.stop();
-                throw new Error(filename);
+                fileLoadingProgress.itemDone(filename);
+                // allow failed (and missing) files. we will determine if we should error later.
+                // fileLoadingProgress.stop();
+                // throw new Error(filename);
             }
         }
-    }).then(_ => {
+    }).then(fileResult => {
+        term("content packs loaded: ");
+        let hasStrangeCounts = false;
+        const loadedPacks = [];
+        for (const [dlc, maxCount] of dlcMaxCounts.entries()) {
+            const loadedCount = fileResult.get(dlc) ?? 0;
+            if (loadedCount === 0) {
+                term.grey(`${dlc}(${loadedCount}/${maxCount}) `);
+            }
+            else if (loadedCount === maxCount) {
+                term.green(`${dlc}(${loadedCount}/${maxCount}) `);
+                loadedPacks.push(dlc);
+            }
+            else {
+                hasStrangeCounts = true;
+                term.red(`${dlc}(${loadedCount}/${maxCount}) `);
+            }
+        }
+        term.eraseLineAfter();
+        term("\n");
+        if (hasStrangeCounts) {
+            term.red("Some content packs didn't have all their content! Please verify game integrity!\n");
+        }
+        if (!loadedPacks.includes("BoH")) {
+            throw Error("BoH content pack not found");
+        }
         initalizeCommands();
-    }).catch((err) => {
-        term.red("failed to load " + config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core\\" + err.message + "\n");
-        term.red("Check \"installFolder\" in the config.json file or verify your game's integrity.\n");
+    }).catch((_err) => {
+        term.red("failed to load core files at " + config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core\\\n");
+        term.red("Check \"installFolder\" in the config.json file and/or verify the game's integrity.\n");
     });
-    term("\n");
     if (config.shouldAutoloadSave) {
         try {
             await commandProcessing.load(term, config.defaultFile.split(" "));
@@ -62,7 +88,6 @@ async function main() {
             term(`failed to autoload the save "${config.defaultFile}".`);
         }
     }
-    term("");
     await inputLoop();
 }
 function initalizeCommands() {
