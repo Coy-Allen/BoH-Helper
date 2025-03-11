@@ -2,6 +2,8 @@
 	"name": "BoH-Helper",
 	"exports": "./src/terminal.ts",
 	"tasks": {
-		"run": "deno run --allow-write --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" ./src/terminal.ts"	
+		"clean": "rm -r ./dist",
+		"run": "deno run --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" ./src/terminal.ts",
+		"compile": "deno compile --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" --output ./dist/BoH-Helper.exe ./src/terminal.ts && cp -r ./resources ./dist/resources",
 	}
 }

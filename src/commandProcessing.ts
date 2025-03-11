@@ -9,7 +9,7 @@ import {watch, type FSWatcher} from "node:fs";
 
 let saveFileWatcherFilename: string;
 let saveFileWatcher: FSWatcher|undefined;
-let fileReadTimer: NodeJS.Timeout|undefined;
+let fileReadTimer: number|undefined;
 let shouldReadFile: boolean;
 
 export async function exit(term: Terminal): Promise<string> {
