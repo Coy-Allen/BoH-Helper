@@ -1,4 +1,5 @@
 node_modules
+dist
 *.lnk
 *.sublime-workspace
 history.txt
