@@ -1,28 +1,6 @@
 import type {Terminal} from "terminal-kit";
 import {data} from "./dataProcessing.js";
 
-export const itemFilter = {
-	id: "object",
-	name: "item filter",
-	options: {},
-	subType: [
-		["min", false, {id: "aspects", name: "min aspects", options: {}}],
-		["any", false, {id: "aspects", name: "any aspects", options: {}}],
-		["max", false, {id: "aspects", name: "max aspects", options: {}}],
-		["nameValid", false, {id: "string", name: "matches RegEx", options: {autocomplete: [], strict: false}}],
-		["nameInvalid", false, {id: "string", name: "NOT matches RegEx", options: {autocomplete: [], strict: false}}],
-	],
-} as const satisfies targetTypes;
-export const aspectTarget = {
-	id: "stringArray",
-	name: "item filter",
-	options: {
-		autocomplete: data.aspects.values(),
-		autocompleteDelimiter: "\\.",
-		strict: true,
-	},
-} as const satisfies targetTypes;
-
 // REWORK
 
 type commandNames = [string, commandNames[]];
@@ -57,11 +35,11 @@ function generateAutocomplete(options: commandNames[], inputRaw: string): string
 			// multiple possible commands
 			return commands.map(command=>[...output, command[0]].join(""));
 		}
-		if (commands.length === 0) {
+		const command = commands[0];
+		if (command === undefined) {
 			// unknown command
 			return output.join("");
 		}
-		const command = commands[0];
 		output.push(command[0]);
 		inputIndex+= command[0].length;
 		outputTargets = command;
@@ -78,8 +56,10 @@ export type processedType<t extends targetTypes> =  (t["required"] extends false
 		{[key in t["subType"][number] as key[1] extends true ? key[0] : never]: processedType<key[2]>} &
 		{[key in t["subType"][number] as key[1] extends false ? key[0] : never]?: processedType<key[2]>}
 	) :
-	t extends targetString ? string :
-	t extends targetStringArray ? string[] :
+	t extends targetString ?
+		(t["options"]["strict"] extends true ? t["options"]["autocomplete"][number] : string) :
+	t extends targetStringArray ?
+		(t["options"]["strict"] extends true ? t["options"]["autocomplete"][number][] : string[]) :
 	t extends targetAspects ? Record<string, number> :
 	t extends targetInteger ? number :
 	t extends targetBoolean ? boolean :
@@ -124,6 +104,7 @@ export interface targetStringArray extends targetBase {
 		strict: boolean;
 		minLength?: number;
 		maxLength?: number;
+		default?: string[];
 	};
 };
 export interface targetAspects extends targetBase {
@@ -148,8 +129,8 @@ export interface targetBoolean extends targetBase {
 	};
 };
 
-export async function validateOrGetInput<const t extends targetTypes>(term: Terminal, input: string, target: t): Promise<processedType<t>> {
-	if (input==="") {return getInput(term, target);}
+export async function validateOrGetInput<const t extends targetTypes>(term: Terminal, input: string|undefined, target: t): Promise<processedType<t>> {
+	if (input==="" || input===undefined) {return getInput(term, target);}
 	try {
 		const json = JSON.parse(input) as processedType<t>;
 		const validationResult = validateInput(json, target);
@@ -170,7 +151,7 @@ export function validateInput(input: unknown, target: targetTypes): string {
 	switch (target.id) {
 		case "string":{
 			if (typeof input !== "string") {return "is not a string";}
-			if ( target.options.strict && !target.options.autocomplete.includes(input)) {
+			if (target.options.strict && !target.options.autocomplete.includes(input)) {
 				return "is not included in autocomplete list";
 			}
 			return "";
@@ -267,16 +248,15 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 	let result: processedType<t>;
 	if (!(target.required??true)) {
 		term("skip? [y|N]\n");
-		if (await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {
-			term.previousLine(0);
-			term.eraseLine();
+		const shouldSkip = await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise;
+		term.previousLine(0);
+		term.eraseLine();
+		if (shouldSkip) {
 			term.previousLine(0);
 			term.eraseLine();
 			term(target.name+": undefined\n");
 			return undefined as processedType<t>;
 		}
-		term.previousLine(0);
-		term.eraseLine();
 	}
 	term.previousLine(0);
 	term.eraseLine();
@@ -309,7 +289,14 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 			term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
 			for (const [name, isRequired, subType] of target.subType) {
 				if (!isRequired) {
-					// TODO: stub. ask if needed
+					term(`${subType.name} (${subType.id}): \n`);
+					term("skip? [y|N]\n");
+					const shouldSkip = await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise;
+					term.previousLine(0);
+					term.eraseLine();
+					term.previousLine(0);
+					term.eraseLine();
+					if (shouldSkip) {continue;}
 				}
 				const subTypeResult = await getInput(term, subType);
 				tempResult[name] = subTypeResult;
@@ -382,6 +369,9 @@ export async function getInput<const t extends targetTypes>(term: Terminal, targ
 		}
 		case "stringArray":{
 			const selected = new Set<string>();
+			for (const option of target.options.default ?? []) {
+				selected.add(option);
+			}
 			// setup autocomplete
 			const autocompleteDelimiter = target.options.autocompleteDelimiter;
 			const autocompleteList: string|string[]|((input: string)=>(string|string[])) = autocompleteDelimiter===undefined ?

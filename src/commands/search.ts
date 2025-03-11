@@ -1,9 +1,10 @@
 import type {Terminal} from "terminal-kit";
 import type * as types from "../types.js";
 
-import {itemFilter, validateOrGetInput} from "../commandHelpers.js";
-import {data, save, filterBuilders} from "../dataProcessing.js";
-import {jsonSpacing} from "../config.js";
+import {validateOrGetInput} from "../commandHelpers.js";
+import {itemFilter} from "../commandHelperPresets.js";
+import {data, save, filterBuilders, filterPresets} from "../dataProcessing.js";
+import {config} from "../config.js";
 import * as dataVis from "../dataVisualizationFormatting.js";
 
 const search: types.inputNode = [["search"], [
@@ -56,7 +57,6 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 			*/
 		],
 	});
-	// FIXME: need to figure out how to do this
 	const result = data.verbs.filter(
 		verb=>save.verbs.has(verb.id),
 		verb=>{
@@ -68,7 +68,7 @@ async function searchVerbs(term: Terminal, parts: string[]): Promise<string> {
 		// TODO: filter via args.slots
 	);
 	// TODO: have alternative outputs
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	term(JSON.stringify(result, null, config.jsonSpacing)+"\n");
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
@@ -93,61 +93,13 @@ async function searchItems(term: Terminal, parts: string[]): Promise<string> {
 		],
 	});
 	const items = save.elements.filter(filterBuilders.saveItemFilter(args.filter));
-	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
+	dataVis.displayItemList(term, items, args.output);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
 	return parts.join(" ");
 }
 async function searchItemPresets(term: Terminal, parts: string[]): Promise<string> {
-	/* eslint-disable @typescript-eslint/naming-convention */
-	const presets = new Map<string, types.itemSearchOptions>([
-		["unreadBooks", {
-			any: {
-				"mystery.lantern": 1,
-				"mystery.forge": 1,
-				"mystery.edge": 1,
-				"mystery.winter": 1,
-				"mystery.heart": 1,
-				"mystery.grail": 1,
-				"mystery.moth": 1,
-				"mystery.knock": 1,
-				"mystery.sky": 1,
-				"mystery.moon": 1,
-				"mystery.nectar": 1,
-				"mystery.scale": 1,
-				"mystery.rose": 1,
-			},
-			max: {
-				"mastery.lantern": 0,
-				"mastery.forge": 0,
-				"mastery.edge": 0,
-				"mastery.winter": 0,
-				"mastery.heart": 0,
-				"mastery.grail": 0,
-				"mastery.moth": 0,
-				"mastery.knock": 0,
-				"mastery.sky": 0,
-				"mastery.moon": 0,
-				"mastery.nectar": 0,
-				"mastery.scale": 0,
-				"mastery.rose": 0,
-			},
-		}],
-		["cursedBooks", {
-			any: {
-				"contamination.actinic": 1,
-				"contamination.bloodlines": 1,
-				"contamination.chionic": 1,
-				"contamination.curse.fifth.eye": 1,
-				"contamination.keeperskin": 1,
-				"contamination.sthenic.taint": 1,
-				"contamination.winkwell": 1,
-				"contamination.witchworms": 1,
-			},
-		}],
-	]);
-	/* eslint-enable @typescript-eslint/naming-convention */
 	const args = await validateOrGetInput(term, parts.join(" "), {
 		id: "object",
 		name: "options",
@@ -157,7 +109,7 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 				id: "string",
 				name: "preset",
 				options: {
-					autocomplete: [...presets.keys()],
+					autocomplete: [...filterPresets.keys()],
 					strict: true,
 				},
 			}],
@@ -172,14 +124,14 @@ async function searchItemPresets(term: Terminal, parts: string[]): Promise<strin
 			}],
 		],
 	});
-	const targetPreset = presets.get(args.preset);
+	const targetPreset = filterPresets.get(args.preset);
 	if (targetPreset===undefined) {
 		throw Error("preset not found");
 	}
 	const items = save.elements.filter(
-		filterBuilders.aspectFilter(targetPreset, item=>item.aspects),
+		filterBuilders.saveItemFilter(targetPreset),
 	);
-	dataVis.displayItemList(term, items, args.output as typeof dataVis.itemDisplaySelection[number]);
+	dataVis.displayItemList(term, items, args.output);
 	if (parts.length === 0) {
 		return JSON.stringify(args);
 	}
@@ -213,9 +165,10 @@ async function searchRecipes(term: Terminal, parts: string[]): Promise<string> {
 	});
 	const result = data.recipes.filter(
 		recipe=>save.recipes.has(recipe.id),
+		// remember aspectFilter does not take inheritance into account
 		filterBuilders.aspectFilter(args.reqs??{}, recipe=>recipe.reqs??{}),
 	).map(recipe=>[recipe, recipe.reqs]);
-	term(JSON.stringify(result, null, jsonSpacing)+"\n");
+	term(JSON.stringify(result, null, config.jsonSpacing)+"\n");
 	return JSON.stringify(args);
 }
 

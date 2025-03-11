@@ -1,6 +1,6 @@
 import { loadSave, saveHistory } from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
-import { jsonSpacing, saveLocation, defaultFile } from "./config.js";
+import { config } from "./config.js";
 import { watch } from "fs";
 let saveFileWatcherFilename;
 let saveFileWatcher;
@@ -21,15 +21,15 @@ export async function load(term, parts) {
     if (parts.length === 0) {
         term("save file> ");
         filename = await term.fileInput({
-            baseDir: saveLocation,
-            default: defaultFile,
+            baseDir: config.saveLocation,
+            default: config.defaultFile,
         }).catch((_) => {
             term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
         });
         term("\n");
     }
     else {
-        filename = saveLocation + "/" + parts.join(" ");
+        filename = config.saveLocation + "/" + parts.join(" ");
     }
     if (!filename) {
         term.yellow("File not found.\n");
@@ -93,7 +93,7 @@ async function loadFile(filename) {
 export function help(term, parts, inputNode) {
     const getHelp = (node, depth) => {
         const [name, data, helpText] = node;
-        term(jsonSpacing.repeat(depth));
+        term(config.jsonSpacing.repeat(depth));
         term.cyan(name.join("/"));
         term(": " + helpText + "\n");
         if (Array.isArray(data)) {

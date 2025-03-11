@@ -1,9 +1,9 @@
 import fs from "fs/promises";
 import json5 from "json5";
 import iconv from "iconv-lite";
-import fileMetaDataList from "./fileList.js";
+import { fileMetaDataList } from "./fileList.js";
 import { data } from "./dataProcessing.js";
-import { dataFolder, maxHistory } from "./config.js";
+import { config } from "./config.js";
 const fileOutputs = {
     decks: [],
     items: [],
@@ -12,15 +12,17 @@ const fileOutputs = {
 };
 let history;
 export async function loadFiles(dispatch) {
-    // TODO: find BoH data folder even if installed elsewhere
+    const successList = new Map();
     for (const fileMetaData of fileMetaDataList) {
         dispatch("start", fileMetaData.name);
         const outputs = fileOutputs[fileMetaData.type];
         try {
-            const fileContent = await fs.readFile(dataFolder + "\\" + fileMetaData.name)
+            const fileContent = await fs.readFile(config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core\\" + fileMetaData.name)
                 .then(file => iconv.decode(file, fileMetaData.encoding).toLowerCase())
                 .then(contents => fileMetaData.postProcessing?.(contents) ?? contents);
             outputs.push(json5.parse(fileContent));
+            const count = successList.get(fileMetaData.dlc) ?? 0;
+            successList.set(fileMetaData.dlc, count + 1);
             dispatch("success", fileMetaData.name);
         }
         catch (_) {
@@ -31,6 +33,7 @@ export async function loadFiles(dispatch) {
     // FIXME: dupe messages have the loading bar behind them. need to clear the line beforehand.
     pushData();
     dispatch("success", "finalizing");
+    return successList;
 }
 export async function loadSave(saveFile) {
     return await fs.readFile(saveFile).then(file => iconv.decode(file, "utf8").toLowerCase());
@@ -72,10 +75,10 @@ export async function saveHistory() {
         return;
     }
     try {
-        const trunkHistory = history.slice(Math.max(history.length - maxHistory, 0));
+        const trunkHistory = history.slice(Math.max(history.length - config.maxHistory, 0));
         await fs.writeFile(import.meta.dirname + "/../history.txt", trunkHistory.join("\n"));
     }
     catch (_) {
-        // TODO: alert user of save issue
+        // failed to save
     }
 }

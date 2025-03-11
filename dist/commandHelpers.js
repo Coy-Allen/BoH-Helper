@@ -1,25 +1,4 @@
 import { data } from "./dataProcessing.js";
-export const itemFilter = {
-    id: "object",
-    name: "item filter",
-    options: {},
-    subType: [
-        ["min", false, { id: "aspects", name: "min aspects", options: {} }],
-        ["any", false, { id: "aspects", name: "any aspects", options: {} }],
-        ["max", false, { id: "aspects", name: "max aspects", options: {} }],
-        ["nameValid", false, { id: "string", name: "matches RegEx", options: { autocomplete: [], strict: false } }],
-        ["nameInvalid", false, { id: "string", name: "NOT matches RegEx", options: { autocomplete: [], strict: false } }],
-    ],
-};
-export const aspectTarget = {
-    id: "stringArray",
-    name: "item filter",
-    options: {
-        autocomplete: data.aspects.values(),
-        autocompleteDelimiter: "\\.",
-        strict: true,
-    },
-};
 function generateCommandNames(options, delimiter) {
     const result = [];
     const regexSplit = new RegExp(`(?=${delimiter})`);
@@ -49,11 +28,11 @@ function generateAutocomplete(options, inputRaw) {
             // multiple possible commands
             return commands.map(command => [...output, command[0]].join(""));
         }
-        if (commands.length === 0) {
+        const command = commands[0];
+        if (command === undefined) {
             // unknown command
             return output.join("");
         }
-        const command = commands[0];
         output.push(command[0]);
         inputIndex += command[0].length;
         outputTargets = command;
@@ -68,7 +47,7 @@ function generateAutocomplete(options, inputRaw) {
 ;
 ;
 export async function validateOrGetInput(term, input, target) {
-    if (input === "") {
+    if (input === "" || input === undefined) {
         return getInput(term, target);
     }
     try {
@@ -204,16 +183,15 @@ export async function getInput(term, target) {
     let result;
     if (!(target.required ?? true)) {
         term("skip? [y|N]\n");
-        if (await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise) {
-            term.previousLine(0);
-            term.eraseLine();
+        const shouldSkip = await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise;
+        term.previousLine(0);
+        term.eraseLine();
+        if (shouldSkip) {
             term.previousLine(0);
             term.eraseLine();
             term(target.name + ": undefined\n");
             return undefined;
         }
-        term.previousLine(0);
-        term.eraseLine();
     }
     term.previousLine(0);
     term.eraseLine();
@@ -246,7 +224,16 @@ export async function getInput(term, target) {
             term(`${target.name}: ${JSON.stringify(tempResult)}\n`);
             for (const [name, isRequired, subType] of target.subType) {
                 if (!isRequired) {
-                    // TODO: stub. ask if needed
+                    term(`${subType.name} (${subType.id}): \n`);
+                    term("skip? [y|N]\n");
+                    const shouldSkip = await term.yesOrNo({ yes: ["y"], no: ["n", "ENTER"] }).promise;
+                    term.previousLine(0);
+                    term.eraseLine();
+                    term.previousLine(0);
+                    term.eraseLine();
+                    if (shouldSkip) {
+                        continue;
+                    }
                 }
                 const subTypeResult = await getInput(term, subType);
                 tempResult[name] = subTypeResult;
@@ -323,6 +310,9 @@ export async function getInput(term, target) {
         }
         case "stringArray": {
             const selected = new Set();
+            for (const option of target.options.default ?? []) {
+                selected.add(option);
+            }
             // setup autocomplete
             const autocompleteDelimiter = target.options.autocompleteDelimiter;
             const autocompleteList = autocompleteDelimiter === undefined ?

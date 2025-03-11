@@ -7,6 +7,7 @@ import * as util from "util";
 
 const debug: types.inputNode = [["debug"], [
 	[["devQuickCommand", "dqc"], devQuickCommand, "used by dev for quick testing/prototyping. could do anything, SHOULD do nothing..."],
+	[["color"], colorSpace, "show all colors"],
 	[["devTestSave"], devTestSave, "reads the loaded save file and alerts of differences between the save and saveTypes.ts file."],
 	[["devTestData"], devTestData, "reads the data files and gives statistics of how they are formatted."],
 ], "debug/dev commands. these can break or crash the program. don't run unless you are a dev."];
@@ -64,6 +65,7 @@ export async function devQuickCommand(term: Terminal): Promise<string> {
 				name: "foods",
 				options: {
 					autocomplete: ["bread", "apple", "corn", "candy"],
+					default: ["apple"],
 					minLength: 1,
 					maxLength: 99,
 					strict: false,
@@ -106,6 +108,18 @@ export async function devTestData(_term: Terminal): Promise<string> {
 	console.log("\nNEXT: getDataDecks");
 	console.log(util.inspect(countKeys(data.decks.values()), {showHidden: false, depth: null, colors: true}));
 	return Promise.resolve("");
+}
+
+export function colorSpace(term: Terminal): string {
+	for (let r=0;r<256;r+=5) {
+		for (let g=0;g<256;g+=5) {
+			for (let b=0;b<256;b+=5) {
+				term.colorRgb(r, g, b, "#");
+			}
+		}
+		term("\n");
+	}
+	return "";
 }
 
 type keyCountMap = Map<string, [number, [unknown[], keyCountMap]|undefined]>;

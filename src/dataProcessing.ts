@@ -1,13 +1,11 @@
 import type * as types from "./types.js";
 import type * as saveTypes from "./saveTypes.js";
 
-import {isDebug} from "./config.js";
+import {config} from "./config.js";
 
 export type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
 
-// TODO: maybe put these into nested objects? like save.verbs.get()?
-
-// FIXME: replace all console.* calls with terminal calls
+// TODO: replace all console.* calls with terminal calls
 
 class dataWrapper<t> {
 	private _data;
@@ -32,12 +30,13 @@ class dataWrapper<t> {
 	add(item: t): boolean {
 		const key = this._keyFunc(item);
 		const isPresent = this.hasKey(key);
-		if (isDebug && isPresent) {
+		if (config.isDebug && isPresent) {
 			console.warn("dupe found: "+key);
 		}
 		this._data.set(key, item);
 		return isPresent;
 	}
+	map<u>(func: (item: t) => u): u[] {return this.values().map(func);}
 	some(filter: (item: t) => boolean): boolean {return this.find(filter)!==undefined;}
 	find(filter: (item: t) => boolean): Readonly<t>|undefined {return this.values().find(filter);}
 	findAll(filter: (item: t) => boolean): Readonly<t>[] {return this.filter(filter);}
@@ -272,13 +271,14 @@ export const filterBuilders = {
 		};
 	},
 	saveItemFilter: (options: types.itemSearchOptions): ((item: element) => boolean) => {
-		const aspectFilter = filterBuilders.aspectFilter(options, (elem: element): types.aspects=>elem.aspects);
+		const aspectFilter = filterBuilders.aspectFilter(options, (aspects: types.aspects): types.aspects=>aspects);
 		const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
 		const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
 		return (item: element): boolean => {
 			if (nameInvalid?.test(item.entityid)) {return false;}
 			if (nameValid && !nameValid.test(item.entityid)) {return false;}
-			return aspectFilter(item);
+			const dataAspects = data.elements.getInheritedProperty(item.entityid, "aspects");
+			return aspectFilter(mergeAspects([item.aspects, ...dataAspects]));
 		};
 	},
 	dataItemFilter: (options: types.itemSearchOptions): ((itemId: string) => boolean) => {
@@ -302,3 +302,52 @@ export const filterBuilders = {
 };
 */
 };
+
+/* eslint-disable @typescript-eslint/naming-convention */
+export const filterPresets = new Map<string, types.itemSearchOptions>([
+	["unreadBooks", {
+		any: {
+			"mystery.lantern": 1,
+			"mystery.forge": 1,
+			"mystery.edge": 1,
+			"mystery.winter": 1,
+			"mystery.heart": 1,
+			"mystery.grail": 1,
+			"mystery.moth": 1,
+			"mystery.knock": 1,
+			"mystery.sky": 1,
+			"mystery.moon": 1,
+			"mystery.nectar": 1,
+			"mystery.scale": 1,
+			"mystery.rose": 1,
+		},
+		max: {
+			"mastery.lantern": 0,
+			"mastery.forge": 0,
+			"mastery.edge": 0,
+			"mastery.winter": 0,
+			"mastery.heart": 0,
+			"mastery.grail": 0,
+			"mastery.moth": 0,
+			"mastery.knock": 0,
+			"mastery.sky": 0,
+			"mastery.moon": 0,
+			"mastery.nectar": 0,
+			"mastery.scale": 0,
+			"mastery.rose": 0,
+		},
+	}],
+	["cursedBooks", {
+		any: {
+			"contamination.actinic": 1,
+			"contamination.bloodlines": 1,
+			"contamination.chionic": 1,
+			"contamination.curse.fifth.eye": 1,
+			"contamination.keeperskin": 1,
+			"contamination.sthenic.taint": 1,
+			"contamination.winkwell": 1,
+			"contamination.witchworms": 1,
+		},
+	}],
+]);
+/* eslint-enable @typescript-eslint/naming-convention */

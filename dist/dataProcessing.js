@@ -1,6 +1,5 @@
-import { isDebug } from "./config.js";
-// TODO: maybe put these into nested objects? like save.verbs.get()?
-// FIXME: replace all console.* calls with terminal calls
+import { config } from "./config.js";
+// TODO: replace all console.* calls with terminal calls
 class dataWrapper {
     _data;
     _keyFunc;
@@ -24,12 +23,13 @@ class dataWrapper {
     add(item) {
         const key = this._keyFunc(item);
         const isPresent = this.hasKey(key);
-        if (isDebug && isPresent) {
+        if (config.isDebug && isPresent) {
             console.warn("dupe found: " + key);
         }
         this._data.set(key, item);
         return isPresent;
     }
+    map(func) { return this.values().map(func); }
     some(filter) { return this.find(filter) !== undefined; }
     find(filter) { return this.values().find(filter); }
     findAll(filter) { return this.filter(filter); }
@@ -260,7 +260,7 @@ export const filterBuilders = {
         };
     },
     saveItemFilter: (options) => {
-        const aspectFilter = filterBuilders.aspectFilter(options, (elem) => elem.aspects);
+        const aspectFilter = filterBuilders.aspectFilter(options, (aspects) => aspects);
         const nameInvalid = options.nameInvalid ? new RegExp(options.nameInvalid) : undefined;
         const nameValid = options.nameValid ? new RegExp(options.nameValid) : undefined;
         return (item) => {
@@ -270,7 +270,8 @@ export const filterBuilders = {
             if (nameValid && !nameValid.test(item.entityid)) {
                 return false;
             }
-            return aspectFilter(item);
+            const dataAspects = data.elements.getInheritedProperty(item.entityid, "aspects");
+            return aspectFilter(mergeAspects([item.aspects, ...dataAspects]));
         };
     },
     dataItemFilter: (options) => {
@@ -298,3 +299,51 @@ export const filterBuilders = {
     };
     */
 };
+/* eslint-disable @typescript-eslint/naming-convention */
+export const filterPresets = new Map([
+    ["unreadBooks", {
+            any: {
+                "mystery.lantern": 1,
+                "mystery.forge": 1,
+                "mystery.edge": 1,
+                "mystery.winter": 1,
+                "mystery.heart": 1,
+                "mystery.grail": 1,
+                "mystery.moth": 1,
+                "mystery.knock": 1,
+                "mystery.sky": 1,
+                "mystery.moon": 1,
+                "mystery.nectar": 1,
+                "mystery.scale": 1,
+                "mystery.rose": 1,
+            },
+            max: {
+                "mastery.lantern": 0,
+                "mastery.forge": 0,
+                "mastery.edge": 0,
+                "mastery.winter": 0,
+                "mastery.heart": 0,
+                "mastery.grail": 0,
+                "mastery.moth": 0,
+                "mastery.knock": 0,
+                "mastery.sky": 0,
+                "mastery.moon": 0,
+                "mastery.nectar": 0,
+                "mastery.scale": 0,
+                "mastery.rose": 0,
+            },
+        }],
+    ["cursedBooks", {
+            any: {
+                "contamination.actinic": 1,
+                "contamination.bloodlines": 1,
+                "contamination.chionic": 1,
+                "contamination.curse.fifth.eye": 1,
+                "contamination.keeperskin": 1,
+                "contamination.sthenic.taint": 1,
+                "contamination.winkwell": 1,
+                "contamination.witchworms": 1,
+            },
+        }],
+]);
+/* eslint-enable @typescript-eslint/naming-convention */

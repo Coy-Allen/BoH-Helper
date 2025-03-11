@@ -3,12 +3,12 @@
 	"include": ["./src/*"],
 	"exclude": ["./node_modules"],
 	"compilerOptions": {
-		"target": "es2022",
-		"module": "es2022",
+		"target": "esnext",
+		"module": "esnext",
 		"moduleResolution": "node",
 		"outDir": "./dist/",
 		"rootDir": "./src/",
-		"noUncheckedIndexedAccess": false,
+		"noUncheckedIndexedAccess": true,
 		"checkJs": false,
 	}
 }

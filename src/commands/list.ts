@@ -7,10 +7,10 @@ import {data, save} from "../dataProcessing.js";
 const list: types.inputNode = [["list"], [
 	[["aspects"], listAspects, "displays all aspects in the game (even hidden ones)"],
 	[["decks"], listDecks, "displays all decks and their contents in the save file."],
-	// locked recipes? maybe. could cause spoiler issues
+	// locked recipes?
 	// shorthands for empty searches. see "search *" commands
 	// remaining draws in decks. (RootPopulationCommand.DealersTable)
-], "lists things in the game. CAN CONTAIN SPOILERS!"];
+], "lists things in the game."];
 
 
 function listAspects(term: Terminal): string {

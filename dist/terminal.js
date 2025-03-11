@@ -1,8 +1,8 @@
 import terminalKit from "terminal-kit";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
-import fileMetaDataList from "./fileList.js";
-import { dataFolder, isDebug, shouldAutoloadSave, defaultFile } from "./config.js";
+import { fileMetaDataList, dlcMaxCounts } from "./fileList.js";
+import { configCommands, config } from "./config.js";
 import tables from "./commands/tables.js";
 import list from "./commands/list.js";
 import misc from "./commands/misc.js";
@@ -12,35 +12,17 @@ import info from "./commands/info.js";
 const term = terminalKit.terminal;
 const inputTree = [[""], [
         [["help", "?"], (t, p) => commandProcessing.help(t, p, inputTree), "shows all commands"],
+        configCommands,
         [["clear"], () => {
                 term.clear();
                 return "";
             }, "clears the terminal"],
         [["exit", "quit", "stop"], commandProcessing.exit, "exits the terminal"],
-        [["load"], commandProcessing.load, "load user save files"],
-        list,
-        info,
-        search,
-        // overwrite/add something to save. OR have a local file to "force" knowledge of recipes and such?
-        // 	recipes. some recipes' discovery are not recorded in the save file.
-        // something for missing things?
-        // 	how many skills are left
-        // 	current loot tables for searches.
-        // 		must ignore inaccessable searches.
-        // 		????? for resulting items that are not curently in the library.
-        // 			IDK what to do for memories & items that are "discovered" but not present.
-        // something for advanced stuff.
-        misc,
-        // show max aspects \w specific inputs (skill, knowledge, memories, fuel, flower, ...)
-        tables,
         // ["alias",[
         // 	["save",(_=>undefined),"saves the last used command"],
         // 	["load",(_=>undefined),"loads a specific alias and runs the command"],
         // ],"save frequently used commands for easy use"],
     ], "The console! Autocomplete with tab. up/down to go through command history."];
-if (isDebug) {
-    inputTree[1].push(debugCommands);
-}
 async function main() {
     await term.drawImage("resources/splash.png", { shrink: { width: term.width, height: term.height * 4 } });
     term.yellow("Book of Hours' Watcher\n");
@@ -61,24 +43,58 @@ async function main() {
                 break;
             }
             case "failed": {
-                fileLoadingProgress.stop();
-                term.red("failed to load " + dataFolder + "\\" + filename + "\n");
-                term.red("Check \"installFolder\" in the config.js file or verify your game's integrity.\n");
-                throw new Error();
+                fileLoadingProgress.itemDone(filename);
+                // allow failed (and missing) files. we will determine if we should error later.
+                // fileLoadingProgress.stop();
+                // throw new Error(filename);
             }
         }
+    }).then(fileResult => {
+        term("content packs loaded: ");
+        let hasStrangeCounts = false;
+        const loadedPacks = [];
+        for (const [dlc, maxCount] of dlcMaxCounts.entries()) {
+            const loadedCount = fileResult.get(dlc) ?? 0;
+            if (loadedCount === 0) {
+                term.grey(`${dlc}(${loadedCount}/${maxCount}) `);
+            }
+            else if (loadedCount === maxCount) {
+                term.green(`${dlc}(${loadedCount}/${maxCount}) `);
+                loadedPacks.push(dlc);
+            }
+            else {
+                hasStrangeCounts = true;
+                term.red(`${dlc}(${loadedCount}/${maxCount}) `);
+            }
+        }
+        term.eraseLineAfter();
+        term("\n");
+        if (hasStrangeCounts) {
+            term.red("Some content packs didn't have all their content! Please verify game integrity!\n");
+        }
+        if (!loadedPacks.includes("BoH")) {
+            throw Error("BoH content pack not found");
+        }
+        initalizeCommands();
+    }).catch((_err) => {
+        term.red("failed to load core files at " + config.installFolder + "\\bh_Data\\StreamingAssets\\bhcontent\\core\\\n");
+        term.red("Check \"installFolder\" in the config.json file and/or verify the game's integrity.\n");
     });
-    term("\n");
-    if (shouldAutoloadSave) {
+    if (config.shouldAutoloadSave) {
         try {
-            await commandProcessing.load(term, defaultFile.split(" "));
+            await commandProcessing.load(term, config.defaultFile.split(" "));
         }
         catch (_) {
-            term(`failed to autoload the save "${defaultFile}".`);
+            term(`failed to autoload the save "${config.defaultFile}".`);
         }
     }
-    term("");
     await inputLoop();
+}
+function initalizeCommands() {
+    inputTree[1].push([["load"], commandProcessing.load, "load user save files"], list, info, search, misc, tables);
+    if (config.isDebug) {
+        inputTree[1].push(debugCommands);
+    }
 }
 async function inputLoop() {
     while (true) {
@@ -110,7 +126,7 @@ async function inputLoop() {
         }
         catch (error) {
             term.red("command threw an error.\n");
-            if (isDebug) {
+            if (config.isDebug) {
                 term.red(error.stack ?? "" + "\n");
                 term.red(error.name + "\n");
                 term.red(error.message + "\n");
@@ -127,10 +143,11 @@ function findCommand(parts) {
         if (!Array.isArray(data)) {
             return [tree, data, parts.splice(i)];
         }
-        if (parts.length === i) {
+        const part = parts[i];
+        if (part === undefined) {
             return;
         }
-        const nextNode = data.find(([names, _data]) => names.some(name => name.toLowerCase() === parts[i].toLowerCase()));
+        const nextNode = data.find(([names, _data]) => names.some(name => name.toLowerCase() === part.toLowerCase()));
         if (nextNode === undefined) {
             return;
         }
@@ -140,9 +157,7 @@ function findCommand(parts) {
     return;
 }
 function generateAutocomplete(input) {
-    // FIXME: tabbing at end of fully complete command causes autocomplete to show parent command
-    // FIXME: tabbing \w just a single ` as input causes a crash. maybe returns empty array?
-    const parts = input.toLowerCase().split(" ").filter(part => part !== "");
+    const parts = input.split(" ").filter(part => part !== "");
     let outputTarget = inputTree;
     let index = 0;
     const output = [];
@@ -161,17 +176,18 @@ function generateAutocomplete(input) {
             // multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
             return subCommands.map(subCommand => [...output, getAliasName(subCommand[0], part)].join(" "));
         }
-        if (subCommands.length === 0) {
+        const subCommand = subCommands[0];
+        if (subCommand === undefined) {
             // unknown command
             return [...output, ...parts.slice(index)].join(" ");
         }
-        if (parts.length <= index + 1 && part.length < subCommands[0].length) {
+        if (parts.length <= index + 1 && part.length < subCommand.length) {
             // still typing command
-            return [...output, getAliasName(subCommands[0][0], part)].join(" ");
+            return [...output, getAliasName(subCommand[0], part)].join(" ");
         }
         // switch target to the only command left
-        outputTarget = subCommands[0];
-        output.push(getAliasName(subCommands[0][0], part));
+        outputTarget = subCommand;
+        output.push(getAliasName(subCommand[0], part));
         index++;
     }
 }

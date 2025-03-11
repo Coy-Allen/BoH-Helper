@@ -4,7 +4,7 @@ import type * as saveTypes from "./saveTypes.js";
 
 import {loadSave, saveHistory} from "./fileLoader.js";
 import * as dataProcessing from "./dataProcessing.js";
-import {jsonSpacing, saveLocation, defaultFile} from "./config.js";
+import {config} from "./config.js";
 import {watch, type FSWatcher} from "fs";
 
 let saveFileWatcherFilename: string;
@@ -25,14 +25,14 @@ export async function load(term: Terminal, parts: string[]): Promise<string> {
 	if (parts.length===0) {
 		term("save file> ");
 		filename = await term.fileInput({
-			baseDir: saveLocation,
-			default: defaultFile,
+			baseDir: config.saveLocation,
+			default: config.defaultFile,
 		}).catch((_: unknown): void=>{
 			term.yellow("Save directory not found. Check \"saveLocation\" in the config.js file.\n");
 		});
 		term("\n");
 	} else {
-		filename = saveLocation+"/"+parts.join(" ");
+		filename = config.saveLocation+"/"+parts.join(" ");
 	}
 	if (!filename) {
 		term.yellow("File not found.\n");
@@ -93,7 +93,7 @@ async function loadFile(filename: string): Promise<boolean> {
 export function help(term: Terminal, parts: string[], inputNode: types.inputNode): string {
 	const getHelp = (node: types.inputNode, depth: number): void=>{
 		const [name, data, helpText] = node;
-		term(jsonSpacing.repeat(depth));
+		term(config.jsonSpacing.repeat(depth));
 		term.cyan(name.join("/"));
 		term(": "+helpText+"\n");
 		if (Array.isArray(data)) {

@@ -1,10 +1,12 @@
-import { jsonSpacing, markupItems } from "../config.js";
-import { save, data, mergeAspects, filterBuilders } from "../dataProcessing.js";
-import { validateOrGetInput, itemFilter } from "../commandHelpers.js";
+import { config, markupItems } from "../config.js";
+import { save, data, mergeAspects, filterBuilders, filterPresets } from "../dataProcessing.js";
+import { validateOrGetInput } from "../commandHelpers.js";
+import { itemFilter } from "../commandHelperPresets.js";
 const misc = [["misc"], [
         [["missingCraftable"], missingCraftable, "lists all known recipes & ALL gathering spots that create items you don't have."],
         [["availableMemories"], availableMemories, "shows all memories that can be obtained."],
-    ], "things I couldn't categorize. CAN CONTAIN SPOILERS!"];
+        [["missingSkills"], missingSkills, "list unobtained skills."],
+    ], "things I couldn't categorize."];
 export async function missingCraftable(term, parts) {
     const groupings = [
         ["skillRecipes", "otherRecipes", "unknownRecipes"],
@@ -120,7 +122,13 @@ export async function missingCraftable(term, parts) {
     for (const saveItem of save.elements.values()) {
         saveItems.set(saveItem.entityid, (saveItems.get(saveItem.entityid) ?? 0) + saveItem.quantity);
     }
-    const beginsWith = (recipe, arr) => arr.includes(recipe.id.split(".", 1)[0]);
+    const beginsWith = (recipe, arr) => {
+        const start = recipe.id.split(".", 1)[0];
+        if (start == undefined) {
+            return false;
+        }
+        return arr.includes(start);
+    };
     // check each group of sources
     if (isIntersecting(sources, groupings[0])) {
         for (const recipe of data.recipes.values()) {
@@ -181,7 +189,7 @@ export async function missingCraftable(term, parts) {
     }
     */
     // filter all the valid items
-    const uniqueItemsSave = save.raw?.charactercreationcommands[0].uniqueelementsmanifested ?? [];
+    const uniqueItemsSave = save.raw?.charactercreationcommands[0]?.uniqueelementsmanifested ?? [];
     const allItems = new Set(result.flatMap(groups => groups[1]));
     const validItems = new Set([...allItems.values()].filter(item => {
         const foundItem = data.elements.find(itemData => itemData.id === item);
@@ -227,7 +235,7 @@ export async function availableMemories(term, parts) {
     const maxTargLen = 15;
     const genListOutput = (memories) => {
         for (const [memId, targs] of memories) {
-            term(`${jsonSpacing}${markupItems.item}${memId}^:: `);
+            term(`${config.jsonSpacing}${markupItems.item}${memId}^:: `);
             if (targs.length <= maxTargLen) {
                 term(targs.join(", ") + "\n");
             }
@@ -251,12 +259,14 @@ export async function availableMemories(term, parts) {
                     options: {
                         autocomplete: [...autocomplete],
                         strict: true,
+                        default: ["all"],
                     },
                 }],
             ["filter", false, itemFilter],
+            // TODO: verify this bug is fixed: this is inverted! true = exclude owned
             ["owned", true, {
                     id: "boolean",
-                    name: "include already obtained",
+                    name: "include already obtained memories",
                     options: {
                         default: false,
                     },
@@ -275,6 +285,10 @@ export async function availableMemories(term, parts) {
         }
         array.push(value);
     };
+    // only populate veriable if needed
+    const ownedMems = new Set(save.elements
+        .filter(filterBuilders.saveItemFilter({ min: { memory: 1 } }))
+        .map(item => item.entityid));
     const filterFull = args.filter ?? {};
     if (filterFull.min === undefined) {
         filterFull.min = {};
@@ -283,6 +297,10 @@ export async function availableMemories(term, parts) {
     const filter = args.filter ? filterBuilders.dataItemFilter(args.filter) : undefined;
     const isValid = (itemId) => {
         if (filter && !filter(itemId)) {
+            return false;
+        }
+        // owned check (args.owned = exclude if we have it)
+        if (!args.owned && ownedMems.has(itemId)) {
             return false;
         }
         return true;
@@ -302,7 +320,7 @@ export async function availableMemories(term, parts) {
             result.recipes = [...foundRecipes.entries()];
         }
     }
-    // FIXME: items are broken
+    // FIXME: items are broken. EDIT: wait how? did I fix this already without realizing?
     if (inputs.includes("reusables") ||
         inputs.includes("consumables") ||
         inputs.includes("books")) {
@@ -314,11 +332,12 @@ export async function availableMemories(term, parts) {
             .map(itemId => data.elements.getInherited(itemId))
             .filter(itemList => itemList.length !== 0);
         for (const itemInheritedList of items) {
-            if (itemInheritedList.length === 0) {
+            const firstItem = itemInheritedList[0];
+            if (firstItem === undefined) {
                 continue;
             }
             const item = {
-                id: itemInheritedList[0].id,
+                id: firstItem.id,
                 xtriggers: Object.assign({}, ...itemInheritedList
                     .map(itemInherited => itemInherited.xtriggers)
                     .filter(xtriggers => xtriggers !== undefined)
@@ -337,7 +356,7 @@ export async function availableMemories(term, parts) {
                     // ignore books if asked
                     if (type.startsWith("reading.")) {
                         if (inputs.includes("books")) {
-                            // FIXME: filter out non-mastered books
+                            // FIXME: filter out non-mastered books. we lost that info due to going from save to data elements.
                             appendToMap(foundReusableInspect, info.id, item.id);
                         }
                         continue;
@@ -376,8 +395,6 @@ export async function availableMemories(term, parts) {
             result.itemsConsumableTalk = [...foundConsumableTalk.entries()];
         }
     }
-    // TODO: filter out wrong aspected memories
-    // TODO: filter out already obtained
     // output
     if (result.recipes) {
         term.blue("Recipes");
@@ -405,5 +422,66 @@ export async function availableMemories(term, parts) {
         genListOutput(result.itemsReusableTalk);
     }
     return JSON.stringify(args);
+}
+function missingSkills(term, parts) {
+    const allSkills = data.elements
+        .map(elem => elem.id)
+        .filter(filterBuilders.dataItemFilter({ min: { skill: 1 } }))
+        .filter(id => id.startsWith("s."));
+    const obtainedSkills = save.elements
+        .filter(filterBuilders.saveItemFilter({ min: { skill: 1 } }))
+        .map(skill => skill.entityid);
+    const missing = allSkills.filter(skill => !obtainedSkills.includes(skill));
+    // get avail visitors
+    const visitors = new Set([
+        // address book
+        ...Object.entries(save.elements.find(item => item.entityid === "wc")?.aspects ?? {})
+            .filter(aspect => aspect[0].startsWith("address."))
+            .map(aspect => aspect[0].replace(/^address\./, "")),
+        // unwritten cards
+        ...save.elements
+            .filter(item => item.entityid.startsWith("callingcard."))
+            .map(item => item.entityid.replace(/^callingcard\./, "")),
+        // visitors already here
+        ...save.elements
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            .filter(filterBuilders.saveItemFilter({ min: { visitor: 1 }, max: { "visitor.villager": 0 } }))
+            .map(vis => vis.id),
+    ]);
+    // find all obtainable skills
+    // visitors
+    const canObtainVisitor = new Set([...visitors.values()]
+        .flatMap(id => Object.entries(mergeAspects(data.elements.getInheritedProperty(id, "aspects"))))
+        .filter(aspect => aspect[0].startsWith("u."))
+        .map(aspect => aspect[0].replace(/^u\./, "s.")));
+    // books
+    const canObtainBook = new Set(save.elements
+        .filter(filterBuilders.saveItemFilter(filterPresets.get("unreadBooks") ?? {}))
+        .flatMap(element => Object.entries(element.aspects))
+        .filter(aspect => aspect[0].startsWith("r."))
+        .map(aspect => aspect[0].replace(/^r\./, "s.")));
+    const results = {
+        missing: [],
+        canObtainBook: [],
+        canObtainVisitor: [],
+    };
+    for (const skill of missing) {
+        if (canObtainBook.has(skill)) {
+            results.canObtainBook.push(skill);
+            continue;
+        }
+        if (canObtainVisitor.has(skill)) {
+            results.canObtainVisitor.push(skill);
+            continue;
+        }
+        results.missing.push(skill);
+    }
+    term.red("missing")(": ");
+    term(results.missing.join(", ") + "\n");
+    term.green("can obtain via book")(": ");
+    term(results.canObtainBook.join(", ") + "\n");
+    term.green("can obtain via visitor")(": ");
+    term(results.canObtainVisitor.join(", ") + "\n");
+    return parts.join(" ");
 }
 export default misc;

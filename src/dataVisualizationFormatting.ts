@@ -1,7 +1,7 @@
 import type {elementStackCreationCommand} from "./saveTypes.js";
 import type {stackExtraInfo} from "./types.js";
 import type {Terminal} from "terminal-kit";
-import {defaultItemDisplay, jsonSpacing, markupItems, markupReplaceList} from "./config.js";
+import {config, markupItems, markupReplaceList} from "./config.js";
 
 export const itemDisplaySelection = ["full", "aspects", "rooms", "counts"] as const;
 
@@ -23,9 +23,9 @@ export function markupReplace<t extends string[]|string>(text: t): t {
 }
 
 export function displayItemList(term: Terminal, items: (elementStackCreationCommand & stackExtraInfo)[], type?: typeof itemDisplaySelection[number]): void {
-	switch (type??defaultItemDisplay) {
+	switch (type??config.defaultItemDisplay) {
 		case "full": {
-			term(JSON.stringify(items, null, jsonSpacing)+"\n");
+			term(JSON.stringify(items, null, config.jsonSpacing)+"\n");
 			return;
 		}
 		case "aspects": {
@@ -64,25 +64,3 @@ export function displayItemList(term: Terminal, items: (elementStackCreationComm
 		}
 	}
 }
-
-/*
-
-.forEach(entry=>{
-		const key = entry.entityid;
-		if (!result.has(key)) {result.set(key, []);}
-		const values = result.get(key);
-		if (values===undefined) {return;}
-		if (!values.includes(entry.room)) {
-			values.push(entry.room);
-		}
-	});
-
-
-	findItems(args).forEach(item=>{
-		counts.set(item.entityid, (counts.get(item.entityid)??0)+1);
-	});
-		.sort(([_a, countA], [_b, countB]): number=>countA-countB)
-		.map(([name, count]): string=>`${name}: ${count}\n`)
-		.join(""));
-
-*/
