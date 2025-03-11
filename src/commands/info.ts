@@ -1,9 +1,9 @@
-import type * as types from "../types.js";
+import type * as types from "../types.ts";
 import type {Terminal} from "terminal-kit";
 
-import {validateOrGetInput} from "../commandHelpers.js";
-import {config} from "../config.js";
-import {data} from "../dataProcessing.js";
+import {validateOrGetInput} from "../commandHelpers.ts";
+import {config} from "../config.ts";
+import {data} from "../dataProcessing.ts";
 
 const info: types.inputNode = [["info"], [
 	[["items"], items, "info on item aspects and results for inspect/talk."],

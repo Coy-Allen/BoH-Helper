@@ -1,7 +1,7 @@
-import type * as types from "./types.js";
-import type * as saveTypes from "./saveTypes.js";
+import type * as types from "./types.ts";
+import type * as saveTypes from "./saveTypes.ts";
 
-import {config} from "./config.js";
+import {config} from "./config.ts";
 
 export type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
 
@@ -252,18 +252,18 @@ export const filterBuilders = {
 		return (item: t): boolean=>{
 			const aspects = aspectFunc(item);
 			for (const [aspect, amount] of Object.entries(options.min??{})) {
-				const aspectCount = aspects[aspect] as number|undefined;
+				const aspectCount = aspects[aspect];
 				if (aspectCount===undefined || aspectCount < amount) {return false;}
 			}
 			for (const [aspect, amount] of Object.entries(options.max??{})) {
-				const aspectCount = aspects[aspect] as number|undefined;
+				const aspectCount = aspects[aspect];
 				if (aspectCount!==undefined && aspectCount > amount) {return false;}
 			}
 			if (
 				options.any &&
 				Object.entries(options.any).length>0 &&
 				!Object.entries(options.any).some(([aspect, amount]): boolean=>{
-					const aspectCount = aspects[aspect] as number|undefined;
+					const aspectCount = aspects[aspect];
 					return !(aspectCount===undefined || aspectCount < amount);
 				})
 			) {return false;}

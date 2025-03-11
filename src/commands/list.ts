@@ -1,8 +1,8 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "../types.js";
+import type * as types from "../types.ts";
 
-import {markupItems} from "../config.js";
-import {data, save} from "../dataProcessing.js";
+import {markupItems} from "../config.ts";
+import {data, save} from "../dataProcessing.ts";
 
 const list: types.inputNode = [["list"], [
 	[["aspects"], listAspects, "displays all aspects in the game (even hidden ones)"],

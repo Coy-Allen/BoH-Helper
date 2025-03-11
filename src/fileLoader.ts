@@ -1,10 +1,10 @@
-import fs from "fs/promises";
+import fs from "node:fs/promises";
 import json5 from "json5";
 import iconv from "iconv-lite";
-import {fileMetaDataList, type dlcMaxCounts} from "./fileList.js";
-import {data} from "./dataProcessing.js";
-import type * as types from "./types.js";
-import {config} from "./config.js";
+import {fileMetaDataList, type dlcMaxCounts} from "./fileList.ts";
+import {data} from "./dataProcessing.ts";
+import type * as types from "./types.ts";
+import {config} from "./config.ts";
 
 
 const fileOutputs = {

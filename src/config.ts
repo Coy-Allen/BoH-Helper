@@ -1,10 +1,11 @@
-import os from "os";
+import type * as types from "./types.ts";
+import type {Terminal} from "terminal-kit";
+
+import os from "node:os";
 // TODO: make this async
-import fs from "fs";
-import * as types from "./types";
-import {Terminal} from "terminal-kit";
-import {targetTypes, validateOrGetInput} from "./commandHelpers.js";
-import {itemDisplaySelection} from "./dataVisualizationFormatting.js";
+import fs from "node:fs";
+import {type targetTypes, validateOrGetInput} from "./commandHelpers.ts";
+import {itemDisplaySelection} from "./dataVisualizationFormatting.ts";
 
 interface config {
 	installFolder: string;
@@ -221,7 +222,7 @@ const configMetadata: Record<keyof config, {
 async function getConfigItem(term: Terminal, part: string|undefined): Promise<keyof config> {
 	const validatadPart = part??"".length > 0 ? `"${part}"` : "";
 	// this processes as JSON so we need to incase it in quotes.
-	return validateOrGetInput(term, validatadPart, {
+	const result = await validateOrGetInput(term, validatadPart, {
 		id: "string",
 		name: "option",
 		options: {
@@ -229,6 +230,7 @@ async function getConfigItem(term: Terminal, part: string|undefined): Promise<ke
 			strict: true,
 		},
 	});
+	return result;
 }
 async function resetSetting(term: Terminal, parts: string[]): Promise<string> {
 	const key = await getConfigItem(term, parts[0]);

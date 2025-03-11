@@ -1,0 +1,13 @@
+{
+	"name": "BoH-Helper",
+	"exports": "./src/terminal.ts",
+	"tasks": {
+		"clean": "rm -rf ./dist",
+		"run": "deno run --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" ./src/terminal.ts",
+		"compile": {
+			"command": "deno compile --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" --output ./dist/BoH-Helper.exe ./src/terminal.ts && cp -r ./resources ./dist/resources",
+			"dependencies": ["clean"]
+		},
+		"lint": "deno run -A npm:eslint . && deno lint"
+	}
+}

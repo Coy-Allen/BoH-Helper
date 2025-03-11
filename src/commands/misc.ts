@@ -1,10 +1,10 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "../types.js";
+import type * as types from "../types.ts";
 
-import {config, markupItems} from "../config.js";
-import {save, data, mergeAspects, filterBuilders, filterPresets} from "../dataProcessing.js";
-import {validateOrGetInput} from "../commandHelpers.js";
-import {itemFilter} from "../commandHelperPresets.js";
+import {config, markupItems} from "../config.ts";
+import {save, data, mergeAspects, filterBuilders, filterPresets} from "../dataProcessing.ts";
+import {validateOrGetInput} from "../commandHelpers.ts";
+import {itemFilter} from "../commandHelperPresets.ts";
 
 
 type availableMemoriesResult = Partial<Record<

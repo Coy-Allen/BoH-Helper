@@ -9,7 +9,21 @@
 			"path": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours\\bh_Data\\StreamingAssets\\bhcontent\\core",
 		},
 		{
-			"path": "E:\\Steam\\steamapps\\common\\Book of Hours\\bh_Data\\StreamingAssets\\bhcontent\\core"
+			"path": "E:\\Steam\\steamapps\\common\\Book of Hours\\bh_Data\\StreamingAssets\\bhcontent\\core",
 		},
 	],
+	"settings":
+	{
+		"LSP":
+		{
+			"Deno":
+			{
+				"enabled": true,
+			},
+			"LSP-typescript":
+			{
+				"enabled": false
+			},
+		},
+	},
 }

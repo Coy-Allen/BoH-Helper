@@ -1,5 +1,5 @@
-import type {targetTypes} from "./commandHelpers.js";
-import {data} from "./dataProcessing.js";
+import type {targetTypes} from "./commandHelpers.ts";
+import {data} from "./dataProcessing.ts";
 
 export const aspectTarget = {
 	id: "stringArray",
