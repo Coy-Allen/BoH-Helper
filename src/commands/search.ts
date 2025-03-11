@@ -1,11 +1,11 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "../types.js";
+import type * as types from "../types.ts";
 
-import {validateOrGetInput} from "../commandHelpers.js";
-import {itemFilter} from "../commandHelperPresets.js";
-import {data, save, filterBuilders, filterPresets} from "../dataProcessing.js";
-import {config} from "../config.js";
-import * as dataVis from "../dataVisualizationFormatting.js";
+import {validateOrGetInput} from "../commandHelpers.ts";
+import {itemFilter} from "../commandHelperPresets.ts";
+import {data, save, filterBuilders, filterPresets} from "../dataProcessing.ts";
+import {config} from "../config.ts";
+import * as dataVis from "../dataVisualizationFormatting.ts";
 
 const search: types.inputNode = [["search"], [
 	[["verbs"], searchVerbs, "search found popups and their card inputs."],

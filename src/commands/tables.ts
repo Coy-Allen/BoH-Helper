@@ -1,11 +1,11 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "../types.js";
+import type * as types from "../types.ts";
 
-import {validateOrGetInput} from "../commandHelpers.js";
-import {itemFilter, aspectTarget} from "../commandHelperPresets.js";
-import {data, element, filterBuilders, save} from "../dataProcessing.js";
-import {markupReplace} from "../dataVisualizationFormatting.js";
-import {markupItems, config} from "../config.js";
+import {validateOrGetInput} from "../commandHelpers.ts";
+import {itemFilter, aspectTarget} from "../commandHelperPresets.ts";
+import {data, element, filterBuilders, save} from "../dataProcessing.ts";
+import {markupReplace} from "../dataVisualizationFormatting.ts";
+import {markupItems, config} from "../config.ts";
 
 const tables: types.inputNode = [["tables"], [
 	[["maxAspects"], maxAspects, "shows max aspects available."],

@@ -1,7 +1,7 @@
-import type * as types from "./types.js";
-import type * as saveTypes from "./saveTypes.js";
+import type * as types from "./types.ts";
+import type * as saveTypes from "./saveTypes.ts";
 
-import {config} from "./config.js";
+import {config} from "./config.ts";
 
 export type element = saveTypes.elementStackCreationCommand & types.stackExtraInfo;
 

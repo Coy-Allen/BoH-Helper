@@ -1,10 +1,10 @@
-import os from "os";
+import os from "node:os";
 // TODO: make this async
-import fs from "fs";
-import * as types from "./types";
+import fs from "node:fs";
+import * as types from "./types.ts";
 import {Terminal} from "terminal-kit";
-import {targetTypes, validateOrGetInput} from "./commandHelpers.js";
-import {itemDisplaySelection} from "./dataVisualizationFormatting.js";
+import {targetTypes, validateOrGetInput} from "./commandHelpers.ts";
+import {itemDisplaySelection} from "./dataVisualizationFormatting.ts";
 
 interface config {
 	installFolder: string;

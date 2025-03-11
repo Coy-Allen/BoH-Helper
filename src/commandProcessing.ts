@@ -1,11 +1,11 @@
 import type {Terminal} from "terminal-kit";
-import type * as types from "./types.js";
-import type * as saveTypes from "./saveTypes.js";
+import type * as types from "./types.ts";
+import type * as saveTypes from "./saveTypes.ts";
 
-import {loadSave, saveHistory} from "./fileLoader.js";
-import * as dataProcessing from "./dataProcessing.js";
-import {config} from "./config.js";
-import {watch, type FSWatcher} from "fs";
+import {loadSave, saveHistory} from "./fileLoader.ts";
+import * as dataProcessing from "./dataProcessing.ts";
+import {config} from "./config.ts";
+import {watch, type FSWatcher} from "node:fs";
 
 let saveFileWatcherFilename: string;
 let saveFileWatcher: FSWatcher|undefined;

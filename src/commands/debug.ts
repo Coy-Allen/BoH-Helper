@@ -1,9 +1,9 @@
 import type {Terminal} from "terminal-kit";
-import {getInput} from "../commandHelpers.js";
-import type * as types from "../types.js";
-import {save, data} from "../dataProcessing.js";
+import {getInput} from "../commandHelpers.ts";
+import type * as types from "../types.ts";
+import {save, data} from "../dataProcessing.ts";
 /* getSaveRaw, getDataItems, getDataRecipes, getAllVerbs, getDataDecks*/
-import * as util from "util";
+import * as util from "node:util";
 
 const debug: types.inputNode = [["debug"], [
 	[["devQuickCommand", "dqc"], devQuickCommand, "used by dev for quick testing/prototyping. could do anything, SHOULD do nothing..."],

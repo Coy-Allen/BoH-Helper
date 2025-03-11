@@ -1,18 +1,18 @@
-import type * as types from "./types.js";
+import type * as types from "./types.ts";
 
 import terminalKit from "terminal-kit";
-import * as fileLoader from "./fileLoader.js";
-import * as commandProcessing from "./commandProcessing.js";
-import {fileMetaDataList, dlcMaxCounts} from "./fileList.js";
-import {configCommands, config} from "./config.js";
+import * as fileLoader from "./fileLoader.ts";
+import * as commandProcessing from "./commandProcessing.ts";
+import {fileMetaDataList, dlcMaxCounts} from "./fileList.ts";
+import {configCommands, config} from "./config.ts";
 
 
-import tables from "./commands/tables.js";
-import list from "./commands/list.js";
-import misc from "./commands/misc.js";
-import search from "./commands/search.js";
-import debugCommands from "./commands/debug.js";
-import info from "./commands/info.js";
+import tables from "./commands/tables.ts";
+import list from "./commands/list.ts";
+import misc from "./commands/misc.ts";
+import search from "./commands/search.ts";
+import debugCommands from "./commands/debug.ts";
+import info from "./commands/info.ts";
 
 const term = terminalKit.terminal;
 const inputTree: [[string, ...string[]], [types.inputNode, ...types.inputNode[]], string] = [[""], [

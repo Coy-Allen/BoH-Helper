@@ -1,5 +1,5 @@
 import type {Terminal} from "terminal-kit";
-import {data} from "./dataProcessing.js";
+import {data} from "./dataProcessing.ts";
 
 // REWORK
 

@@ -1,7 +1,7 @@
-import type {elementStackCreationCommand} from "./saveTypes.js";
-import type {stackExtraInfo} from "./types.js";
+import type {elementStackCreationCommand} from "./saveTypes.ts";
+import type {stackExtraInfo} from "./types.ts";
 import type {Terminal} from "terminal-kit";
-import {config, markupItems, markupReplaceList} from "./config.js";
+import {config, markupItems, markupReplaceList} from "./config.ts";
 
 export const itemDisplaySelection = ["full", "aspects", "rooms", "counts"] as const;
 
