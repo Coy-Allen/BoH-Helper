@@ -13,7 +13,7 @@ const debug: types.inputNode = [["debug"], [
 ], "debug/dev commands. these can break or crash the program. don't run unless you are a dev."];
 
 
-export async function devQuickCommand(term: Terminal): Promise<string> {
+export function devQuickCommand(term: Terminal): Promise<string> {
 	console.log(getInput(term, {
 		id: "object",
 		name: "testObject",
@@ -75,18 +75,18 @@ export async function devQuickCommand(term: Terminal): Promise<string> {
 	}));
 	return Promise.resolve("");
 }
-export async function devTestSave(_term: Terminal): Promise<string> {
+export function devTestSave(_term: Terminal): Promise<string> {
 	/* eslint-disable @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unnecessary-condition */
 	const saveRaw = save.raw;
 	if (saveRaw===undefined) {
 		console.log("no save loaded.");
-		return "";
+		return Promise.resolve("");
 	}
 	// save
 	console.log("checking save.");
 	if (checkKeys(saveRaw, [
 		"$type", "charactercreationcommands", "rootpopulationcommand", "populatexamanekcommand", "notificationcommands", "version", "isfresh",
-	])) {return "";}
+	])) {return Promise.resolve("");}
 	if (saveRaw?.$type !== "persistedgamestate") {console.error(`save.$type = ${saveRaw.$type}`);}
 	// save.charactercreationcommands
 	// save.rootpopulationcommand
@@ -98,7 +98,7 @@ export async function devTestSave(_term: Terminal): Promise<string> {
 	console.log("done.");
 	return Promise.resolve("");
 }
-export async function devTestData(_term: Terminal): Promise<string> {
+export function devTestData(_term: Terminal): Promise<string> {
 	console.log("\nNEXT: getDataItems");
 	console.log(util.inspect(countKeys(data.elements.values()), {showHidden: false, depth: null, colors: true}));
 	console.log("\nNEXT: getDataRecipes");

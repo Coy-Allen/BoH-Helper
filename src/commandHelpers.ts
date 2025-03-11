@@ -141,7 +141,8 @@ export async function validateOrGetInput<const t extends targetTypes>(term: Term
 	} catch (_) {
 		term.red("option validation failed: Not valid JSON\n");
 	}
-	return getInput(term, target);
+	const result = await getInput(term, target);
+	return result;
 }
 
 export function validateInput(input: unknown, target: targetTypes): string {

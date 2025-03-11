@@ -3,7 +3,7 @@ import type * as types from "../types.ts";
 
 import {validateOrGetInput} from "../commandHelpers.ts";
 import {itemFilter, aspectTarget} from "../commandHelperPresets.ts";
-import {data, element, filterBuilders, save} from "../dataProcessing.ts";
+import {data, type element, filterBuilders, save} from "../dataProcessing.ts";
 import {markupReplace} from "../dataVisualizationFormatting.ts";
 import {markupItems, config} from "../config.ts";
 
