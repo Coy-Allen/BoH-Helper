@@ -1,0 +1,7 @@
+{
+	"name": "BoH-Helper",
+	"exports": "./src/terminal.ts",
+	"tasks": {
+		"run": "deno run --allow-write --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" ./src/terminal.ts"	
+	}
+}
