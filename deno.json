@@ -3,10 +3,10 @@
 	"exports": "./src/terminal.ts",
 	"tasks": {
 		"clean": "rm -rf ./dist",
-		"run": "deno run --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" ./src/terminal.ts",
-		"debug": "deno run --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" --inspect ./src/terminal.ts",
+		"run": "deno run -A ./tasks/run.ts",
+		"debug": "deno run -A ./tasks/debug.ts",
 		"compile": {
-			"command": "deno compile --allow-write=\"./config.json,./history.txt\" --allow-read --allow-sys=\"homedir\" --allow-env=\"TERM,COLORTERM,TERM_PROGRAM\" --deny-net --deny-env=\"SSH_CONNECTION\" --output ./dist/BoH-Helper.exe ./src/terminal.ts && cp -r ./resources ./dist/resources",
+			"command": "deno run -A ./tasks/compile.ts",
 			"dependencies": ["clean"]
 		},
 		"lint": "deno run -A npm:eslint . && deno lint"

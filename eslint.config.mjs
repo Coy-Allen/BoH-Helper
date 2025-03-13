@@ -3,7 +3,13 @@ import stylisticTs from "@stylistic/eslint-plugin-ts"
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-{"ignores": ["**/*.js", "**/*.mjs", "**/*.d.ts", "**/*.d.mts"]},
+{"ignores": [
+	"**/*.js",
+	"**/*.mjs",
+	"**/*.d.ts",
+	"**/*.d.mts",
+	"tasks/*", // I can't get Eslint to correctly parse anything using the Deno module
+]},
 	eslint.configs.recommended,
 	...tseslint.configs.strictTypeChecked,
 	...tseslint.configs.stylisticTypeChecked,
