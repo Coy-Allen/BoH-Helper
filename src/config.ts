@@ -32,7 +32,9 @@ export const configCommands: types.inputNode = [["config"], [
 ], "change BoH-Helper's settings. settings are saved to \"config.json\""];
 
 const defaultConfig: config = {
+	// TODO: make default OS specific
 	installFolder: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours",
+	// TODO: make default OS specific
 	saveLocation: os.homedir()+"\\AppData\\LocalLow\\Weather Factory\\Book of Hours",
 	maxHistory: 50,
 	shouldAutoloadSave: true,
