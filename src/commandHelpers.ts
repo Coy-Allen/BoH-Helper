@@ -26,19 +26,22 @@ function generateAutocomplete(options: commandNames[], inputRaw: string): string
 	let inputIndex = 0;
 	let outputTargets: commandNames = ["", options];
 	const output: string[] = [];
+	const result: string[] = [];
 	while (true) {
 		const commands = outputTargets[1].filter(outputTarget=>{
-			return outputTarget[0].startsWith(input.slice(inputIndex)) ||
-				input.startsWith(outputTarget[0], inputIndex);
+			return outputTarget[0].startsWith(input.slice(inputIndex));
+			// input.startsWith(outputTarget[0], inputIndex)
 		});
 		if (commands.length > 1) {
 			// multiple possible commands
-			return commands.map(command=>[...output, command[0]].join(""));
+			result.push(...commands.map(command=>[...output, command[0]].join("")));
+			return result;
 		}
 		const command = commands[0];
 		if (command === undefined) {
 			// unknown command
-			return output.join("");
+			result.push(...output);
+			return result.join("");
 		}
 		output.push(command[0]);
 		inputIndex+= command[0].length;
