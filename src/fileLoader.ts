@@ -55,11 +55,12 @@ function pushData(): void {
 }
 
 // history handler
+const historyFilePath = "./history.txt";
 
 export async function getHistory(): Promise<string[]> {
 	if (history) {return history;}
 	try {
-		history = (await fs.readFile(import.meta.dirname+"/../history.txt", "utf8")).split("\n");
+		history = (await fs.readFile(historyFilePath, "utf8")).split("\n");
 	} catch (_) {
 		history = [];
 	}
@@ -70,20 +71,25 @@ export async function addHistory(line: string): Promise<void> {
 		await getHistory();
 	}
 	if (!history) {
-		console.error("failed to initalize history.");
+		if (config.isDebug) {
+			console.error("failed to initalize history.");
+		}
 		return;
 	}
 	history.push(line);
 }
 export async function saveHistory(): Promise<void> {
 	if (!history) {
-		// no history to save
+		if (config.isDebug) {
+			console.error("no history to save.");
+		}
 		return;
 	}
 	try {
 		const trunkHistory = history.slice(Math.max(history.length-config.maxHistory, 0));
-		await fs.writeFile(import.meta.dirname+"/../history.txt", trunkHistory.join("\n"));
+		await fs.writeFile(historyFilePath, trunkHistory.join("\n"));
 	} catch (_) {
 		// failed to save
+		console.error("failed to save history.");
 	}
 }
