@@ -6,6 +6,7 @@ import os from "node:os";
 import fs from "node:fs";
 import {type targetTypes, validateOrGetInput} from "./commandHelpers.ts";
 import {itemDisplaySelection} from "./dataVisualizationFormatting.ts";
+import {platform} from "node:process";
 
 interface config {
 	installFolder: string;
@@ -32,10 +33,9 @@ export const configCommands: types.inputNode = [["config"], [
 ], "change BoH-Helper's settings. settings are saved to \"config.json\""];
 
 const defaultConfig: config = {
-	// TODO: make default OS specific
-	installFolder: "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours",
-	// TODO: make default OS specific
-	saveLocation: os.homedir()+"\\AppData\\LocalLow\\Weather Factory\\Book of Hours",
+	// path defaults are OS specific
+	installFolder: "",
+	saveLocation: "",
 	maxHistory: 50,
 	shouldAutoloadSave: true,
 	defaultFile: "AUTOSAVE.json",
@@ -45,6 +45,36 @@ const defaultConfig: config = {
 	jsonSpacing: "  ",
 	countAsObtained: [],
 };
+// os specific paths
+switch (platform) {
+	case "darwin": {
+		defaultConfig.installFolder = "~/Library/Application Support/Steam/SteamApps/common/Book of Hours";
+		defaultConfig.saveLocation = "~/Library/Application Support/Weather Factory/Book of Hours";
+		break;
+	}
+	case "linux": {
+		defaultConfig.installFolder = "~/.local/share/Steam/steamapps/common/Book of Hours";
+		defaultConfig.saveLocation = "~/.config/unity3d/Weather Factory/Book of Hours";
+		break;
+	}
+	case "win32": {
+		defaultConfig.installFolder = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Book of Hours";
+		defaultConfig.saveLocation = os.homedir()+"\\AppData\\LocalLow\\Weather Factory\\Book of Hours";
+		break;
+	}
+	case "aix":
+	case "android":
+	case "freebsd":
+	case "haiku":
+	case "openbsd":
+	case "sunos":
+	case "cygwin":
+	case "netbsd":
+	default: {
+		console.warn("unknown/unsupoported OS detected. default locations are not set.");
+	}
+}
+
 
 // internal config.
 const configFilePath = "./config.json";
@@ -115,7 +145,7 @@ const configMetadata: Record<keyof config, {
 				strict: false,
 			},
 		},
-		helpText: "Install location of BoH. Defaults to steamapps on C drive.",
+		helpText: "Install location of BoH. Defaults to default steam location.",
 	},
 	saveLocation: {
 		targetType: {
@@ -127,7 +157,7 @@ const configMetadata: Record<keyof config, {
 				strict: false,
 			},
 		},
-		helpText: "Location of save data folder. Defaults to the game's default location in the current user's appdata.",
+		helpText: "Location of save data folder. Defaults to the game's default save location.",
 	},
 	maxHistory: {
 		targetType: {

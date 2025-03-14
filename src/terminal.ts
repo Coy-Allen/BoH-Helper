@@ -1,6 +1,7 @@
 import type * as types from "./types.ts";
 
 import terminalKit from "terminal-kit";
+import path from "node:path";
 import * as fileLoader from "./fileLoader.ts";
 import * as commandProcessing from "./commandProcessing.ts";
 import {fileMetaDataList, dlcMaxCounts} from "./fileList.ts";
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
 		}
 		initalizeCommands();
 	}).catch((_err: unknown): void=>{
-		term.red("failed to load core files at "+config.installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core\\\n");
+		term.red("failed to load core files at "+path.join(config.installFolder, "bh_Data", "StreamingAssets", "bhcontent", "core")+"\n");
 		term.red("Check \"installFolder\" in the config.json file and/or verify the game's integrity.\n");
 	});
 	if (config.shouldAutoloadSave) {

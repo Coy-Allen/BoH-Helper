@@ -5,11 +5,12 @@ import {fileMetaDataList, type dlcMaxCounts} from "./fileList.ts";
 import {data} from "./dataProcessing.ts";
 import type * as types from "./types.ts";
 import {config} from "./config.ts";
+import path from "node:path";
 
 
 const fileOutputs = {
 	decks: [] as {decks: types.dataDeck[]}[],
-	items: [] as {elements: types.dataElement[]}[],
+	elements: [] as {elements: types.dataElement[]}[],
 	recipes: [] as {recipes: types.dataRecipe[]}[],
 	verbs: [] as {verbs: types.dataVerb[]}[],
 };
@@ -18,18 +19,19 @@ let history: string[]|undefined;
 export async function loadFiles(dispatch: (type: "start"|"success"|"failed", file: string) => void): Promise<typeof dlcMaxCounts> {
 	const successList: typeof dlcMaxCounts = new Map();
 	for (const fileMetaData of fileMetaDataList) {
-		dispatch("start", fileMetaData.name);
+		dispatch("start", fileMetaData.name.join(path.sep));
 		const outputs = fileOutputs[fileMetaData.type];
 		try {
-			const fileContent = await fs.readFile(config.installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core\\"+fileMetaData.name)
+			const filePath = path.join(config.installFolder, "bh_Data", "StreamingAssets", "bhcontent", "core", ...fileMetaData.name);
+			const fileContent = await fs.readFile(filePath)
 				.then(file=>iconv.decode(file, fileMetaData.encoding).toLowerCase())
 				.then(contents=>fileMetaData.postProcessing?.(contents)??contents);
 			outputs.push(json5.parse(fileContent));
 			const count = successList.get(fileMetaData.dlc)??0;
 			successList.set(fileMetaData.dlc, count+1);
-			dispatch("success", fileMetaData.name);
+			dispatch("success", fileMetaData.name.join(path.sep));
 		} catch (_) {
-			dispatch("failed", fileMetaData.name);
+			dispatch("failed", fileMetaData.name.join(path.sep));
 		}
 	}
 	dispatch("start", "finalizing");
@@ -44,11 +46,11 @@ export async function loadSave(saveFile: string): Promise<string> {
 }
 
 function pushData(): void {
-	data.aspects.overwrite(fileOutputs.items.flatMap(item=>item.elements.filter(
+	data.aspects.overwrite(fileOutputs.elements.flatMap(item=>item.elements.filter(
 		element=>element.isaspect??false,
 	)).map(element=>element.id));
 	// notice: the aspect search in the items and recipes are no longer added to aspects.
-	data.elements.overwrite(fileOutputs.items.flatMap(files=>files.elements));
+	data.elements.overwrite(fileOutputs.elements.flatMap(files=>files.elements));
 	data.recipes.overwrite(fileOutputs.recipes.flatMap(recipes=>recipes.recipes).filter(recipe=>recipe.craftable??true));
 	data.verbs.overwrite(fileOutputs.verbs.flatMap(verbs=>verbs.verbs).filter(verb=>!verb.spontaneous));
 	data.decks.overwrite(fileOutputs.decks.flatMap(decks=>decks.decks));
