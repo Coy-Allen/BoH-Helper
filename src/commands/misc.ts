@@ -223,7 +223,12 @@ export async function availableMemories(term: Terminal, parts: string[]): Promis
 	const maxTargLen = 15;
 	const genListOutput = (memories: [string, string[]][]): void=>{
 		for (const [memId, targs] of memories) {
-			term(`${config.jsonSpacing}${markupItems.item}${memId}^:: `);
+			// TODO: change color if we own it in the config.countAsObtained
+			term(`${config.jsonSpacing}${
+				config.countAsObtained.includes(memId) ?
+					markupItems.settingDefault:
+					markupItems.item
+			}${memId}^:: `);
 			if (targs.length <= maxTargLen) {
 				term(targs.join(", ")+"\n");
 			} else {

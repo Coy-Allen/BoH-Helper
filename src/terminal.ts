@@ -1,6 +1,7 @@
 import type * as types from "./types.js";
 
 import terminalKit from "terminal-kit";
+import path from "path";
 import * as fileLoader from "./fileLoader.js";
 import * as commandProcessing from "./commandProcessing.js";
 import {fileMetaDataList, dlcMaxCounts} from "./fileList.js";
@@ -84,7 +85,7 @@ async function main(): Promise<void> {
 		}
 		initalizeCommands();
 	}).catch((_err: unknown): void=>{
-		term.red("failed to load core files at "+config.installFolder+"\\bh_Data\\StreamingAssets\\bhcontent\\core\\\n");
+		term.red("failed to load core files at "+path.join(config.installFolder, "bh_Data", "StreamingAssets", "bhcontent", "core")+"\n");
 		term.red("Check \"installFolder\" in the config.json file and/or verify the game's integrity.\n");
 	});
 	if (config.shouldAutoloadSave) {
@@ -168,6 +169,7 @@ function findCommand(parts: string[]): [string[], types.commandFunc, string[]]|u
 }
 function generateAutocomplete(input: string): string|string[] {
 	const parts = input.split(" ").filter(part=>part!=="");
+	const result: string[] = [];
 	let outputTarget: types.inputNode = inputTree;
 	let index = 0;
 	const output: string[] = [];
@@ -177,23 +179,31 @@ function generateAutocomplete(input: string): string|string[] {
 	while (true) {
 		const command = outputTarget[1];
 		if (!Array.isArray(command)) {
-			// command found. keep the rest of user input
-			return [...output, ...parts.slice(index)].join(" ");
+			// command found and fully typed. the rest is the args for the command. keep everything
+			result.push(...output, ...parts.slice(index));
+			// string: give back what was already typed
+			return result.join(" ");
 		}
 		const part = parts[index]??"";
 		const subCommands = command.filter(inputNode=>inputNode[0].some(name=>name.startsWith(part)));
 		if (subCommands.length > 1) {
 			// multiple possible commands. for aliases, only show primary name. (subCommand[0][0])
-			return subCommands.map(subCommand=>[...output, getAliasName(subCommand[0], part)].join(" "));
+			result.push(...subCommands.map(subCommand=>[...output, getAliasName(subCommand[0], part)].join(" ")));
+			// array: show all possible commands
+			return result;
 		}
 		const subCommand = subCommands[0];
 		if (subCommand === undefined) {
 			// unknown command
-			return [...output, ...parts.slice(index)].join(" ");
+			result.push(...output, ...parts.slice(index));
+			// string: give back what was already typed
+			return result.join(" ");
 		}
 		if (parts.length <= index+1 && part.length < subCommand.length) {
-			// still typing command
-			return [...output, getAliasName(subCommand[0], part)].join(" ");
+			// still typing command and only 1 command possible
+			result.push(...output, getAliasName(subCommand[0], part));
+			// string: give back the full command
+			return result.join(" ");
 		}
 		// switch target to the only command left
 		outputTarget = subCommand;

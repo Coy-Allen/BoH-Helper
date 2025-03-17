@@ -57,15 +57,16 @@ function closeWatcher(): boolean {
 	if (saveFileWatcher === undefined) {return false;}
 	saveFileWatcher.close();
 	saveFileWatcher = undefined;
+	clearTimeout(fileReadTimer);
 	fileReadTimer = undefined;
 	shouldReadFile = false;
 	return true;
 }
 function fileChangeTrigger(): void {
-	clearInterval(fileReadTimer);
+	clearTimeout(fileReadTimer);
 	fileReadTimer = undefined;
 	shouldReadFile = false;
-	fileReadTimer = setInterval(
+	fileReadTimer = setTimeout(
 		(): undefined=>{shouldReadFile = true;},
 		5000,
 	);
