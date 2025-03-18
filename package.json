@@ -5,6 +5,7 @@
     "@types/node": "^22.13.9",
     "@types/terminal-kit": "^2.5.7",
     "eslint": "^9.21.0",
+    "patch-package": "^8.0.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.0"
   },
@@ -12,6 +13,10 @@
     "iconv-lite": "^0.6.3",
     "json5": "^2.2.3",
     "terminal-kit": "^3.1.2"
+  },
+  "scripts": {
+    "postinstall": "patch-package",
+    "packageExe": "esbuild ./src/terminal.ts --bundle --platform=node --target=node22 --outfile=\"build/main.cjs\" --log-level=debug && pkg -t node22-win-x64 -o ./build/main.exe ./build/main.cjs"
   },
   "main": "./dist/terminal.js",
   "type": "module"
