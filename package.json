@@ -2,12 +2,15 @@
   "devDependencies": {
     "@stylistic/eslint-plugin-ts": "^4.2.0",
     "@tsconfig/strictest": "^2.0.5",
+    "@types/archiver": "^6.0.3",
     "@types/node": "^22.13.9",
     "@types/terminal-kit": "^2.5.7",
     "@yao-pkg/pkg": "^6.3.2",
+    "archiver": "^7.0.1",
     "esbuild": "^0.25.1",
     "eslint": "^9.21.0",
     "patch-package": "^8.0.0",
+    "rimraf": "^6.0.1",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.0"
   },
@@ -18,8 +21,15 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    "packageExe": "esbuild ./src/terminal.ts --bundle --platform=node --target=node22 --outfile=\"build/main.cjs\" --log-level=debug && pkg -t node22-win-x64 -o ./build/main.exe ./build/main.cjs"
+    "build": "npm run build-tsc",
+    "build-tsc": "npx tsc",
+    "clean":"rimraf ./build ./dist",
+    "package": "npm run package-esbuild && npm run package-pkg && npm run package-zip",
+    "package-esbuild": "esbuild ./src/terminal.js --bundle --platform=node --target=node22 --outfile=\"dist/BoH-Helper.cjs\"",
+    "package-pkg": "npm run package-pkg-win",
+    "package-pkg-win": "pkg -t node22-win-x64 -o ./dist/BoH-Helper.exe ./dist/BoH-Helper.cjs",
+    "package-zip": "node ./scripts/package.js"
   },
-  "main": "./dist/terminal.js",
+  "main": "./build/terminal.js",
   "type": "module"
 }

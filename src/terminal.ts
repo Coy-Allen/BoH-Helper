@@ -34,7 +34,9 @@ async function main(): Promise<void> {
 	await term.drawImage(
 		"resources/splash.png",
 		{shrink: {width: term.width, height: term.height*4}},
-	);
+	).catch((): void=>{
+		// file not found. just don't print the file.
+	});
 	term.yellow("Book of Hours' Watcher\n");
 	const fileLoadingProgress = term.progressBar({
 		title: "Loading Files",
