@@ -70,7 +70,7 @@ switch (platform) {
 	case "cygwin":
 	case "netbsd":
 	default: {
-		console.warn("unknown/unsupoported OS detected. default locations are not set.");
+		console.warn("Unknown/unsupoported OS detected. default locations are not set.");
 	}
 }
 

@@ -19,16 +19,14 @@
     "json5": "^2.2.3",
     "terminal-kit": "^3.1.2"
   },
+  "engines": {
+    "node": "^22.0.0"
+  },
   "scripts": {
     "postinstall": "patch-package",
-    "build": "npm run build-tsc",
-    "build-tsc": "npx tsc",
+    "build": "npx tsc",
     "clean":"rimraf ./build ./dist",
-    "package": "npm run package-esbuild && npm run package-pkg && npm run package-zip",
-    "package-esbuild": "esbuild ./src/terminal.js --bundle --platform=node --target=node22 --outfile=\"dist/BoH-Helper.cjs\"",
-    "package-pkg": "npm run package-pkg-win",
-    "package-pkg-win": "pkg -t node22-win-x64 -o ./dist/BoH-Helper.exe ./dist/BoH-Helper.cjs",
-    "package-zip": "node ./scripts/package.js"
+    "package": "node ./scripts/package.js",
   },
   "main": "./build/terminal.js",
   "type": "module"
