@@ -11,7 +11,7 @@ switch (platform) {
 		config = {
 			zipName: "linux-x86_64",
 			executable: "BoH-Helper",
-			pkgTarget: "win-x64",
+			pkgTarget: "linux-x64",
 		};
 		break;
 	}
@@ -20,7 +20,7 @@ switch (platform) {
 		config = {
 			zipName: "windows-x86_64",
 			executable: "BoH-Helper.exe",
-			pkgTarget: "linux-x64",
+			pkgTarget: "win-x64",
 		}
 		break;
 	}
@@ -40,7 +40,7 @@ switch (platform) {
 }
 
 // merge into one js file
-execSync("esbuild ./src/terminal.js --bundle --platform=node --target=${nodeVer} --outfile=dist/BoH-Helper.cjs");
+execSync(`esbuild ./src/terminal.js --bundle --platform=node --target=${nodeVer} --outfile=dist/BoH-Helper.cjs`);
 
 // package into os specific executable
 execSync(`pkg -t ${nodeVer}-${config.pkgTarget} -o ./dist/${config.executable} --target=${nodeVer} ./dist/BoH-Helper.cjs`)
