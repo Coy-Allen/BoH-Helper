@@ -24,6 +24,7 @@ export async function missingCraftable(term: Terminal, parts: string[]): Promise
 		["decks", "decksExtra"],
 		// ["talk", "consider"],
 	] as const;
+	// TODO: sort out season dependent decks/recipes
 	const isIntersecting = (a: readonly string[], b: readonly string[]): boolean=>a.some(str=>b.includes(str));
 	const filterEffects = (a: Record<string, number>): string[] =>{
  		return Object.entries(a).filter(entry=>{

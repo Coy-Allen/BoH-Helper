@@ -113,6 +113,7 @@ function maxAspectsAssistance(term: Terminal, parts: string[]): string {
 		if (aspect) {tableCalc.addRow("extra", {min: {[aspect]: 1}}, maxAspectCheck);}
 		allTables.push(tableCalc);
 	}
+	// FIXME: somehow not printing assistance, extra, or total
 	const finalTable = table.append([sharedCalc, table.merge(allTables, ["assistance", "extra"])]);
 	finalTable.print(term);
 	return parts.join(" ");

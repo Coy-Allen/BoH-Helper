@@ -46,7 +46,7 @@ export async function load(term: Terminal, parts: string[]): Promise<string> {
 		term("watch file for changes? [y|N]\n");
 		if (!await term.yesOrNo({yes: ["y"], no: ["n", "ENTER"]}).promise) {return "";}
 		saveFileWatcherFilename = filename;
-		saveFileWatcher = watch(filename, fileChangeTrigger);
+		saveFileWatcher = watch(filename, "utf8", fileChangeTrigger);
 		term("file watcher created\n");
 		return "";
 	}
